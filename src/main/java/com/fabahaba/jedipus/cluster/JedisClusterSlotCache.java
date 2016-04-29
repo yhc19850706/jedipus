@@ -1,5 +1,6 @@
 package com.fabahaba.jedipus.cluster;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -41,7 +42,8 @@ class JedisClusterSlotCache implements AutoCloseable {
 
   private final boolean optimisticReads;
   private final StampedLock lock;
-  private volatile int slotDiscoveryCnt = 0;
+  private final long millisBetweenSlotCacheRefresh;
+  private volatile long refreshStamp = 0;
 
   private final Function<HostAndPort, JedisPool> masterPoolFactory;
   private final Function<HostAndPort, JedisPool> slavePoolFactory;
@@ -49,14 +51,16 @@ class JedisClusterSlotCache implements AutoCloseable {
 
   private static final int MASTER_NODE_INDEX = 2;
 
-  JedisClusterSlotCache(final ReadMode defaultReadMode, final Set<HostAndPort> discoveryNodes,
+  JedisClusterSlotCache(final ReadMode defaultReadMode, final boolean optimisticReads,
+      final Duration durationBetweenSlotCacheRefresh, final Set<HostAndPort> discoveryNodes,
       final Map<HostAndPort, JedisPool> masterPools, final JedisPool[] masterSlots,
       final Map<HostAndPort, JedisPool> slavePools, final LoadBalancedPools[] slaveSlots,
       final Function<HostAndPort, JedisPool> masterPoolFactory,
       final Function<HostAndPort, JedisPool> slavePoolFactory,
       final Function<HostAndPort, Jedis> jedisAskFactory,
-      final Function<JedisPool[], LoadBalancedPools> lbFactory, final boolean initReadOnly,
-      final boolean optimisticReads) {
+      final Function<JedisPool[], LoadBalancedPools> lbFactory, final boolean initReadOnly) {
+
+    this.refreshStamp = System.currentTimeMillis();
 
     this.defaultReadMode = defaultReadMode;
     this.discoveryHostPorts = discoveryNodes;
@@ -71,6 +75,7 @@ class JedisClusterSlotCache implements AutoCloseable {
         !initReadOnly || defaultReadMode == ReadMode.MASTER ? null : new ConcurrentHashMap<>();
 
     this.optimisticReads = optimisticReads;
+    this.millisBetweenSlotCacheRefresh = durationBetweenSlotCacheRefresh.toMillis();
     this.lock = new StampedLock();
 
     this.masterPoolFactory = masterPoolFactory;
@@ -85,6 +90,7 @@ class JedisClusterSlotCache implements AutoCloseable {
   }
 
   static JedisClusterSlotCache create(final ReadMode defaultReadMode, final boolean optimisticReads,
+      final Duration durationBetweenSlotCacheRefresh,
       final Collection<HostAndPort> discoveryHostPorts,
       final Function<HostAndPort, JedisPool> masterPoolFactory,
       final Function<HostAndPort, JedisPool> slavePoolFactory,
@@ -101,14 +107,15 @@ class JedisClusterSlotCache implements AutoCloseable {
     final LoadBalancedPools[] slaveSlots = defaultReadMode == ReadMode.MASTER
         ? new LoadBalancedPools[0] : new LoadBalancedPools[BinaryJedisCluster.HASHSLOTS];
 
-    return create(defaultReadMode, optimisticReads, discoveryHostPorts, masterPoolFactory,
-        slavePoolFactory, jedisAskFactory, lbFactory, masterPools, masterSlots, slavePools,
-        slaveSlots, initReadOnly);
+    return create(defaultReadMode, optimisticReads, durationBetweenSlotCacheRefresh,
+        discoveryHostPorts, masterPoolFactory, slavePoolFactory, jedisAskFactory, lbFactory,
+        masterPools, masterSlots, slavePools, slaveSlots, initReadOnly);
   }
 
   @SuppressWarnings("unchecked")
   private static JedisClusterSlotCache create(final ReadMode defaultReadMode,
-      final boolean optimisticReads, final Collection<HostAndPort> discoveryHostPorts,
+      final boolean optimisticReads, final Duration durationBetweenSlotCacheRefresh,
+      final Collection<HostAndPort> discoveryHostPorts,
       final Function<HostAndPort, JedisPool> masterPoolFactory,
       final Function<HostAndPort, JedisPool> slavePoolFactory,
       final Function<HostAndPort, Jedis> jedisAskFactory,
@@ -186,38 +193,39 @@ class JedisClusterSlotCache implements AutoCloseable {
         }
 
         if (optimisticReads) {
-          return new OptimisticJedisClusterSlotCache(defaultReadMode, allDiscoveryHostPorts,
-              masterPools, masterSlots, slavePools, slaveSlots, masterPoolFactory, slavePoolFactory,
-              jedisAskFactory, lbFactory, initReadOnly);
+          return new OptimisticJedisClusterSlotCache(defaultReadMode,
+              durationBetweenSlotCacheRefresh, allDiscoveryHostPorts, masterPools, masterSlots,
+              slavePools, slaveSlots, masterPoolFactory, slavePoolFactory, jedisAskFactory,
+              lbFactory, initReadOnly);
         }
 
-        return new JedisClusterSlotCache(defaultReadMode, allDiscoveryHostPorts, masterPools,
-            masterSlots, slavePools, slaveSlots, masterPoolFactory, slavePoolFactory,
-            jedisAskFactory, lbFactory, initReadOnly, false);
+        return new JedisClusterSlotCache(defaultReadMode, false, durationBetweenSlotCacheRefresh,
+            allDiscoveryHostPorts, masterPools, masterSlots, slavePools, slaveSlots,
+            masterPoolFactory, slavePoolFactory, jedisAskFactory, lbFactory, initReadOnly);
       } catch (final JedisConnectionException e) {
         // try next discoveryNode...
       }
     }
 
     if (optimisticReads) {
-      return new OptimisticJedisClusterSlotCache(defaultReadMode, allDiscoveryHostPorts,
-          masterPools, masterSlots, slavePools, slaveSlots, masterPoolFactory, slavePoolFactory,
-          jedisAskFactory, lbFactory, initReadOnly);
+      return new OptimisticJedisClusterSlotCache(defaultReadMode, durationBetweenSlotCacheRefresh,
+          allDiscoveryHostPorts, masterPools, masterSlots, slavePools, slaveSlots,
+          masterPoolFactory, slavePoolFactory, jedisAskFactory, lbFactory, initReadOnly);
     }
 
-    return new JedisClusterSlotCache(defaultReadMode, allDiscoveryHostPorts, masterPools,
-        masterSlots, slavePools, slaveSlots, masterPoolFactory, slavePoolFactory, jedisAskFactory,
-        lbFactory, initReadOnly, optimisticReads);
+    return new JedisClusterSlotCache(defaultReadMode, false, durationBetweenSlotCacheRefresh,
+        allDiscoveryHostPorts, masterPools, masterSlots, slavePools, slaveSlots, masterPoolFactory,
+        slavePoolFactory, jedisAskFactory, lbFactory, initReadOnly);
   }
 
   @SuppressWarnings("unchecked")
   void discoverClusterSlots(final Jedis jedis) {
 
-    final int dedupeDiscovery = slotDiscoveryCnt;
+    final long dedupeDiscovery = refreshStamp;
     final long writeStamp = lock.writeLock();
     try {
 
-      if (dedupeDiscovery != slotDiscoveryCnt) {
+      if (dedupeDiscovery != refreshStamp) {
         return;
       }
 
@@ -228,6 +236,18 @@ class JedisClusterSlotCache implements AutoCloseable {
 
       final Set<HostAndPort> staleMasterPools = new HashSet<>(masterPools.keySet());
       final Set<HostAndPort> staleSlavePools = new HashSet<>(slavePools.keySet());
+
+      final long delayMillis =
+          (refreshStamp + millisBetweenSlotCacheRefresh) - System.currentTimeMillis();
+
+      if (delayMillis > 0) {
+        try {
+          Thread.sleep(delayMillis);
+        } catch (final InterruptedException ie) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException(ie);
+        }
+      }
 
       final List<Object> slots = jedis.clusterSlots();
 
@@ -312,10 +332,9 @@ class JedisClusterSlotCache implements AutoCloseable {
           }
         });
       }
-
-      slotDiscoveryCnt++;
     } finally {
       lock.unlockWrite(writeStamp);
+      refreshStamp = System.currentTimeMillis();
     }
   }
 

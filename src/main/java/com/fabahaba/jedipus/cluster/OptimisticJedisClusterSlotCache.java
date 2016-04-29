@@ -1,5 +1,6 @@
 package com.fabahaba.jedipus.cluster;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -13,16 +14,17 @@ import redis.clients.jedis.JedisPool;
 class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
 
   OptimisticJedisClusterSlotCache(final ReadMode defaultReadMode,
-      final Set<HostAndPort> discoveryNodes, final Map<HostAndPort, JedisPool> masterPools,
-      final JedisPool[] masterSlots, final Map<HostAndPort, JedisPool> slavePools,
-      final LoadBalancedPools[] slaveSlots,
+      final Duration durationBetweenSlotCacheRefresh, final Set<HostAndPort> discoveryNodes,
+      final Map<HostAndPort, JedisPool> masterPools, final JedisPool[] masterSlots,
+      final Map<HostAndPort, JedisPool> slavePools, final LoadBalancedPools[] slaveSlots,
       final Function<HostAndPort, JedisPool> masterPoolFactory,
       final Function<HostAndPort, JedisPool> slavePoolFactory,
       final Function<HostAndPort, Jedis> jedisAskFactory,
       final Function<JedisPool[], LoadBalancedPools> lbFactory, final boolean initReadOnly) {
 
-    super(defaultReadMode, discoveryNodes, masterPools, masterSlots, slavePools, slaveSlots,
-        masterPoolFactory, slavePoolFactory, jedisAskFactory, lbFactory, initReadOnly, true);
+    super(defaultReadMode, true, durationBetweenSlotCacheRefresh, discoveryNodes, masterPools,
+        masterSlots, slavePools, slaveSlots, masterPoolFactory, slavePoolFactory, jedisAskFactory,
+        lbFactory, initReadOnly);
   }
 
   @Override

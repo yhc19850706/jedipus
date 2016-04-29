@@ -1,5 +1,6 @@
 package com.fabahaba.jedipus.cluster;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
@@ -17,15 +18,16 @@ class JedisClusterConnHandler implements AutoCloseable {
   private final JedisClusterSlotCache slotPoolCache;
 
   JedisClusterConnHandler(final ReadMode defaultReadMode, final boolean optimisticReads,
+      final Duration durationBetweenSlotCacheRefresh,
       final Collection<HostAndPort> discoveryHostPorts,
       final Function<HostAndPort, JedisPool> masterPoolFactory,
       final Function<HostAndPort, JedisPool> slavePoolFactory,
       final Function<HostAndPort, Jedis> jedisAskFactory,
       final Function<JedisPool[], LoadBalancedPools> lbFactory, final boolean initReadOnly) {
 
-    this.slotPoolCache =
-        JedisClusterSlotCache.create(defaultReadMode, optimisticReads, discoveryHostPorts,
-            masterPoolFactory, slavePoolFactory, jedisAskFactory, lbFactory, initReadOnly);
+    this.slotPoolCache = JedisClusterSlotCache.create(defaultReadMode, optimisticReads,
+        durationBetweenSlotCacheRefresh, discoveryHostPorts, masterPoolFactory, slavePoolFactory,
+        jedisAskFactory, lbFactory, initReadOnly);
   }
 
   ReadMode getDefaultReadMode() {

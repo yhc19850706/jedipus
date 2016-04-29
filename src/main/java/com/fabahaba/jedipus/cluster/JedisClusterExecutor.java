@@ -1,5 +1,6 @@
 package com.fabahaba.jedipus.cluster;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -31,6 +32,8 @@ public final class JedisClusterExecutor implements AutoCloseable {
   private static final int DEFAULT_MAX_REDIRECTIONS = 5;
   private static final int DEFAULT_MAX_RETRIES = 2;
   private static final int DEFAULT_TRY_RANDOM_AFTER = 1;
+
+  private static final Duration DEFAULT_DURATION_BETWEEN_SLOT_CACHE_REFRESH = Duration.ofMillis(20);
 
   private static final GenericObjectPoolConfig DEFAULT_POOL_CONFIG = new GenericObjectPoolConfig();
 
@@ -125,14 +128,15 @@ public final class JedisClusterExecutor implements AutoCloseable {
   private JedisClusterExecutor(final ReadMode defaultReadMode,
       final Collection<HostAndPort> discoveryHostPorts, final int maxRedirections,
       final int maxRetries, final int tryRandomAfter, final HostPortRetryDelay hostPortRetryDelay,
-      final boolean optimisticReads, final Function<HostAndPort, JedisPool> masterPoolFactory,
+      final boolean optimisticReads, final Duration durationBetweenSlotCacheRefresh,
+      final Function<HostAndPort, JedisPool> masterPoolFactory,
       final Function<HostAndPort, JedisPool> slavePoolFactory,
       final Function<HostAndPort, Jedis> jedisAskFactory,
       final Function<JedisPool[], LoadBalancedPools> lbFactory, final boolean initReadOnly) {
 
-    this.connHandler =
-        new JedisClusterConnHandler(defaultReadMode, optimisticReads, discoveryHostPorts,
-            masterPoolFactory, slavePoolFactory, jedisAskFactory, lbFactory, initReadOnly);
+    this.connHandler = new JedisClusterConnHandler(defaultReadMode, optimisticReads,
+        durationBetweenSlotCacheRefresh, discoveryHostPorts, masterPoolFactory, slavePoolFactory,
+        jedisAskFactory, lbFactory, initReadOnly);
 
     this.maxRedirections = maxRedirections;
     this.maxRetries = maxRetries;
@@ -674,6 +678,7 @@ public final class JedisClusterExecutor implements AutoCloseable {
     // If true, access to slot pool cache will not lock when retreiving a pool/client during a slot
     // re-configuration.
     private boolean optimisticReads = true;
+    private Duration durationBetweenSlotCacheRefresh = DEFAULT_DURATION_BETWEEN_SLOT_CACHE_REFRESH;
 
     private Builder(final Collection<HostAndPort> discoveryHostPorts) {
 
@@ -683,8 +688,8 @@ public final class JedisClusterExecutor implements AutoCloseable {
     public JedisClusterExecutor create() {
 
       return new JedisClusterExecutor(defaultReadMode, discoveryHostPorts, maxRedirections,
-          maxRetries, tryRandomAfter, hostPortRetryDelay, optimisticReads, masterPoolFactory,
-          slavePoolFactory, jedisAskFactory,
+          maxRetries, tryRandomAfter, hostPortRetryDelay, optimisticReads,
+          durationBetweenSlotCacheRefresh, masterPoolFactory, slavePoolFactory, jedisAskFactory,
           slavePools -> lbFactory.apply(defaultReadMode, slavePools), initReadOnly);
     }
 
@@ -766,6 +771,16 @@ public final class JedisClusterExecutor implements AutoCloseable {
 
     public Builder withOptimisticReads(final boolean optimisticReads) {
       this.optimisticReads = optimisticReads;
+      return this;
+    }
+
+    public Duration getDurationBetweenSlotCacheRefresh() {
+      return durationBetweenSlotCacheRefresh;
+    }
+
+    public Builder withDurationBetweenSlotCacheRefresh(
+        final Duration durationBetweenSlotCacheRefresh) {
+      this.durationBetweenSlotCacheRefresh = durationBetweenSlotCacheRefresh;
       return this;
     }
 
