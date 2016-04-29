@@ -109,41 +109,42 @@ public final class RedisLock {
   private static final LuaScriptData TRY_RELEASE_LOCK =
       LuaScriptData.fromResourcePath("/TRY_RELEASE_LOCK.lua");
 
-  @SuppressWarnings("unchecked")
-  public static void main(final String[] args) {
+   @SuppressWarnings("unchecked")
+   public static void main(final String[] args) {
 
-    final Collection<HostAndPort> discoveryHostPorts =
-        Collections.singleton(new HostAndPort("127.0.0.1", 7000));
+      final Collection<HostAndPort> discoveryHostPorts =
+          Collections.singleton(new HostAndPort("127.0.0.1", 7000));
 
-    try (final JedisClusterExecutor jce = JedisClusterExecutor
-            .startBuilding(discoveryHostPorts).create()) {
+      try (final JedisClusterExecutor jce =
+            JedisClusterExecutor.startBuilding(discoveryHostPorts).create()) {
 
-      LuaScript.loadMissingScripts(jce, TRY_ACQUIRE_LOCK, TRY_RELEASE_LOCK);
+         LuaScript.loadMissingScripts(jce, TRY_ACQUIRE_LOCK, TRY_RELEASE_LOCK);
 
-      final byte[] lockName = RESP.toBytes("mylock");
-      final byte[] ownerId = RESP.toBytes("myOwnerId");
-      final byte[] pexpire = RESP.toBytes(3000);
+         final byte[] lockName = RESP.toBytes("mylock");
+         final byte[] ownerId = RESP.toBytes("myOwnerId");
+         final byte[] pexpire = RESP.toBytes(1000);
 
-      final List<Object> lockOwners = (List<Object>) TRY_ACQUIRE_LOCK.eval(jce, 1,
-          lockName, ownerId, pexpire);
+         final List<Object> lockOwners =
+            (List<Object>) TRY_ACQUIRE_LOCK.eval(jce, 1, lockName, ownerId, pexpire);
 
-      // final byte[] previousOwner = (byte[]) lockOwners.get(0);
-      final byte[] currentOwner = (byte[]) lockOwners.get(1);
-      final long pttl = (long) lockOwners.get(2);
+         // final byte[] previousOwner = (byte[]) lockOwners.get(0);
+         final byte[] currentOwner = (byte[]) lockOwners.get(1);
+         final long pttl = (long) lockOwners.get(2);
 
-      // 'myOwnerId' has lock 'mylock' for 3000ms.
-      System.out.format("'%s' has lock '%s' for %dms.%n", RESP.toString(currentOwner),
-          RESP.toString(lockName), pttl);
+         // 'myOwnerId' has lock 'mylock' for 1000ms.
+         System.out.format("'%s' has lock '%s' for %dms.%n", RESP.toString(currentOwner),
+            RESP.toString(lockName), pttl);
 
-      final long released = (long) TRY_RELEASE_LOCK.eval(jce, 1, lockName, ownerId);
+         final byte[] tryReleaseOwner = (byte[]) TRY_RELEASE_LOCK.eval(jce, 1, lockName, ownerId);
 
-      if (released == 1) {
-        // Lock was released by 'myOwnerId'.
-        System.out.format("Lock was released by '%s'.%n", RESP.toString(ownerId));
-      } else {
-        System.out.format("Lock was no longer owned by '%s'.%n", RESP.toString(ownerId));
+         if (tryReleaseOwner != null && Arrays.equals(tryReleaseOwner, ownerId)) {
+            // Lock was released by 'myOwnerId'.
+            System.out.format("Lock was released by '%s'.%n", RESP.toString(ownerId));
+         } else {
+            System.out.format("Lock was no longer owned by '%s'.%n", RESP.toString(ownerId));
+         }
       }
-    }
+   }
   }
 ```
 
@@ -174,12 +175,17 @@ return {owner, owner, redis.call('pttl', lockName)};
 
 **src/main/resoures/TRY_RELEASE_LOCK.lua**
 ```lua
+-- Returns the current owner at the time of this call.
+-- The 'lockName' key is deleted if the requesting owner matches the current.
+
 local lockName = KEYS[1];
 local lockOwner = ARGV[1];
 
-if redis.call('get', lockName) == lockOwner then
-   return redis.call('del', lockName);
+local currentOwner = redis.call('get', lockName);
+
+if lockOwner == currentOwner then
+   redis.call('del', lockName);
 end
 
-return -1;
+return currentOwner;
 ```
