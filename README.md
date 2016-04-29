@@ -21,6 +21,21 @@
 * MIXED_SLAVES: Pools are managed for both masters and slave nodes.  Calls are only load balanced across slave pools. Individual calls can be overridden with `ReadMode.MASTER` or `ReadMode.MIXED`.  When no slave pools are available the master pool is used.
 * MIXED: Pools are managed for both masters and slave nodes.  Calls are load balanced across both master and slave pools. Individual calls can be overridden with `ReadMode.MASTER` or `ReadMode.SLAVES`.  When overriding with `ReadMode.SLAVES` and no slave pools are available the master pool is used.
 
+#####Dependency Management
+######Gradle
+```groovy
+repositories {
+   jcenter()
+}
+
+dependencies {
+   // Optional
+   // compile 'org.apache.commons:commons-pool2:+'
+   compile 'redis.clients:jedis:+'
+   compile 'com.fabahaba:jedipus:+'
+}
+```
+
 #####Basic Usage Example
 ```java
 final Collection<HostAndPort> discoveryHostPorts =
@@ -167,19 +182,4 @@ if redis.call('get', lockName) == lockOwner then
 end
 
 return -1;
-```
-
-#####Dependency Management
-######Gradle
-```groovy
-repositories {
-   jcenter()
-}
-
-dependencies {
-   // Optional
-   // compile 'org.apache.commons:commons-pool2:+'
-   compile 'redis.clients:jedis:+'
-   compile 'com.fabahaba:jedipus:+'
-}
 ```

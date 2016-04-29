@@ -4,6 +4,12 @@ notifications:
   email:
     on_success: never
     on_failure: always
+  webhooks:
+    urls:
+      - https://webhooks.gitter.im/e/bba22d15fbebd424c29b
+    on_success: change
+    on_failure: always
+    on_start: never
 
 language: java
 
