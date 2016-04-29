@@ -199,9 +199,10 @@ class JedisClusterSlotCache implements AutoCloseable {
               lbFactory, initReadOnly);
         }
 
-        return new JedisClusterSlotCache(defaultReadMode, false, durationBetweenSlotCacheRefresh,
-            allDiscoveryHostPorts, masterPools, masterSlots, slavePools, slaveSlots,
-            masterPoolFactory, slavePoolFactory, jedisAskFactory, lbFactory, initReadOnly);
+        return new JedisClusterSlotCache(defaultReadMode, optimisticReads,
+            durationBetweenSlotCacheRefresh, allDiscoveryHostPorts, masterPools, masterSlots,
+            slavePools, slaveSlots, masterPoolFactory, slavePoolFactory, jedisAskFactory, lbFactory,
+            initReadOnly);
       } catch (final JedisConnectionException e) {
         // try next discoveryNode...
       }
@@ -213,9 +214,10 @@ class JedisClusterSlotCache implements AutoCloseable {
           masterPoolFactory, slavePoolFactory, jedisAskFactory, lbFactory, initReadOnly);
     }
 
-    return new JedisClusterSlotCache(defaultReadMode, false, durationBetweenSlotCacheRefresh,
-        allDiscoveryHostPorts, masterPools, masterSlots, slavePools, slaveSlots, masterPoolFactory,
-        slavePoolFactory, jedisAskFactory, lbFactory, initReadOnly);
+    return new JedisClusterSlotCache(defaultReadMode, optimisticReads,
+        durationBetweenSlotCacheRefresh, allDiscoveryHostPorts, masterPools, masterSlots,
+        slavePools, slaveSlots, masterPoolFactory, slavePoolFactory, jedisAskFactory, lbFactory,
+        initReadOnly);
   }
 
   @SuppressWarnings("unchecked")
@@ -333,8 +335,11 @@ class JedisClusterSlotCache implements AutoCloseable {
         });
       }
     } finally {
-      lock.unlockWrite(writeStamp);
-      refreshStamp = System.currentTimeMillis();
+      try {
+        refreshStamp = System.currentTimeMillis();
+      } finally {
+        lock.unlockWrite(writeStamp);
+      }
     }
   }
 
