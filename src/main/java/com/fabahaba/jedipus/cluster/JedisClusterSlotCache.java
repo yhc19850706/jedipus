@@ -60,7 +60,7 @@ class JedisClusterSlotCache implements AutoCloseable {
       final Function<HostPort, Jedis> jedisAskDiscoveryFactory,
       final Function<Pool<Jedis>[], LoadBalancedPools> lbFactory) {
 
-    this.refreshStamp = System.nanoTime();
+    this.refreshStamp = System.currentTimeMillis();
 
     this.defaultReadMode = defaultReadMode;
     this.discoveryHostPorts = discoveryNodes;
