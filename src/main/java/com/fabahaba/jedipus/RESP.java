@@ -41,6 +41,11 @@ public final class RESP {
     return Integer.parseInt(toString(bytes));
   }
 
+  public static Integer longToInt(final Object lng) {
+
+    return ((Long) lng).intValue();
+  }
+
   public static Long toLong(final Object bytes) {
 
     return Long.parseLong(toString(bytes));

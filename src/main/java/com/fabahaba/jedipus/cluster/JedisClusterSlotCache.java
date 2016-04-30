@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.StampedLock;
 import java.util.function.Function;
 
+import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
 
@@ -138,8 +139,8 @@ class JedisClusterSlotCache implements AutoCloseable {
 
           final List<Object> slotInfo = (List<Object>) slotInfoObj;
 
-          final int slotBegin = ((Long) slotInfo.get(0)).intValue();
-          final int slotEnd = ((Long) slotInfo.get(1)).intValue();
+          final int slotBegin = RESP.longToInt(slotInfo.get(0));
+          final int slotEnd = RESP.longToInt(slotInfo.get(1));
 
           switch (defaultReadMode) {
             case MIXED_SLAVES:
@@ -270,8 +271,8 @@ class JedisClusterSlotCache implements AutoCloseable {
 
         final List<Object> slotInfo = (List<Object>) slotInfoObj;
 
-        final int slotBegin = ((Long) slotInfo.get(0)).intValue();
-        final int slotEnd = ((Long) slotInfo.get(1)).intValue();
+        final int slotBegin = RESP.longToInt(slotInfo.get(0));
+        final int slotEnd = RESP.longToInt(slotInfo.get(1));
 
         switch (defaultReadMode) {
           case MIXED_SLAVES:
@@ -358,17 +359,15 @@ class JedisClusterSlotCache implements AutoCloseable {
 
   private static HostAndPort createHostPort(final List<Object> hostInfos) {
 
-    final String ip = RESP.toString(hostInfos.get(0));
-
-    return new HostAndPort(ip.equals("127.0.0.1") || ip.equals("::1") ? "localhost" : ip,
-        ((Long) hostInfos.get(1)).intValue());
+    return HostPort.createHostPort(RESP.toString(hostInfos.get(0)),
+        RESP.longToInt(hostInfos.get(1)));
   }
 
   static HostAndPort createHostPort(final Jedis jedis) {
 
     final Client client = jedis.getClient();
 
-    return new HostAndPort(client.getHost(), client.getPort());
+    return HostPort.createHostPort(client.getHost(), client.getPort());
   }
 
   Jedis getAskJedis(final HostAndPort askHostPort) {

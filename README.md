@@ -39,7 +39,7 @@ dependencies {
 #####Basic Usage Example
 ```java
 final Collection<HostAndPort> discoveryHostPorts =
-        Collections.singleton(new HostAndPort("127.0.0.1", 7000));
+        Collections.singleton(HostPort.createHostPort("localhost", 7000));
 
 try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryHostPorts)
        .withReadMode(ReadMode.MIXED_SLAVES).withInitReadOnly(true).create()) {
@@ -113,7 +113,7 @@ public final class RedisLock {
    public static void main(final String[] args) {
 
       final Collection<HostAndPort> discoveryHostPorts =
-          Collections.singleton(new HostAndPort("127.0.0.1", 7000));
+          Collections.singleton(HostPort.createHostPort("127.0.0.1", 7000));
 
       try (final JedisClusterExecutor jce =
             JedisClusterExecutor.startBuilding(discoveryHostPorts).create()) {
