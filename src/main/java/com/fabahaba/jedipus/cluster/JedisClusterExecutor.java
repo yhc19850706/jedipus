@@ -36,7 +36,10 @@ public final class JedisClusterExecutor implements AutoCloseable {
   private static final int DEFAULT_MAX_RETRIES = 2;
   private static final int DEFAULT_TRY_RANDOM_AFTER = 1;
 
-  private static final Duration DEFAULT_DURATION_BETWEEN_SLOT_CACHE_REFRESH = Duration.ofMillis(20);
+  private static final Duration DEFAULT_DURATION_BETWEEN_CACHE_REFRESH = Duration.ofMillis(20);
+  // 0 blocks forever, timed out request with retry or throw a JedisConnectionException if no pools
+  // are available.
+  private static final Duration DEFAULT_MAX_AWAIT_CACHE_REFRESH = Duration.ofNanos(0);
 
   private static final GenericObjectPoolConfig DEFAULT_POOL_CONFIG = new GenericObjectPoolConfig();
 
@@ -57,8 +60,7 @@ public final class JedisClusterExecutor implements AutoCloseable {
     DEFAULT_POOL_CONFIG.setMaxWaitMillis(GenericObjectPoolConfig.DEFAULT_MAX_WAIT_MILLIS);
   }
 
-  private static final JedisFactory.Builder DEFAULT_JEDIS_FACTORY =
-      JedisFactory.startBuilding();
+  private static final JedisFactory.Builder DEFAULT_JEDIS_FACTORY = JedisFactory.startBuilding();
 
   private static final Function<ClusterNode, Pool<Jedis>> DEFAULT_MASTER_POOL_FACTORY =
       node -> new JedisPool(DEFAULT_POOL_CONFIG,
@@ -137,15 +139,16 @@ public final class JedisClusterExecutor implements AutoCloseable {
   private JedisClusterExecutor(final ReadMode defaultReadMode,
       final Collection<HostPort> discoveryHostPorts, final int maxRedirections,
       final int maxRetries, final int tryRandomAfter, final HostPortRetryDelay hostPortRetryDelay,
-      final boolean optimisticReads, final Duration durationBetweenSlotCacheRefresh,
+      final boolean optimisticReads, final Duration durationBetweenCacheRefresh,
+      final Duration maxAwaitCacheRefresh,
       final Function<ClusterNode, Pool<Jedis>> masterPoolFactory,
       final Function<ClusterNode, Pool<Jedis>> slavePoolFactory,
       final Function<HostPort, Jedis> jedisAskDiscoveryFactory,
       final Function<Pool<Jedis>[], LoadBalancedPools> lbFactory) {
 
     this.connHandler = new JedisClusterConnHandler(defaultReadMode, optimisticReads,
-        durationBetweenSlotCacheRefresh, discoveryHostPorts, masterPoolFactory, slavePoolFactory,
-        jedisAskDiscoveryFactory, lbFactory);
+        durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryHostPorts, masterPoolFactory,
+        slavePoolFactory, jedisAskDiscoveryFactory, lbFactory);
 
     this.maxRedirections = maxRedirections;
     this.maxRetries = maxRetries;
@@ -680,7 +683,10 @@ public final class JedisClusterExecutor implements AutoCloseable {
     // If true, access to slot pool cache will not lock when retreiving a pool/client during a slot
     // re-configuration.
     private boolean optimisticReads = true;
-    private Duration durationBetweenSlotCacheRefresh = DEFAULT_DURATION_BETWEEN_SLOT_CACHE_REFRESH;
+    private Duration durationBetweenCacheRefresh = DEFAULT_DURATION_BETWEEN_CACHE_REFRESH;
+    // 0 blocks forever, timed out request with retry or throw a JedisConnectionException if no
+    // pools are available.
+    private Duration maxAwaitCacheRefresh = DEFAULT_MAX_AWAIT_CACHE_REFRESH;
 
     private Builder(final Collection<HostPort> discoveryHostPorts) {
 
@@ -691,7 +697,7 @@ public final class JedisClusterExecutor implements AutoCloseable {
 
       return new JedisClusterExecutor(defaultReadMode, discoveryHostPorts, maxRedirections,
           maxRetries, tryRandomAfter, hostPortRetryDelay, optimisticReads,
-          durationBetweenSlotCacheRefresh, masterPoolFactory, slavePoolFactory,
+          durationBetweenCacheRefresh, maxAwaitCacheRefresh, masterPoolFactory, slavePoolFactory,
           jedisAskDiscoveryFactory, slavePools -> lbFactory.apply(defaultReadMode, slavePools));
     }
 
@@ -758,13 +764,21 @@ public final class JedisClusterExecutor implements AutoCloseable {
       return this;
     }
 
-    public Duration getDurationBetweenSlotCacheRefresh() {
-      return durationBetweenSlotCacheRefresh;
+    public Duration getDurationBetweenCacheRefresh() {
+      return durationBetweenCacheRefresh;
     }
 
-    public Builder withDurationBetweenSlotCacheRefresh(
-        final Duration durationBetweenSlotCacheRefresh) {
-      this.durationBetweenSlotCacheRefresh = durationBetweenSlotCacheRefresh;
+    public Builder withDurationBetweenCacheRefresh(final Duration durationBetweenCacheRefresh) {
+      this.durationBetweenCacheRefresh = durationBetweenCacheRefresh;
+      return this;
+    }
+
+    public Duration getMaxAwaitCacheRefresh() {
+      return maxAwaitCacheRefresh;
+    }
+
+    public Builder withMaxAwaitCacheRefresh(final Duration maxAwaitCacheRefresh) {
+      this.maxAwaitCacheRefresh = maxAwaitCacheRefresh;
       return this;
     }
 

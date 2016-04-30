@@ -14,17 +14,18 @@ import redis.clients.util.Pool;
 class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
 
   OptimisticJedisClusterSlotCache(final ReadMode defaultReadMode,
-      final Duration durationBetweenSlotCacheRefresh, final Set<HostPort> discoveryNodes,
-      final Map<ClusterNode, Pool<Jedis>> masterPools, final Pool<Jedis>[] masterSlots,
-      final Map<ClusterNode, Pool<Jedis>> slavePools, final LoadBalancedPools[] slaveSlots,
+      final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
+      final Set<HostPort> discoveryNodes, final Map<ClusterNode, Pool<Jedis>> masterPools,
+      final Pool<Jedis>[] masterSlots, final Map<ClusterNode, Pool<Jedis>> slavePools,
+      final LoadBalancedPools[] slaveSlots,
       final Function<ClusterNode, Pool<Jedis>> masterPoolFactory,
       final Function<ClusterNode, Pool<Jedis>> slavePoolFactory,
       final Function<HostPort, Jedis> jedisAskFactory,
       final Function<Pool<Jedis>[], LoadBalancedPools> lbFactory) {
 
-    super(defaultReadMode, true, durationBetweenSlotCacheRefresh, discoveryNodes, masterPools,
-        masterSlots, slavePools, slaveSlots, masterPoolFactory, slavePoolFactory, jedisAskFactory,
-        lbFactory);
+    super(defaultReadMode, true, durationBetweenCacheRefresh, maxAwaitCacheRefresh,
+        discoveryNodes, masterPools, masterSlots, slavePools, slaveSlots, masterPoolFactory,
+        slavePoolFactory, jedisAskFactory, lbFactory);
   }
 
   @Override

@@ -18,15 +18,16 @@ class JedisClusterConnHandler implements AutoCloseable {
   private final JedisClusterSlotCache slotPoolCache;
 
   JedisClusterConnHandler(final ReadMode defaultReadMode, final boolean optimisticReads,
-      final Duration durationBetweenSlotCacheRefresh, final Collection<HostPort> discoveryHostPorts,
+      final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
+      final Collection<HostPort> discoveryHostPorts,
       final Function<ClusterNode, Pool<Jedis>> masterPoolFactory,
       final Function<ClusterNode, Pool<Jedis>> slavePoolFactory,
       final Function<HostPort, Jedis> jedisAskDiscoveryFactory,
       final Function<Pool<Jedis>[], LoadBalancedPools> lbFactory) {
 
     this.slotPoolCache = JedisClusterSlotCache.create(defaultReadMode, optimisticReads,
-        durationBetweenSlotCacheRefresh, discoveryHostPorts, masterPoolFactory, slavePoolFactory,
-        jedisAskDiscoveryFactory, lbFactory);
+        durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryHostPorts, masterPoolFactory,
+        slavePoolFactory, jedisAskDiscoveryFactory, lbFactory);
   }
 
   ReadMode getDefaultReadMode() {
@@ -68,11 +69,8 @@ class JedisClusterConnHandler implements AutoCloseable {
           continue;
         }
 
-        if (jedis.ping().equalsIgnoreCase("pong")) {
-          return jedis;
-        }
-
-        jedis.close();
+        jedis.ping();
+        return jedis;
       } catch (final JedisException ex) {
         if (jedis != null) {
           jedis.close();

@@ -101,7 +101,11 @@ public final class JedisFactory implements PooledObjectFactory<Jedis> {
 
     final BinaryJedis jedis = pooledJedis.getObject();
     try {
-      return jedis.isConnected() && jedis.ping().equals("PONG");
+      if (jedis.isConnected()) {
+        jedis.ping();
+        return true;
+      }
+      return false;
     } catch (final RuntimeException e) {
       return false;
     }
@@ -122,6 +126,8 @@ public final class JedisFactory implements PooledObjectFactory<Jedis> {
     private String pass;
     private String clientName;
     private boolean initReadOnly;
+
+    private Builder() {}
 
     public JedisFactory create() {
 
