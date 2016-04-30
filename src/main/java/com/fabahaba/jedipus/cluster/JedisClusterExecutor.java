@@ -18,10 +18,8 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Protocol;
 import redis.clients.jedis.exceptions.JedisAskDataException;
-import redis.clients.jedis.exceptions.JedisClusterException;
 import redis.clients.jedis.exceptions.JedisClusterMaxRedirectionsException;
 import redis.clients.jedis.exceptions.JedisConnectionException;
-import redis.clients.jedis.exceptions.JedisMovedDataException;
 import redis.clients.jedis.exceptions.JedisRedirectionException;
 import redis.clients.util.JedisClusterCRC16;
 import redis.clients.util.Pool;
@@ -507,19 +505,16 @@ public final class JedisClusterExecutor implements AutoCloseable {
         if (hostPortRetryDelay != null && jedis != null) {
           hostPortRetryDelay.markFailure(JedisClusterSlotCache.createHostPort(jedis));
         }
-      } catch (final JedisMovedDataException jre) {
+      } catch (final JedisAskDataException askEx) {
+
+        askNode = connHandler.getAskNode(ClusterNode.create(askEx.getTargetNode()));
+      } catch (final JedisRedirectionException moveEx) {
 
         if (jedis == null) {
           connHandler.renewSlotCache(readMode);
         } else {
           connHandler.renewSlotCache(readMode, jedis);
         }
-      } catch (final JedisAskDataException jre) {
-
-        askNode = connHandler.getAskNode(ClusterNode.create(jre.getTargetNode()));
-      } catch (final JedisRedirectionException jre) {
-
-        throw new JedisClusterException(jre);
       } finally {
         if (jedis != null) {
           jedis.close();
@@ -557,10 +552,18 @@ public final class JedisClusterExecutor implements AutoCloseable {
             hostPortRetryDelay.markFailure(JedisClusterSlotCache.createHostPort(jedis));
           }
           continue;
-        } catch (final JedisMovedDataException jre) {
+        } catch (final JedisAskDataException askEx) {
 
           if (++redirections > maxRedirections) {
-            throw new JedisClusterMaxRedirectionsException(jre);
+            throw new JedisClusterMaxRedirectionsException(askEx);
+          }
+
+          askNode = connHandler.getAskNode(ClusterNode.create(askEx.getTargetNode()));
+          continue;
+        } catch (final JedisRedirectionException moveEx) {
+
+          if (++redirections > maxRedirections) {
+            throw new JedisClusterMaxRedirectionsException(moveEx);
           }
 
           if (jedis == null) {
@@ -569,17 +572,6 @@ public final class JedisClusterExecutor implements AutoCloseable {
             connHandler.renewSlotCache(readMode, jedis);
           }
           continue;
-        } catch (final JedisAskDataException jre) {
-
-          if (++redirections > maxRedirections) {
-            throw new JedisClusterMaxRedirectionsException(jre);
-          }
-
-          askNode = connHandler.getAskNode(ClusterNode.create(jre.getTargetNode()));
-          continue;
-        } catch (final JedisRedirectionException jre) {
-
-          throw new JedisClusterException(jre);
         } finally {
           if (jedis != null) {
             jedis.close();
