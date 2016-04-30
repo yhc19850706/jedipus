@@ -232,12 +232,18 @@ class JedisClusterSlotCache implements AutoCloseable {
   @SuppressWarnings("unchecked")
   void discoverClusterSlots(final Jedis jedis) {
 
-    final long dedupeDiscovery = refreshStamp;
-
+    long dedupeDiscovery;
     long writeStamp;
+
     try {
-      writeStamp = maxAwaitCacheRefreshNanos == 0 ? lock.writeLock()
-          : lock.tryWriteLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
+      if (maxAwaitCacheRefreshNanos == 0) {
+
+        dedupeDiscovery = refreshStamp;
+        writeStamp = lock.writeLock();
+      } else {
+        dedupeDiscovery = refreshStamp;
+        writeStamp = lock.tryWriteLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
+      }
     } catch (final InterruptedException ie) {
       // allow dirty retry.
       return;
@@ -249,7 +255,8 @@ class JedisClusterSlotCache implements AutoCloseable {
         return;
       }
 
-      if (!optimisticReads) {
+      // otherwise allow dirty reads
+      if (!optimisticReads && maxAwaitCacheRefreshNanos > 0) {
         Arrays.fill(masterSlots, null);
         Arrays.fill(slaveSlots, null);
       }
