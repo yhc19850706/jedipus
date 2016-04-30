@@ -373,11 +373,6 @@ class JedisClusterSlotCache implements AutoCloseable {
 
   Jedis getAskJedis(final HostAndPort askHostPort) {
 
-    if (optimisticReads) {
-      final JedisPool pool = getAskJedisGuarded(askHostPort);
-      return pool == null ? jedisAskDiscoveryFactory.apply(askHostPort) : pool.getResource();
-    }
-
     long readStamp = lock.tryOptimisticRead();
 
     JedisPool pool = getAskJedisGuarded(askHostPort);
@@ -551,9 +546,12 @@ class JedisClusterSlotCache implements AutoCloseable {
       return pools;
     }
 
+    pools.clear();
+
     readStamp = lock.readLock();
     try {
-      return new ArrayList<>(masterPools.values());
+      pools.addAll(masterPools.values());
+      return pools;
     } finally {
       lock.unlockRead(readStamp);
     }
@@ -569,9 +567,12 @@ class JedisClusterSlotCache implements AutoCloseable {
       return pools;
     }
 
+    pools.clear();
+
     readStamp = lock.readLock();
     try {
-      return new ArrayList<>(slavePools.values());
+      pools.addAll(slavePools.values());
+      return pools;
     } finally {
       lock.unlockRead(readStamp);
     }
@@ -581,7 +582,7 @@ class JedisClusterSlotCache implements AutoCloseable {
 
     long readStamp = lock.tryOptimisticRead();
 
-    List<JedisPool> allPools = new ArrayList<>(masterPools.size() + slavePools.size());
+    final List<JedisPool> allPools = new ArrayList<>(masterPools.size() + slavePools.size());
     allPools.addAll(masterPools.values());
     allPools.addAll(slavePools.values());
 
@@ -589,9 +590,10 @@ class JedisClusterSlotCache implements AutoCloseable {
       return allPools;
     }
 
+    allPools.clear();
+
     readStamp = lock.readLock();
     try {
-      allPools = new ArrayList<>(masterPools.size() + slavePools.size());
       allPools.addAll(masterPools.values());
       allPools.addAll(slavePools.values());
       return allPools;
@@ -676,6 +678,8 @@ class JedisClusterSlotCache implements AutoCloseable {
 
     final long writeStamp = lock.writeLock();
     try {
+
+      discoveryHostPorts.clear();
 
       masterPools.forEach((key, pool) -> {
         try {
