@@ -487,7 +487,7 @@ public final class JedisClusterExecutor implements AutoCloseable {
   public <R> R applyJedis(final ReadMode readMode, final int slot,
       final Function<Jedis, R> jedisConsumer, final int maxRetries) {
 
-    Jedis askJedis = null;
+    Jedis askNode = null;
     int retries = 0;
     try {
 
@@ -516,45 +516,45 @@ public final class JedisClusterExecutor implements AutoCloseable {
         }
       } catch (final JedisAskDataException jre) {
 
-        askJedis = connHandler.getAskJedis(ClusterNode.create(jre.getTargetNode()));
+        askNode = connHandler.getAskNode(ClusterNode.create(jre.getTargetNode()));
       } catch (final JedisRedirectionException jre) {
 
         throw new JedisClusterException(jre);
       } finally {
         if (jedis != null) {
           jedis.close();
+          jedis = null;
         }
       }
 
       for (int redirections = retries == 0 ? 1 : 0;;) {
 
-        Jedis connection = null;
         try {
 
-          if (askJedis == null) {
+          if (askNode == null) {
 
-            connection = retries > tryRandomAfter ? connHandler.getRandomConnection(readMode)
+            jedis = retries > tryRandomAfter ? connHandler.getRandomConnection(readMode)
                 : connHandler.getConnectionFromSlot(readMode, slot);
 
-            final R result = jedisConsumer.apply(connection);
+            final R result = jedisConsumer.apply(jedis);
             if (retries > 0 && hostPortRetryDelay != null) {
-              hostPortRetryDelay.markSuccess(JedisClusterSlotCache.createHostPort(connection));
+              hostPortRetryDelay.markSuccess(JedisClusterSlotCache.createHostPort(jedis));
             }
             return result;
           }
 
-          connection = askJedis;
-          askJedis = null;
-          connection.asking();
-          return jedisConsumer.apply(connection);
+          jedis = askNode;
+          askNode = null;
+          jedis.asking();
+          return jedisConsumer.apply(jedis);
         } catch (final JedisConnectionException jce) {
 
           if (++retries > maxRetries) {
             throw jce;
           }
 
-          if (hostPortRetryDelay != null && connection != null) {
-            hostPortRetryDelay.markFailure(JedisClusterSlotCache.createHostPort(connection));
+          if (hostPortRetryDelay != null && jedis != null) {
+            hostPortRetryDelay.markFailure(JedisClusterSlotCache.createHostPort(jedis));
           }
           continue;
         } catch (final JedisMovedDataException jre) {
@@ -563,10 +563,10 @@ public final class JedisClusterExecutor implements AutoCloseable {
             throw new JedisClusterMaxRedirectionsException(jre);
           }
 
-          if (connection == null) {
+          if (jedis == null) {
             connHandler.renewSlotCache(readMode);
           } else {
-            connHandler.renewSlotCache(readMode, connection);
+            connHandler.renewSlotCache(readMode, jedis);
           }
           continue;
         } catch (final JedisAskDataException jre) {
@@ -575,20 +575,21 @@ public final class JedisClusterExecutor implements AutoCloseable {
             throw new JedisClusterMaxRedirectionsException(jre);
           }
 
-          askJedis = connHandler.getAskJedis(ClusterNode.create(jre.getTargetNode()));
+          askNode = connHandler.getAskNode(ClusterNode.create(jre.getTargetNode()));
           continue;
         } catch (final JedisRedirectionException jre) {
 
           throw new JedisClusterException(jre);
         } finally {
-          if (connection != null) {
-            connection.close();
+          if (jedis != null) {
+            jedis.close();
+            jedis = null;
           }
         }
       }
     } finally {
-      if (askJedis != null) {
-        askJedis.close();
+      if (askNode != null) {
+        askNode.close();
       }
     }
   }

@@ -29,9 +29,9 @@ class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
   }
 
   @Override
-  protected Jedis getAskJedis(final ClusterNode askHostPort) {
+  protected Jedis getAskNode(final ClusterNode askHostPort) {
 
-    final Pool<Jedis> pool = getAskJedisGuarded(askHostPort);
+    final Pool<Jedis> pool = getAskNodeGuarded(askHostPort);
 
     return pool == null ? jedisAskDiscoveryFactory.apply(askHostPort.getHostPort())
         : pool.getResource();

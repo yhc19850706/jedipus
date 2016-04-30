@@ -359,42 +359,42 @@ class JedisClusterSlotCache implements AutoCloseable {
     return HostPort.create(client.getHost(), client.getPort());
   }
 
-  Jedis getAskJedis(final ClusterNode askHostPort) {
+  Jedis getAskNode(final ClusterNode askNode) {
 
     long readStamp = lock.tryOptimisticRead();
 
-    Pool<Jedis> pool = getAskJedisGuarded(askHostPort);
+    Pool<Jedis> pool = getAskNodeGuarded(askNode);
 
     if (!lock.validate(readStamp)) {
 
       readStamp = lock.readLock();
       try {
-        pool = getAskJedisGuarded(askHostPort);
+        pool = getAskNodeGuarded(askNode);
       } finally {
         lock.unlockRead(readStamp);
       }
     }
 
-    return pool == null ? jedisAskDiscoveryFactory.apply(askHostPort.getHostPort())
+    return pool == null ? jedisAskDiscoveryFactory.apply(askNode.getHostPort())
         : pool.getResource();
   }
 
-  protected Pool<Jedis> getAskJedisGuarded(final ClusterNode askHostPort) {
+  protected Pool<Jedis> getAskNodeGuarded(final ClusterNode askNode) {
 
     switch (defaultReadMode) {
       case MASTER:
-        return masterPools.get(askHostPort);
+        return masterPools.get(askNode);
       case MIXED:
       case MIXED_SLAVES:
-        Pool<Jedis> pool = masterPools.get(askHostPort);
+        Pool<Jedis> pool = masterPools.get(askNode);
 
         if (pool == null) {
-          pool = slavePools.get(askHostPort);
+          pool = slavePools.get(askNode);
         }
 
         return pool;
       case SLAVES:
-        return slavePools.get(askHostPort);
+        return slavePools.get(askNode);
       default:
         return null;
     }
@@ -561,11 +561,11 @@ class JedisClusterSlotCache implements AutoCloseable {
     }
   }
 
-  Pool<Jedis> getMasterPoolIfPresent(final ClusterNode hostPort) {
+  Pool<Jedis> getMasterPoolIfPresent(final ClusterNode node) {
 
     long readStamp = lock.tryOptimisticRead();
 
-    final Pool<Jedis> pool = masterPools.get(hostPort);
+    final Pool<Jedis> pool = masterPools.get(node);
 
     if (lock.validate(readStamp)) {
       return pool;
@@ -573,17 +573,17 @@ class JedisClusterSlotCache implements AutoCloseable {
 
     readStamp = lock.readLock();
     try {
-      return masterPools.get(hostPort);
+      return masterPools.get(node);
     } finally {
       lock.unlockRead(readStamp);
     }
   }
 
-  Pool<Jedis> getSlavePoolIfPresent(final ClusterNode hostPort) {
+  Pool<Jedis> getSlavePoolIfPresent(final ClusterNode node) {
 
     long readStamp = lock.tryOptimisticRead();
 
-    final Pool<Jedis> pool = slavePools.get(hostPort);
+    final Pool<Jedis> pool = slavePools.get(node);
 
     if (lock.validate(readStamp)) {
       return pool;
@@ -591,19 +591,19 @@ class JedisClusterSlotCache implements AutoCloseable {
 
     readStamp = lock.readLock();
     try {
-      return slavePools.get(hostPort);
+      return slavePools.get(node);
     } finally {
       lock.unlockRead(readStamp);
     }
   }
 
-  Pool<Jedis> getPoolIfPresent(final ClusterNode hostPort) {
+  Pool<Jedis> getPoolIfPresent(final ClusterNode node) {
 
     long readStamp = lock.tryOptimisticRead();
 
-    Pool<Jedis> pool = masterPools.get(hostPort);
+    Pool<Jedis> pool = masterPools.get(node);
     if (pool == null) {
-      pool = slavePools.get(hostPort);
+      pool = slavePools.get(node);
     }
 
     if (lock.validate(readStamp)) {
@@ -612,9 +612,9 @@ class JedisClusterSlotCache implements AutoCloseable {
 
     readStamp = lock.readLock();
     try {
-      pool = masterPools.get(hostPort);
+      pool = masterPools.get(node);
       if (pool == null) {
-        pool = slavePools.get(hostPort);
+        pool = slavePools.get(node);
       }
       return pool;
     } finally {

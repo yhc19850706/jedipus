@@ -88,9 +88,9 @@ class JedisClusterConnHandler implements AutoCloseable {
     return jedis == null ? getConnection(readMode, slot) : jedis;
   }
 
-  Jedis getAskJedis(final ClusterNode hostPort) {
+  Jedis getAskNode(final ClusterNode askNode) {
 
-    return slotPoolCache.getAskJedis(hostPort);
+    return slotPoolCache.getAskNode(askNode);
   }
 
   List<Pool<Jedis>> getMasterPools() {
@@ -108,19 +108,19 @@ class JedisClusterConnHandler implements AutoCloseable {
     return slotPoolCache.getAllPools();
   }
 
-  Pool<Jedis> getMasterPoolIfPresent(final ClusterNode hostPort) {
+  Pool<Jedis> getMasterPoolIfPresent(final ClusterNode node) {
 
-    return slotPoolCache.getMasterPoolIfPresent(hostPort);
+    return slotPoolCache.getMasterPoolIfPresent(node);
   }
 
-  Pool<Jedis> getSlavePoolIfPresent(final ClusterNode hostPort) {
+  Pool<Jedis> getSlavePoolIfPresent(final ClusterNode node) {
 
-    return slotPoolCache.getSlavePoolIfPresent(hostPort);
+    return slotPoolCache.getSlavePoolIfPresent(node);
   }
 
-  Pool<Jedis> getPoolIfPresent(final ClusterNode hostPort) {
+  Pool<Jedis> getPoolIfPresent(final ClusterNode node) {
 
-    return slotPoolCache.getPoolIfPresent(hostPort);
+    return slotPoolCache.getPoolIfPresent(node);
   }
 
   void renewSlotCache(final ReadMode readMode) {
