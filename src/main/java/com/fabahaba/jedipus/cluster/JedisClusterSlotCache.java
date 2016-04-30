@@ -513,38 +513,32 @@ class JedisClusterSlotCache implements AutoCloseable {
     }
   }
 
-  List<JedisPool> getShuffledPools(final ReadMode readMode) {
+  List<JedisPool> getPools(final ReadMode readMode) {
 
     switch (defaultReadMode) {
       case MASTER:
       case SLAVES:
-        return getShuffledPoolsModeChecked(defaultReadMode);
+        return getPoolsModeChecked(defaultReadMode);
       case MIXED:
       case MIXED_SLAVES:
-        return getShuffledPoolsModeChecked(readMode);
+        return getPoolsModeChecked(readMode);
       default:
         return null;
     }
   }
 
-  private List<JedisPool> getShuffledPoolsModeChecked(final ReadMode readMode) {
+  private List<JedisPool> getPoolsModeChecked(final ReadMode readMode) {
 
-    List<JedisPool> pools = null;
     switch (readMode) {
       case MASTER:
-        pools = getMasterPools();
-        break;
+        return getMasterPools();
       case MIXED:
       case MIXED_SLAVES:
       case SLAVES:
-        pools = getAllPools();
-        break;
+        return getAllPools();
       default:
         return null;
     }
-
-    Collections.shuffle(pools);
-    return pools;
   }
 
   List<JedisPool> getMasterPools() {

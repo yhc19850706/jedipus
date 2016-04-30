@@ -11,7 +11,6 @@ import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.exceptions.JedisConnectionException;
-import redis.clients.jedis.exceptions.JedisException;
 
 class JedisClusterConnHandler implements AutoCloseable {
 
@@ -40,28 +39,31 @@ class JedisClusterConnHandler implements AutoCloseable {
     return slotPoolCache.isInitReadOnly();
   }
 
-  Jedis getConnection(final ReadMode readMode) {
+  Jedis getRandomConnection(final ReadMode readMode) {
 
     return getConnection(readMode, -1);
   }
 
-  Jedis getConnection(final ReadMode readMode, final int slot) {
+  private Jedis getConnection(final ReadMode readMode, final int slot) {
 
-    List<JedisPool> shuffledPools = slotPoolCache.getShuffledPools(readMode);
-    if (shuffledPools.isEmpty()) {
+    List<JedisPool> pools = slotPoolCache.getPools(readMode);
 
-      renewSlotCache(readMode);
+    if (pools.isEmpty()) {
+
+      slotPoolCache.discoverClusterSlots();
+
       if (slot >= 0) {
+
         final Jedis jedis = slotPoolCache.getSlotConnection(readMode, slot);
         if (jedis != null) {
           return jedis;
         }
       }
 
-      shuffledPools = slotPoolCache.getShuffledPools(readMode);
+      pools = slotPoolCache.getPools(readMode);
     }
 
-    for (final JedisPool pool : shuffledPools) {
+    for (final JedisPool pool : pools) {
 
       Jedis jedis = null;
       try {
@@ -76,14 +78,14 @@ class JedisClusterConnHandler implements AutoCloseable {
         }
 
         jedis.close();
-      } catch (final JedisException ex) {
+      } catch (final JedisConnectionException ex) {
         if (jedis != null) {
           jedis.close();
         }
       }
     }
 
-    throw new JedisConnectionException("no reachable node in cluster");
+    throw new JedisConnectionException("No reachable node in cluster.");
   }
 
   Jedis getConnectionFromSlot(final ReadMode readMode, final int slot) {
@@ -130,14 +132,14 @@ class JedisClusterConnHandler implements AutoCloseable {
 
   void renewSlotCache(final ReadMode readMode) {
 
-    for (final JedisPool jp : slotPoolCache.getShuffledPools(readMode)) {
+    for (final JedisPool jp : slotPoolCache.getPools(readMode)) {
 
       try (final Jedis jedis = jp.getResource()) {
 
         slotPoolCache.discoverClusterSlots(jedis);
         return;
       } catch (final JedisConnectionException e) {
-        // try next nodes
+        // try next pool
       }
     }
 

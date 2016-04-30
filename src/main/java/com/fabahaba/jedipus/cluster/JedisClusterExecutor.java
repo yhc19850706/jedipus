@@ -526,7 +526,7 @@ public final class JedisClusterExecutor implements AutoCloseable {
 
           if (askJedis == null) {
 
-            connection = retries > tryRandomAfter ? connHandler.getConnection(readMode)
+            connection = retries > tryRandomAfter ? connHandler.getRandomConnection(readMode)
                 : connHandler.getConnectionFromSlot(readMode, slot);
 
             final R result = jedisConsumer.apply(connection);
