@@ -367,11 +367,20 @@ class JedisClusterSlotCache implements AutoCloseable {
 
     if (!lock.validate(readStamp)) {
 
-      readStamp = lock.readLock();
+      try {
+        readStamp = maxAwaitCacheRefreshNanos == 0 ? lock.readLock()
+            : lock.tryReadLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
+      } catch (final InterruptedException ie) {
+        // allow dirty read.
+        readStamp = 0;
+      }
+
       try {
         pool = getAskNodeGuarded(askNode);
       } finally {
-        lock.unlockRead(readStamp);
+        if (readStamp > 0) {
+          lock.unlockRead(readStamp);
+        }
       }
     }
 
@@ -432,11 +441,20 @@ class JedisClusterSlotCache implements AutoCloseable {
       return pool;
     }
 
-    readStamp = lock.readLock();
+    try {
+      readStamp = maxAwaitCacheRefreshNanos == 0 ? lock.readLock()
+          : lock.tryReadLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
+    } catch (final InterruptedException ie) {
+      // allow dirty read.
+      readStamp = 0;
+    }
+
     try {
       return getLoadBalancedPool(readMode, slot);
     } finally {
-      lock.unlockRead(readStamp);
+      if (readStamp > 0) {
+        lock.unlockRead(readStamp);
+      }
     }
   }
 
@@ -507,12 +525,21 @@ class JedisClusterSlotCache implements AutoCloseable {
 
     pools.clear();
 
-    readStamp = lock.readLock();
+    try {
+      readStamp = maxAwaitCacheRefreshNanos == 0 ? lock.readLock()
+          : lock.tryReadLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
+    } catch (final InterruptedException ie) {
+      // allow dirty read.
+      readStamp = 0;
+    }
+
     try {
       pools.addAll(masterPools.values());
       return pools;
     } finally {
-      lock.unlockRead(readStamp);
+      if (readStamp > 0) {
+        lock.unlockRead(readStamp);
+      }
     }
   }
 
@@ -528,12 +555,21 @@ class JedisClusterSlotCache implements AutoCloseable {
 
     pools.clear();
 
-    readStamp = lock.readLock();
+    try {
+      readStamp = maxAwaitCacheRefreshNanos == 0 ? lock.readLock()
+          : lock.tryReadLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
+    } catch (final InterruptedException ie) {
+      // allow dirty read.
+      readStamp = 0;
+    }
+
     try {
       pools.addAll(slavePools.values());
       return pools;
     } finally {
-      lock.unlockRead(readStamp);
+      if (readStamp > 0) {
+        lock.unlockRead(readStamp);
+      }
     }
   }
 
@@ -551,13 +587,22 @@ class JedisClusterSlotCache implements AutoCloseable {
 
     allPools.clear();
 
-    readStamp = lock.readLock();
+    try {
+      readStamp = maxAwaitCacheRefreshNanos == 0 ? lock.readLock()
+          : lock.tryReadLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
+    } catch (final InterruptedException ie) {
+      // allow dirty read.
+      readStamp = 0;
+    }
+
     try {
       allPools.addAll(masterPools.values());
       allPools.addAll(slavePools.values());
       return allPools;
     } finally {
-      lock.unlockRead(readStamp);
+      if (readStamp > 0) {
+        lock.unlockRead(readStamp);
+      }
     }
   }
 
@@ -571,11 +616,20 @@ class JedisClusterSlotCache implements AutoCloseable {
       return pool;
     }
 
-    readStamp = lock.readLock();
+    try {
+      readStamp = maxAwaitCacheRefreshNanos == 0 ? lock.readLock()
+          : lock.tryReadLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
+    } catch (final InterruptedException ie) {
+      // allow dirty read.
+      readStamp = 0;
+    }
+
     try {
       return masterPools.get(node);
     } finally {
-      lock.unlockRead(readStamp);
+      if (readStamp > 0) {
+        lock.unlockRead(readStamp);
+      }
     }
   }
 
@@ -589,11 +643,20 @@ class JedisClusterSlotCache implements AutoCloseable {
       return pool;
     }
 
-    readStamp = lock.readLock();
+    try {
+      readStamp = maxAwaitCacheRefreshNanos == 0 ? lock.readLock()
+          : lock.tryReadLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
+    } catch (final InterruptedException ie) {
+      // allow dirty read.
+      readStamp = 0;
+    }
+
     try {
       return slavePools.get(node);
     } finally {
-      lock.unlockRead(readStamp);
+      if (readStamp > 0) {
+        lock.unlockRead(readStamp);
+      }
     }
   }
 
@@ -610,7 +673,14 @@ class JedisClusterSlotCache implements AutoCloseable {
       return pool;
     }
 
-    readStamp = lock.readLock();
+    try {
+      readStamp = maxAwaitCacheRefreshNanos == 0 ? lock.readLock()
+          : lock.tryReadLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
+    } catch (final InterruptedException ie) {
+      // allow dirty read.
+      readStamp = 0;
+    }
+
     try {
       pool = masterPools.get(node);
       if (pool == null) {
@@ -618,7 +688,9 @@ class JedisClusterSlotCache implements AutoCloseable {
       }
       return pool;
     } finally {
-      lock.unlockRead(readStamp);
+      if (readStamp > 0) {
+        lock.unlockRead(readStamp);
+      }
     }
   }
 
@@ -630,9 +702,16 @@ class JedisClusterSlotCache implements AutoCloseable {
   @Override
   public void close() {
 
-    final long writeStamp = lock.writeLock();
+    long writeStamp;
     try {
+      writeStamp = lock.tryWriteLock(Math.min(1_000_000_000, maxAwaitCacheRefreshNanos),
+          TimeUnit.NANOSECONDS);
+    } catch (final InterruptedException e1) {
+      // allow dirty write.
+      writeStamp = 0;
+    }
 
+    try {
       discoveryHostPorts.clear();
 
       masterPools.forEach((key, pool) -> {
@@ -659,7 +738,9 @@ class JedisClusterSlotCache implements AutoCloseable {
 
       slavePools.clear();
     } finally {
-      lock.unlockWrite(writeStamp);
+      if (writeStamp > 0) {
+        lock.unlockWrite(writeStamp);
+      }
     }
   }
 }
