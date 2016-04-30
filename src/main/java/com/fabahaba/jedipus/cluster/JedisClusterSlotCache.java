@@ -41,7 +41,7 @@ class JedisClusterSlotCache implements AutoCloseable {
   private final boolean optimisticReads;
   private final long maxAwaitCacheRefreshNanos;
   private final StampedLock lock;
-  private final long nanosBetweenSlotCacheRefresh;
+  private final long millisBetweenSlotCacheRefresh;
   private volatile long refreshStamp = 0;
 
   private final Function<ClusterNode, Pool<Jedis>> masterPoolFactory;
@@ -73,7 +73,7 @@ class JedisClusterSlotCache implements AutoCloseable {
 
     this.optimisticReads = optimisticReads;
     this.maxAwaitCacheRefreshNanos = maxAwaitCacheRefresh.toNanos();
-    this.nanosBetweenSlotCacheRefresh = durationBetweenCacheRefresh.toNanos();
+    this.millisBetweenSlotCacheRefresh = durationBetweenCacheRefresh.toMillis();
     this.lock = new StampedLock();
 
     this.masterPoolFactory = masterPoolFactory;
@@ -190,15 +190,14 @@ class JedisClusterSlotCache implements AutoCloseable {
         }
 
         if (optimisticReads) {
-          return new OptimisticJedisClusterSlotCache(defaultReadMode,
-              durationBetweenCacheRefresh, maxAwaitCacheRefresh, allDiscoveryHostPorts,
-              masterPools, masterSlots, slavePools, slaveSlots, masterPoolFactory, slavePoolFactory,
-              jedisAskDiscoveryFactory, lbFactory);
+          return new OptimisticJedisClusterSlotCache(defaultReadMode, durationBetweenCacheRefresh,
+              maxAwaitCacheRefresh, allDiscoveryHostPorts, masterPools, masterSlots, slavePools,
+              slaveSlots, masterPoolFactory, slavePoolFactory, jedisAskDiscoveryFactory, lbFactory);
         }
 
         return new JedisClusterSlotCache(defaultReadMode, optimisticReads,
-            durationBetweenCacheRefresh, maxAwaitCacheRefresh, allDiscoveryHostPorts,
-            masterPools, masterSlots, slavePools, slaveSlots, masterPoolFactory, slavePoolFactory,
+            durationBetweenCacheRefresh, maxAwaitCacheRefresh, allDiscoveryHostPorts, masterPools,
+            masterSlots, slavePools, slaveSlots, masterPoolFactory, slavePoolFactory,
             jedisAskDiscoveryFactory, lbFactory);
       } catch (final JedisConnectionException e) {
         // try next discoveryNode...
@@ -211,10 +210,9 @@ class JedisClusterSlotCache implements AutoCloseable {
           slaveSlots, masterPoolFactory, slavePoolFactory, jedisAskDiscoveryFactory, lbFactory);
     }
 
-    return new JedisClusterSlotCache(defaultReadMode, optimisticReads,
-        durationBetweenCacheRefresh, maxAwaitCacheRefresh, allDiscoveryHostPorts, masterPools,
-        masterSlots, slavePools, slaveSlots, masterPoolFactory, slavePoolFactory,
-        jedisAskDiscoveryFactory, lbFactory);
+    return new JedisClusterSlotCache(defaultReadMode, optimisticReads, durationBetweenCacheRefresh,
+        maxAwaitCacheRefresh, allDiscoveryHostPorts, masterPools, masterSlots, slavePools,
+        slaveSlots, masterPoolFactory, slavePoolFactory, jedisAskDiscoveryFactory, lbFactory);
   }
 
   void discoverClusterSlots() {
@@ -226,7 +224,7 @@ class JedisClusterSlotCache implements AutoCloseable {
         discoverClusterSlots(jedis);
         return;
       } catch (final JedisConnectionException e) {
-        // try next nodes
+        // try next discovery node...
       }
     }
   }
@@ -259,7 +257,8 @@ class JedisClusterSlotCache implements AutoCloseable {
       final Set<ClusterNode> staleMasterPools = new HashSet<>(masterPools.keySet());
       final Set<ClusterNode> staleSlavePools = new HashSet<>(slavePools.keySet());
 
-      final long delayMillis = (refreshStamp + nanosBetweenSlotCacheRefresh) - System.nanoTime();
+      final long delayMillis =
+          (refreshStamp + millisBetweenSlotCacheRefresh) - System.currentTimeMillis();
 
       if (delayMillis > 0) {
         try {
@@ -346,7 +345,7 @@ class JedisClusterSlotCache implements AutoCloseable {
       });
     } finally {
       try {
-        refreshStamp = System.nanoTime();
+        refreshStamp = System.currentTimeMillis();
       } finally {
         lock.unlockWrite(writeStamp);
       }
