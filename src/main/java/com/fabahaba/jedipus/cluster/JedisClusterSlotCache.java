@@ -256,7 +256,7 @@ class JedisClusterSlotCache implements AutoCloseable {
       }
 
       // otherwise allow dirty reads
-      if (!optimisticReads && maxAwaitCacheRefreshNanos > 0) {
+      if (!optimisticReads && maxAwaitCacheRefreshNanos == 0) {
         Arrays.fill(masterSlots, null);
         Arrays.fill(slaveSlots, null);
       }
