@@ -4,21 +4,22 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
 
-import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.Jedis;
+import redis.clients.util.Pool;
 
 class RoundRobinPools implements LoadBalancedPools {
 
   private final AtomicInteger roundRobinIndex;
-  private final JedisPool[] pools;
+  private final Pool<Jedis>[] pools;
 
-  RoundRobinPools(final JedisPool[] pools) {
+  RoundRobinPools(final Pool<Jedis>[] pools) {
 
     this.roundRobinIndex = new AtomicInteger(0);
     this.pools = pools;
   }
 
   @Override
-  public JedisPool next(final ReadMode readMode) {
+  public Pool<Jedis> next(final ReadMode readMode) {
 
     switch (readMode) {
       case MIXED:

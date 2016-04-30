@@ -9,8 +9,9 @@ import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
 
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.exceptions.JedisConnectionException;
+import redis.clients.jedis.exceptions.JedisException;
+import redis.clients.util.Pool;
 
 class JedisClusterConnHandler implements AutoCloseable {
 
@@ -18,24 +19,19 @@ class JedisClusterConnHandler implements AutoCloseable {
 
   JedisClusterConnHandler(final ReadMode defaultReadMode, final boolean optimisticReads,
       final Duration durationBetweenSlotCacheRefresh, final Collection<HostPort> discoveryHostPorts,
-      final Function<ClusterNode, JedisPool> masterPoolFactory,
-      final Function<ClusterNode, JedisPool> slavePoolFactory,
+      final Function<ClusterNode, Pool<Jedis>> masterPoolFactory,
+      final Function<ClusterNode, Pool<Jedis>> slavePoolFactory,
       final Function<HostPort, Jedis> jedisAskDiscoveryFactory,
-      final Function<JedisPool[], LoadBalancedPools> lbFactory, final boolean initReadOnly) {
+      final Function<Pool<Jedis>[], LoadBalancedPools> lbFactory) {
 
     this.slotPoolCache = JedisClusterSlotCache.create(defaultReadMode, optimisticReads,
         durationBetweenSlotCacheRefresh, discoveryHostPorts, masterPoolFactory, slavePoolFactory,
-        jedisAskDiscoveryFactory, lbFactory, initReadOnly);
+        jedisAskDiscoveryFactory, lbFactory);
   }
 
   ReadMode getDefaultReadMode() {
 
     return slotPoolCache.getDefaultReadMode();
-  }
-
-  boolean isInitReadOnly() {
-
-    return slotPoolCache.isInitReadOnly();
   }
 
   Jedis getRandomConnection(final ReadMode readMode) {
@@ -45,7 +41,7 @@ class JedisClusterConnHandler implements AutoCloseable {
 
   private Jedis getConnection(final ReadMode readMode, final int slot) {
 
-    List<JedisPool> pools = slotPoolCache.getPools(readMode);
+    List<Pool<Jedis>> pools = slotPoolCache.getPools(readMode);
 
     if (pools.isEmpty()) {
 
@@ -62,7 +58,7 @@ class JedisClusterConnHandler implements AutoCloseable {
       pools = slotPoolCache.getPools(readMode);
     }
 
-    for (final JedisPool pool : pools) {
+    for (final Pool<Jedis> pool : pools) {
 
       Jedis jedis = null;
       try {
@@ -77,7 +73,7 @@ class JedisClusterConnHandler implements AutoCloseable {
         }
 
         jedis.close();
-      } catch (final JedisConnectionException ex) {
+      } catch (final JedisException ex) {
         if (jedis != null) {
           jedis.close();
         }
@@ -99,39 +95,39 @@ class JedisClusterConnHandler implements AutoCloseable {
     return slotPoolCache.getAskJedis(hostPort);
   }
 
-  List<JedisPool> getMasterPools() {
+  List<Pool<Jedis>> getMasterPools() {
 
     return slotPoolCache.getMasterPools();
   }
 
-  List<JedisPool> getSlavePools() {
+  List<Pool<Jedis>> getSlavePools() {
 
     return slotPoolCache.getSlavePools();
   }
 
-  List<JedisPool> getAllPools() {
+  List<Pool<Jedis>> getAllPools() {
 
     return slotPoolCache.getAllPools();
   }
 
-  JedisPool getMasterPoolIfPresent(final ClusterNode hostPort) {
+  Pool<Jedis> getMasterPoolIfPresent(final ClusterNode hostPort) {
 
     return slotPoolCache.getMasterPoolIfPresent(hostPort);
   }
 
-  JedisPool getSlavePoolIfPresent(final ClusterNode hostPort) {
+  Pool<Jedis> getSlavePoolIfPresent(final ClusterNode hostPort) {
 
     return slotPoolCache.getSlavePoolIfPresent(hostPort);
   }
 
-  JedisPool getPoolIfPresent(final ClusterNode hostPort) {
+  Pool<Jedis> getPoolIfPresent(final ClusterNode hostPort) {
 
     return slotPoolCache.getPoolIfPresent(hostPort);
   }
 
   void renewSlotCache(final ReadMode readMode) {
 
-    for (final JedisPool jp : slotPoolCache.getPools(readMode)) {
+    for (final Pool<Jedis> jp : slotPoolCache.getPools(readMode)) {
 
       try (final Jedis jedis = jp.getResource()) {
 

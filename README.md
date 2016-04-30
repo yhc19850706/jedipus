@@ -39,60 +39,60 @@ dependencies {
 #####Basic Usage Example
 ```java
 final Collection<HostPort> discoveryHostPorts =
-        Collections.singleton(HostPort.create("localhost", 7000));
+    Collections.singleton(HostPort.create("localhost", 7000));
 
 try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryHostPorts)
-       .withReadMode(ReadMode.MIXED_SLAVES).withInitReadOnly(true).create()) {
+    .withReadMode(ReadMode.MIXED_SLAVES).create()) {
 
-   // Ping-Pong all masters.
-   jce.acceptAllMasters(master -> System.out.format("MASTER@%s:%d %s%n",
-       master.getClient().getHost(), master.getClient().getPort(), master.ping()));
+  // Ping-Pong all masters.
+  jce.acceptAllMasters(master -> System.out.format("MASTER@%s:%d %s%n",
+      master.getClient().getHost(), master.getClient().getPort(), master.ping()));
 
-   // Ping-Pong all slaves.
-   jce.acceptAllSlaves(slave -> System.out.format("SLAVE@%s:%d %s%n",
-       slave.getClient().getHost(), slave.getClient().getPort(), slave.ping()));
+  // Ping-Pong all slaves.
+  jce.acceptAllSlaves(slave -> System.out.format("SLAVE@%s:%d %s%n",
+      slave.getClient().getHost(), slave.getClient().getPort(), slave.ping()));
 
-   // Hash tagged pipelined transaction.
-   final String hashTag = RCUtils.createNameSpacedHashTag("HT");
-   final int slot = JedisClusterCRC16.getSlot(hashTag);
+  // Hash tagged pipelined transaction.
+  final String hashTag = RCUtils.createNameSpacedHashTag("HT");
+  final int slot = JedisClusterCRC16.getSlot(hashTag);
 
-   final String hashTaggedKey = hashTag + "key";
-   final String fooKey = hashTag + "foo";
+  final String hashTaggedKey = hashTag + "key";
+  final String fooKey = hashTag + "foo";
 
-   final List<Response<?>> results = new ArrayList<>(2);
+  final List<Response<?>> results = new ArrayList<>(2);
 
-   jce.acceptPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
+  jce.acceptPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
 
-     pipeline.set(hashTaggedKey, "value");
-     pipeline.zadd(fooKey, -1, "barowitch");
-     pipeline.zadd(fooKey, .37, "barinsky");
-     pipeline.zadd(fooKey, 42, "barikoviev");
+    pipeline.set(hashTaggedKey, "value");
+    pipeline.zadd(fooKey, -1, "barowitch");
+    pipeline.zadd(fooKey, .37, "barinsky");
+    pipeline.zadd(fooKey, 42, "barikoviev");
 
-     results.add(pipeline.get(hashTaggedKey));
-     results.add(pipeline.zrangeWithScores(fooKey, 0, -1));
-   });
+    results.add(pipeline.get(hashTaggedKey));
+    results.add(pipeline.zrangeWithScores(fooKey, 0, -1));
+  });
 
-   // '{HT}:key': value
-   System.out.format("%n'%s': %s%n", hashTaggedKey, results.get(0).get());
+  // '{HT}:key': value
+  System.out.format("%n'%s': %s%n", hashTaggedKey, results.get(0).get());
 
-   @SuppressWarnings("unchecked")
-   final Set<Tuple> zrangeResult = (Set<Tuple>) results.get(1).get();
-   final String values = zrangeResult.stream()
-       .map(tuple -> String.format("%s (%s)", tuple.getElement(), tuple.getScore()))
-       .collect(Collectors.joining(", "));
+  @SuppressWarnings("unchecked")
+  final Set<Tuple> zrangeResult = (Set<Tuple>) results.get(1).get();
+  final String values = zrangeResult.stream()
+      .map(tuple -> String.format("%s (%s)", tuple.getElement(), tuple.getScore()))
+      .collect(Collectors.joining(", "));
 
-   // '{HT}:foo': [barowitch (-1.0), barinsky (0.37), barikoviev (42.0)]
-   System.out.format("%n'%s': [%s]%n", fooKey, values);
+  // '{HT}:foo': [barikoviev (0.0), barinsky (0.0), barowitch (1.0)]
+  System.out.format("%n'%s': [%s]%n", fooKey, values);
 
-   // Read from load balanced slave.
-   final String roResult =
-       jce.applyJedis(ReadMode.SLAVES, slot, jedis -> jedis.get(hashTaggedKey));
-   System.out.format("%n'%s': %s%n", hashTaggedKey, roResult);
+  // Read from load balanced slave.
+  final String roResult =
+      jce.applyJedis(ReadMode.SLAVES, slot, jedis -> jedis.get(hashTaggedKey));
+  System.out.format("%n'%s': %s%n", hashTaggedKey, roResult);
 
-   // cleanup
-   final long numRemoved =
-       jce.applyJedis(ReadMode.MASTER, slot, jedis -> jedis.del(hashTaggedKey, fooKey));
-   System.out.format("%nRemoved %d keys.%n", numRemoved);
+  // cleanup
+  final long numRemoved =
+      jce.applyJedis(ReadMode.MASTER, slot, jedis -> jedis.del(hashTaggedKey, fooKey));
+  System.out.format("%nRemoved %d keys.%n", numRemoved);
 }
 ```
 
@@ -109,14 +109,13 @@ public final class RedisLock {
   private static final LuaScriptData TRY_RELEASE_LOCK =
       LuaScriptData.fromResourcePath("/TRY_RELEASE_LOCK.lua");
 
-   @SuppressWarnings("unchecked")
    public static void main(final String[] args) {
 
       final Collection<HostPort> discoveryHostPorts =
         Collections.singleton(HostPort.create("localhost", 7000));
 
       try (final JedisClusterExecutor jce =
-            JedisClusterExecutor.startBuilding(discoveryHostPorts).create()) {
+        JedisClusterExecutor.startBuilding(discoveryHostPorts).create()) {
 
          LuaScript.loadMissingScripts(jce, TRY_ACQUIRE_LOCK, TRY_RELEASE_LOCK);
 
@@ -124,8 +123,9 @@ public final class RedisLock {
          final byte[] ownerId = RESP.toBytes("myOwnerId");
          final byte[] pexpire = RESP.toBytes(1000);
 
+         @SuppressWarnings("unchecked")
          final List<Object> lockOwners =
-            (List<Object>) TRY_ACQUIRE_LOCK.eval(jce, 1, lockName, ownerId, pexpire);
+             (List<Object>) TRY_ACQUIRE_LOCK.eval(jce, 1, lockName, ownerId, pexpire);
 
          // final byte[] previousOwner = (byte[]) lockOwners.get(0);
          final byte[] currentOwner = (byte[]) lockOwners.get(1);
@@ -133,19 +133,19 @@ public final class RedisLock {
 
          // 'myOwnerId' has lock 'mylock' for 1000ms.
          System.out.format("'%s' has lock '%s' for %dms.%n", RESP.toString(currentOwner),
-            RESP.toString(lockName), pttl);
+             RESP.toString(lockName), pttl);
 
          final byte[] tryReleaseOwner = (byte[]) TRY_RELEASE_LOCK.eval(jce, 1, lockName, ownerId);
 
          if (tryReleaseOwner != null && Arrays.equals(tryReleaseOwner, ownerId)) {
-            // Lock was released by 'myOwnerId'.
-            System.out.format("Lock was released by '%s'.%n", RESP.toString(ownerId));
+           // Lock was released by 'myOwnerId'.
+           System.out.format("Lock was released by '%s'.%n", RESP.toString(ownerId));
          } else {
-            System.out.format("Lock was no longer owned by '%s'.%n", RESP.toString(ownerId));
+           System.out.format("Lock was no longer owned by '%s'.%n", RESP.toString(ownerId));
          }
       }
    }
-  }
+}
 ```
 
 **src/main/resoures/TRY_ACQUIRE_LOCK.lua**

@@ -9,55 +9,55 @@ import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
 
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
+import redis.clients.util.Pool;
 
 class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
 
   OptimisticJedisClusterSlotCache(final ReadMode defaultReadMode,
       final Duration durationBetweenSlotCacheRefresh, final Set<HostPort> discoveryNodes,
-      final Map<ClusterNode, JedisPool> masterPools, final JedisPool[] masterSlots,
-      final Map<ClusterNode, JedisPool> slavePools, final LoadBalancedPools[] slaveSlots,
-      final Function<ClusterNode, JedisPool> masterPoolFactory,
-      final Function<ClusterNode, JedisPool> slavePoolFactory,
+      final Map<ClusterNode, Pool<Jedis>> masterPools, final Pool<Jedis>[] masterSlots,
+      final Map<ClusterNode, Pool<Jedis>> slavePools, final LoadBalancedPools[] slaveSlots,
+      final Function<ClusterNode, Pool<Jedis>> masterPoolFactory,
+      final Function<ClusterNode, Pool<Jedis>> slavePoolFactory,
       final Function<HostPort, Jedis> jedisAskFactory,
-      final Function<JedisPool[], LoadBalancedPools> lbFactory, final boolean initReadOnly) {
+      final Function<Pool<Jedis>[], LoadBalancedPools> lbFactory) {
 
     super(defaultReadMode, true, durationBetweenSlotCacheRefresh, discoveryNodes, masterPools,
         masterSlots, slavePools, slaveSlots, masterPoolFactory, slavePoolFactory, jedisAskFactory,
-        lbFactory, initReadOnly);
+        lbFactory);
   }
 
   @Override
   protected Jedis getAskJedis(final ClusterNode askHostPort) {
 
-    final JedisPool pool = getAskJedisGuarded(askHostPort);
+    final Pool<Jedis> pool = getAskJedisGuarded(askHostPort);
 
     return pool == null ? jedisAskDiscoveryFactory.apply(askHostPort.getHostPort())
         : pool.getResource();
   }
 
   @Override
-  protected JedisPool getSlotPoolModeChecked(final ReadMode readMode, final int slot) {
+  protected Pool<Jedis> getSlotPoolModeChecked(final ReadMode readMode, final int slot) {
 
     return getLoadBalancedPool(readMode, slot);
   }
 
   @Override
-  JedisPool getMasterPoolIfPresent(final ClusterNode hostPort) {
+  Pool<Jedis> getMasterPoolIfPresent(final ClusterNode hostPort) {
 
     return masterPools.get(hostPort);
   }
 
   @Override
-  JedisPool getSlavePoolIfPresent(final ClusterNode hostPort) {
+  Pool<Jedis> getSlavePoolIfPresent(final ClusterNode hostPort) {
 
     return slavePools.get(hostPort);
   }
 
   @Override
-  JedisPool getPoolIfPresent(final ClusterNode hostPort) {
+  Pool<Jedis> getPoolIfPresent(final ClusterNode hostPort) {
 
-    final JedisPool pool = masterPools.get(hostPort);
+    final Pool<Jedis> pool = masterPools.get(hostPort);
 
     return pool == null ? slavePools.get(hostPort) : pool;
   }
