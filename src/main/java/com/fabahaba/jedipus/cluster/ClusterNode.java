@@ -72,6 +72,10 @@ public final class ClusterNode {
       return true;
     }
 
+    if (other == null || !getClass().equals(other.getClass())) {
+      return false;
+    }
+
     final ClusterNode castOther = (ClusterNode) other;
     return hostPort.equals(castOther.hostPort);
   }

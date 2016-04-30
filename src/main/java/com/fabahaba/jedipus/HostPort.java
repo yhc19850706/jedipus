@@ -50,6 +50,10 @@ public final class HostPort {
       return true;
     }
 
+    if (other == null || !getClass().equals(other.getClass())) {
+      return false;
+    }
+
     final HostPort castOther = (HostPort) other;
     return port == castOther.port && host.equals(castOther.host);
   }
