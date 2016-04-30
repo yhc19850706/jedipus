@@ -1,17 +1,17 @@
 ##Jedipus [![Build Status](https://travis-ci.org/jamespedwards42/jedipus.svg?branch=master)](https://travis-ci.org/jamespedwards42/jedipus) [![JCenter](https://api.bintray.com/packages/jamespedwards42/libs/jedipus/images/download.svg) ](https://bintray.com/jamespedwards42/libs/jedipus/_latestVersion) [![License](http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat) ](http://www.apache.org/licenses/LICENSE-2.0) [![Gitter Chat](https://badges.gitter.im/jamespedwards42/jedipus.svg)](https://gitter.im/jamespedwards42/jedipus?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
->Jedipus is a Redis Cluster Java client that manages JedisPool's.
+>Jedipus is a Redis Cluster Java client that manages Jedis pool's.
 
 ######Features
-* Execute Jedis Consumer and Function Java 8 Lambas against a Redis Cluster.
-* Use known slot ints for O(1) direct primitive array access to a corresponding JedisPool.
+* Re-uses the awesome work already done on Jedis so that all `Jedis` client functionality is usable, e.g., pipelines and transactions.
+* Execute Jedis Consumer and Function Java Lambas against a Redis Cluster.
+* Use known slot integers for O(1) direct primitive array access to a corresponding Jedis pool.
 * Locking is only applied to threads that are accessing slots that are MOVING or for which a client connection cannot be established triggering a slot cache refresh.
-* Re-uses the work already done on Jedis clients to support pipelining and transactions.  Remember that all keys must share the same hash slot, instead of validating this, Jedipus trusts the user in order to avoid unnecessary overhead.
 * Minimal dependency tree (Jedipus -> Jedis -> org.apache.commons:commons-pool2).
-* Utilities to manage and execute Lua scripts.
-* Optional user supplied master and slave ClusterNode -> JedisPool factories.  Useful for client side ip/port mapping or dynamic pool sizes.
-* Load balance read-only requests across pools.  Optional user supplied slave JedisPool[] -> LoadBalancedPools factories.  By default, a round robin strategy is used.
+* Optional user supplied master and slave `ClusterNode -> Pool<Jedis>` factories.  Useful for client side ip/port mapping or dynamic pool sizes.
+* Load balance read-only requests across pools.  Optional user supplied slave `Pool<Jedis>[] -> LoadBalancedPools` factories.  By default, a round robin strategy is used.
 * Configurable retry delay per HostPort for JedisConnectionException's.
+* Utilities to manage and execute Lua scripts.
 
 ######Read Modes
 >Read modes control how pools to master and slave nodes are managed.
