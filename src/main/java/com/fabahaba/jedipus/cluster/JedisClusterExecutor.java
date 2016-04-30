@@ -59,7 +59,7 @@ public final class JedisClusterExecutor implements AutoCloseable {
           Protocol.DEFAULT_TIMEOUT, Protocol.DEFAULT_TIMEOUT, null, Protocol.DEFAULT_DATABASE,
           null);
 
-  private static final Function<HostAndPort, Jedis> DEFAULT_JEDIS_ASK_FACTORY =
+  private static final Function<HostAndPort, Jedis> DEFAULT_JEDIS_ASK_DISCOVERY_FACTORY =
       hostPort -> new Jedis(hostPort.getHost(), hostPort.getPort(), Protocol.DEFAULT_TIMEOUT,
           Protocol.DEFAULT_TIMEOUT);
 
@@ -131,12 +131,12 @@ public final class JedisClusterExecutor implements AutoCloseable {
       final boolean optimisticReads, final Duration durationBetweenSlotCacheRefresh,
       final Function<HostAndPort, JedisPool> masterPoolFactory,
       final Function<HostAndPort, JedisPool> slavePoolFactory,
-      final Function<HostAndPort, Jedis> jedisAskFactory,
+      final Function<HostAndPort, Jedis> jedisAskDiscoveryFactory,
       final Function<JedisPool[], LoadBalancedPools> lbFactory, final boolean initReadOnly) {
 
     this.connHandler = new JedisClusterConnHandler(defaultReadMode, optimisticReads,
         durationBetweenSlotCacheRefresh, discoveryHostPorts, masterPoolFactory, slavePoolFactory,
-        jedisAskFactory, lbFactory, initReadOnly);
+        jedisAskDiscoveryFactory, lbFactory, initReadOnly);
 
     this.maxRedirections = maxRedirections;
     this.maxRetries = maxRetries;
@@ -671,8 +671,8 @@ public final class JedisClusterExecutor implements AutoCloseable {
     private GenericObjectPoolConfig poolConfig = DEFAULT_POOL_CONFIG;
     private Function<HostAndPort, JedisPool> masterPoolFactory = DEFAULT_POOL_FACTORY;
     private Function<HostAndPort, JedisPool> slavePoolFactory = DEFAULT_POOL_FACTORY;
-    // Only used if a pool does not already exist.
-    private Function<HostAndPort, Jedis> jedisAskFactory = DEFAULT_JEDIS_ASK_FACTORY;
+    // Used for ASK request if no pool exists and initial discovery.
+    private Function<HostAndPort, Jedis> jedisAskDiscoveryFactory = DEFAULT_JEDIS_ASK_DISCOVERY_FACTORY;
     private BiFunction<ReadMode, JedisPool[], LoadBalancedPools> lbFactory = DEFAULT_LB_FACTORIES;
     private boolean initReadOnly = true;
     // If true, access to slot pool cache will not lock when retreiving a pool/client during a slot
@@ -689,8 +689,9 @@ public final class JedisClusterExecutor implements AutoCloseable {
 
       return new JedisClusterExecutor(defaultReadMode, discoveryHostPorts, maxRedirections,
           maxRetries, tryRandomAfter, hostPortRetryDelay, optimisticReads,
-          durationBetweenSlotCacheRefresh, masterPoolFactory, slavePoolFactory, jedisAskFactory,
-          slavePools -> lbFactory.apply(defaultReadMode, slavePools), initReadOnly);
+          durationBetweenSlotCacheRefresh, masterPoolFactory, slavePoolFactory,
+          jedisAskDiscoveryFactory, slavePools -> lbFactory.apply(defaultReadMode, slavePools),
+          initReadOnly);
     }
 
     public ReadMode getReadMode() {
@@ -812,11 +813,12 @@ public final class JedisClusterExecutor implements AutoCloseable {
     }
 
     public Function<HostAndPort, Jedis> getJedisAskFactory() {
-      return jedisAskFactory;
+      return jedisAskDiscoveryFactory;
     }
 
-    public Builder withJedisAskFactory(final Function<HostAndPort, Jedis> jedisAskFactory) {
-      this.jedisAskFactory = jedisAskFactory;
+    public Builder withJedisAskFactory(
+        final Function<HostAndPort, Jedis> jedisAskDiscoveryFactory) {
+      this.jedisAskDiscoveryFactory = jedisAskDiscoveryFactory;
       return this;
     }
 

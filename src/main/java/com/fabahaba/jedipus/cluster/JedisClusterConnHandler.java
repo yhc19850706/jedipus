@@ -22,12 +22,12 @@ class JedisClusterConnHandler implements AutoCloseable {
       final Collection<HostAndPort> discoveryHostPorts,
       final Function<HostAndPort, JedisPool> masterPoolFactory,
       final Function<HostAndPort, JedisPool> slavePoolFactory,
-      final Function<HostAndPort, Jedis> jedisAskFactory,
+      final Function<HostAndPort, Jedis> jedisAskDiscoveryFactory,
       final Function<JedisPool[], LoadBalancedPools> lbFactory, final boolean initReadOnly) {
 
     this.slotPoolCache = JedisClusterSlotCache.create(defaultReadMode, optimisticReads,
         durationBetweenSlotCacheRefresh, discoveryHostPorts, masterPoolFactory, slavePoolFactory,
-        jedisAskFactory, lbFactory, initReadOnly);
+        jedisAskDiscoveryFactory, lbFactory, initReadOnly);
   }
 
   ReadMode getDefaultReadMode() {
@@ -141,17 +141,7 @@ class JedisClusterConnHandler implements AutoCloseable {
       }
     }
 
-    for (final HostAndPort discoveryHostPort : slotPoolCache.getDiscoveryHostPorts()) {
-
-      try (
-          final Jedis jedis = new Jedis(discoveryHostPort.getHost(), discoveryHostPort.getPort())) {
-
-        slotPoolCache.discoverClusterSlots(jedis);
-        return;
-      } catch (final JedisConnectionException e) {
-        // try next nodes
-      }
-    }
+    slotPoolCache.discoverClusterSlots();
   }
 
   void renewSlotCache(final ReadMode readMode, final Jedis jedis) {
