@@ -5,21 +5,21 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
+import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
 
-import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
 class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
 
   OptimisticJedisClusterSlotCache(final ReadMode defaultReadMode,
-      final Duration durationBetweenSlotCacheRefresh, final Set<HostAndPort> discoveryNodes,
-      final Map<HostAndPort, JedisPool> masterPools, final JedisPool[] masterSlots,
-      final Map<HostAndPort, JedisPool> slavePools, final LoadBalancedPools[] slaveSlots,
-      final Function<HostAndPort, JedisPool> masterPoolFactory,
-      final Function<HostAndPort, JedisPool> slavePoolFactory,
-      final Function<HostAndPort, Jedis> jedisAskFactory,
+      final Duration durationBetweenSlotCacheRefresh, final Set<HostPort> discoveryNodes,
+      final Map<ClusterNode, JedisPool> masterPools, final JedisPool[] masterSlots,
+      final Map<ClusterNode, JedisPool> slavePools, final LoadBalancedPools[] slaveSlots,
+      final Function<ClusterNode, JedisPool> masterPoolFactory,
+      final Function<ClusterNode, JedisPool> slavePoolFactory,
+      final Function<HostPort, Jedis> jedisAskFactory,
       final Function<JedisPool[], LoadBalancedPools> lbFactory, final boolean initReadOnly) {
 
     super(defaultReadMode, true, durationBetweenSlotCacheRefresh, discoveryNodes, masterPools,
@@ -28,11 +28,12 @@ class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
   }
 
   @Override
-  protected Jedis getAskJedis(final HostAndPort askHostPort) {
+  protected Jedis getAskJedis(final ClusterNode askHostPort) {
 
     final JedisPool pool = getAskJedisGuarded(askHostPort);
 
-    return pool == null ? jedisAskDiscoveryFactory.apply(askHostPort) : pool.getResource();
+    return pool == null ? jedisAskDiscoveryFactory.apply(askHostPort.getHostPort())
+        : pool.getResource();
   }
 
   @Override
@@ -42,19 +43,19 @@ class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
   }
 
   @Override
-  JedisPool getMasterPoolIfPresent(final HostAndPort hostPort) {
+  JedisPool getMasterPoolIfPresent(final ClusterNode hostPort) {
 
     return masterPools.get(hostPort);
   }
 
   @Override
-  JedisPool getSlavePoolIfPresent(final HostAndPort hostPort) {
+  JedisPool getSlavePoolIfPresent(final ClusterNode hostPort) {
 
     return slavePools.get(hostPort);
   }
 
   @Override
-  JedisPool getPoolIfPresent(final HostAndPort hostPort) {
+  JedisPool getPoolIfPresent(final ClusterNode hostPort) {
 
     final JedisPool pool = masterPools.get(hostPort);
 

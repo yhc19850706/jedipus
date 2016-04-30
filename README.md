@@ -9,9 +9,9 @@
 * Re-uses the work already done on Jedis clients to support pipelining and transactions.  Remember that all keys must share the same hash slot, instead of validating this, Jedipus trusts the user in order to avoid unnecessary overhead.
 * Minimal dependency tree (Jedipus -> Jedis -> org.apache.commons:commons-pool2).
 * Utilities to manage and execute Lua scripts.
-* Optional user supplied master and slave HostAndPort -> JedisPool factories.  Useful for client side ip/port mapping or dynamic pool sizes.
+* Optional user supplied master and slave ClusterNode -> JedisPool factories.  Useful for client side ip/port mapping or dynamic pool sizes.
 * Load balance read-only requests across pools.  Optional user supplied slave JedisPool[] -> LoadBalancedPools factories.  By default, a round robin strategy is used.
-* Configurable retry delay per HostAndPort for JedisConnectionException's.
+* Configurable retry delay per HostPort for JedisConnectionException's.
 
 ######Read Modes
 >Read modes control how pools to master and slave nodes are managed.
@@ -38,8 +38,8 @@ dependencies {
 
 #####Basic Usage Example
 ```java
-final Collection<HostAndPort> discoveryHostPorts =
-        Collections.singleton(HostPort.createHostPort("localhost", 7000));
+final Collection<HostPort> discoveryHostPorts =
+        Collections.singleton(HostPort.create("localhost", 7000));
 
 try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryHostPorts)
        .withReadMode(ReadMode.MIXED_SLAVES).withInitReadOnly(true).create()) {
@@ -112,8 +112,8 @@ public final class RedisLock {
    @SuppressWarnings("unchecked")
    public static void main(final String[] args) {
 
-      final Collection<HostAndPort> discoveryHostPorts =
-          Collections.singleton(HostPort.createHostPort("127.0.0.1", 7000));
+      final Collection<HostPort> discoveryHostPorts =
+        Collections.singleton(HostPort.create("localhost", 7000));
 
       try (final JedisClusterExecutor jce =
             JedisClusterExecutor.startBuilding(discoveryHostPorts).create()) {

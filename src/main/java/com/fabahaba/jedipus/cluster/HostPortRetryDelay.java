@@ -1,10 +1,10 @@
 package com.fabahaba.jedipus.cluster;
 
-import redis.clients.jedis.HostAndPort;
+import com.fabahaba.jedipus.HostPort;
 
 public interface HostPortRetryDelay {
 
-  void markFailure(final HostAndPort hostPort);
+  void markFailure(final HostPort hostPort);
 
-  void markSuccess(final HostAndPort hostPort);
+  void markSuccess(final HostPort hostPort);
 }

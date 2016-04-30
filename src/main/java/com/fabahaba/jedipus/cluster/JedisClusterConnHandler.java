@@ -5,9 +5,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
+import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
 
-import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.exceptions.JedisConnectionException;
@@ -17,11 +17,10 @@ class JedisClusterConnHandler implements AutoCloseable {
   private final JedisClusterSlotCache slotPoolCache;
 
   JedisClusterConnHandler(final ReadMode defaultReadMode, final boolean optimisticReads,
-      final Duration durationBetweenSlotCacheRefresh,
-      final Collection<HostAndPort> discoveryHostPorts,
-      final Function<HostAndPort, JedisPool> masterPoolFactory,
-      final Function<HostAndPort, JedisPool> slavePoolFactory,
-      final Function<HostAndPort, Jedis> jedisAskDiscoveryFactory,
+      final Duration durationBetweenSlotCacheRefresh, final Collection<HostPort> discoveryHostPorts,
+      final Function<ClusterNode, JedisPool> masterPoolFactory,
+      final Function<ClusterNode, JedisPool> slavePoolFactory,
+      final Function<HostPort, Jedis> jedisAskDiscoveryFactory,
       final Function<JedisPool[], LoadBalancedPools> lbFactory, final boolean initReadOnly) {
 
     this.slotPoolCache = JedisClusterSlotCache.create(defaultReadMode, optimisticReads,
@@ -95,7 +94,7 @@ class JedisClusterConnHandler implements AutoCloseable {
     return jedis == null ? getConnection(readMode, slot) : jedis;
   }
 
-  Jedis getAskJedis(final HostAndPort hostPort) {
+  Jedis getAskJedis(final ClusterNode hostPort) {
 
     return slotPoolCache.getAskJedis(hostPort);
   }
@@ -115,17 +114,17 @@ class JedisClusterConnHandler implements AutoCloseable {
     return slotPoolCache.getAllPools();
   }
 
-  JedisPool getMasterPoolIfPresent(final HostAndPort hostPort) {
+  JedisPool getMasterPoolIfPresent(final ClusterNode hostPort) {
 
     return slotPoolCache.getMasterPoolIfPresent(hostPort);
   }
 
-  JedisPool getSlavePoolIfPresent(final HostAndPort hostPort) {
+  JedisPool getSlavePoolIfPresent(final ClusterNode hostPort) {
 
     return slotPoolCache.getSlavePoolIfPresent(hostPort);
   }
 
-  JedisPool getPoolIfPresent(final HostAndPort hostPort) {
+  JedisPool getPoolIfPresent(final ClusterNode hostPort) {
 
     return slotPoolCache.getPoolIfPresent(hostPort);
   }

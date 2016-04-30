@@ -10,7 +10,8 @@ import java.util.function.Function;
 import org.apache.commons.pool2.impl.DefaultEvictionPolicy;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
-import redis.clients.jedis.HostAndPort;
+import com.fabahaba.jedipus.HostPort;
+
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Pipeline;
@@ -54,12 +55,12 @@ public final class JedisClusterExecutor implements AutoCloseable {
     DEFAULT_POOL_CONFIG.setMaxWaitMillis(GenericObjectPoolConfig.DEFAULT_MAX_WAIT_MILLIS);
   }
 
-  private static final Function<HostAndPort, JedisPool> DEFAULT_POOL_FACTORY =
+  private static final Function<ClusterNode, JedisPool> DEFAULT_POOL_FACTORY =
       hostPort -> new JedisPool(DEFAULT_POOL_CONFIG, hostPort.getHost(), hostPort.getPort(),
           Protocol.DEFAULT_TIMEOUT, Protocol.DEFAULT_TIMEOUT, null, Protocol.DEFAULT_DATABASE,
           null);
 
-  private static final Function<HostAndPort, Jedis> DEFAULT_JEDIS_ASK_DISCOVERY_FACTORY =
+  private static final Function<HostPort, Jedis> DEFAULT_JEDIS_ASK_DISCOVERY_FACTORY =
       hostPort -> new Jedis(hostPort.getHost(), hostPort.getPort(), Protocol.DEFAULT_TIMEOUT,
           Protocol.DEFAULT_TIMEOUT);
 
@@ -120,18 +121,18 @@ public final class JedisClusterExecutor implements AutoCloseable {
     return new Builder(null);
   }
 
-  public static Builder startBuilding(final Collection<HostAndPort> discoveryHostPorts) {
+  public static Builder startBuilding(final Collection<HostPort> discoveryHostPorts) {
 
     return new Builder(discoveryHostPorts);
   }
 
   private JedisClusterExecutor(final ReadMode defaultReadMode,
-      final Collection<HostAndPort> discoveryHostPorts, final int maxRedirections,
+      final Collection<HostPort> discoveryHostPorts, final int maxRedirections,
       final int maxRetries, final int tryRandomAfter, final HostPortRetryDelay hostPortRetryDelay,
       final boolean optimisticReads, final Duration durationBetweenSlotCacheRefresh,
-      final Function<HostAndPort, JedisPool> masterPoolFactory,
-      final Function<HostAndPort, JedisPool> slavePoolFactory,
-      final Function<HostAndPort, Jedis> jedisAskDiscoveryFactory,
+      final Function<ClusterNode, JedisPool> masterPoolFactory,
+      final Function<ClusterNode, JedisPool> slavePoolFactory,
+      final Function<HostPort, Jedis> jedisAskDiscoveryFactory,
       final Function<JedisPool[], LoadBalancedPools> lbFactory, final boolean initReadOnly) {
 
     this.connHandler = new JedisClusterConnHandler(defaultReadMode, optimisticReads,
@@ -509,7 +510,7 @@ public final class JedisClusterExecutor implements AutoCloseable {
         }
       } catch (final JedisAskDataException jre) {
 
-        askJedis = connHandler.getAskJedis(jre.getTargetNode());
+        askJedis = connHandler.getAskJedis(ClusterNode.create(jre.getTargetNode()));
       } catch (final JedisRedirectionException jre) {
 
         throw new JedisClusterException(jre);
@@ -568,7 +569,7 @@ public final class JedisClusterExecutor implements AutoCloseable {
             throw new JedisClusterMaxRedirectionsException(jre);
           }
 
-          askJedis = connHandler.getAskJedis(jre.getTargetNode());
+          askJedis = connHandler.getAskJedis(ClusterNode.create(jre.getTargetNode()));
           continue;
         } catch (final JedisRedirectionException jre) {
 
@@ -661,7 +662,7 @@ public final class JedisClusterExecutor implements AutoCloseable {
   public static final class Builder {
 
     private ReadMode defaultReadMode = ReadMode.MASTER;
-    private Collection<HostAndPort> discoveryHostPorts;
+    private Collection<HostPort> discoveryHostPorts;
     private int timeout = Protocol.DEFAULT_TIMEOUT;
     private int soTimeout = Protocol.DEFAULT_TIMEOUT;
     private int maxRedirections = DEFAULT_MAX_REDIRECTIONS;
@@ -669,10 +670,11 @@ public final class JedisClusterExecutor implements AutoCloseable {
     private int tryRandomAfter = DEFAULT_TRY_RANDOM_AFTER;
     private HostPortRetryDelay hostPortRetryDelay;
     private GenericObjectPoolConfig poolConfig = DEFAULT_POOL_CONFIG;
-    private Function<HostAndPort, JedisPool> masterPoolFactory = DEFAULT_POOL_FACTORY;
-    private Function<HostAndPort, JedisPool> slavePoolFactory = DEFAULT_POOL_FACTORY;
+    private Function<ClusterNode, JedisPool> masterPoolFactory = DEFAULT_POOL_FACTORY;
+    private Function<ClusterNode, JedisPool> slavePoolFactory = DEFAULT_POOL_FACTORY;
     // Used for ASK request if no pool exists and initial discovery.
-    private Function<HostAndPort, Jedis> jedisAskDiscoveryFactory = DEFAULT_JEDIS_ASK_DISCOVERY_FACTORY;
+    private Function<HostPort, Jedis> jedisAskDiscoveryFactory =
+        DEFAULT_JEDIS_ASK_DISCOVERY_FACTORY;
     private BiFunction<ReadMode, JedisPool[], LoadBalancedPools> lbFactory = DEFAULT_LB_FACTORIES;
     private boolean initReadOnly = true;
     // If true, access to slot pool cache will not lock when retreiving a pool/client during a slot
@@ -680,7 +682,7 @@ public final class JedisClusterExecutor implements AutoCloseable {
     private boolean optimisticReads = true;
     private Duration durationBetweenSlotCacheRefresh = DEFAULT_DURATION_BETWEEN_SLOT_CACHE_REFRESH;
 
-    private Builder(final Collection<HostAndPort> discoveryHostPorts) {
+    private Builder(final Collection<HostPort> discoveryHostPorts) {
 
       this.discoveryHostPorts = discoveryHostPorts;
     }
@@ -703,11 +705,11 @@ public final class JedisClusterExecutor implements AutoCloseable {
       return this;
     }
 
-    public Collection<HostAndPort> getDiscoveryHostPorts() {
+    public Collection<HostPort> getDiscoveryHostPorts() {
       return discoveryHostPorts;
     }
 
-    public Builder withDiscoveryHostPorts(final Collection<HostAndPort> discoveryHostPorts) {
+    public Builder withDiscoveryHostPorts(final Collection<HostPort> discoveryHostPorts) {
       this.discoveryHostPorts = discoveryHostPorts;
       return this;
     }
@@ -794,30 +796,29 @@ public final class JedisClusterExecutor implements AutoCloseable {
       return this;
     }
 
-    public Function<HostAndPort, JedisPool> getMasterPoolFactory() {
+    public Function<ClusterNode, JedisPool> getMasterPoolFactory() {
       return masterPoolFactory;
     }
 
-    public Builder withMasterPoolFactory(final Function<HostAndPort, JedisPool> masterPoolFactory) {
+    public Builder withMasterPoolFactory(final Function<ClusterNode, JedisPool> masterPoolFactory) {
       this.masterPoolFactory = masterPoolFactory;
       return this;
     }
 
-    public Function<HostAndPort, JedisPool> getSlavePoolFactory() {
+    public Function<ClusterNode, JedisPool> getSlavePoolFactory() {
       return slavePoolFactory;
     }
 
-    public Builder withSlavePoolFactory(final Function<HostAndPort, JedisPool> slavePoolFactory) {
+    public Builder withSlavePoolFactory(final Function<ClusterNode, JedisPool> slavePoolFactory) {
       this.slavePoolFactory = slavePoolFactory;
       return this;
     }
 
-    public Function<HostAndPort, Jedis> getJedisAskFactory() {
+    public Function<HostPort, Jedis> getJedisAskFactory() {
       return jedisAskDiscoveryFactory;
     }
 
-    public Builder withJedisAskFactory(
-        final Function<HostAndPort, Jedis> jedisAskDiscoveryFactory) {
+    public Builder withJedisAskFactory(final Function<HostPort, Jedis> jedisAskDiscoveryFactory) {
       this.jedisAskDiscoveryFactory = jedisAskDiscoveryFactory;
       return this;
     }
