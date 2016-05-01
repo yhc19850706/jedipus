@@ -1,4 +1,4 @@
-package com.fabahaba.jedipus.primitive;
+package com.fabahaba.jedipus;
 
 import com.fabahaba.jedipus.cluster.ClusterNode;
 

@@ -17,9 +17,9 @@ import java.util.function.Function;
 
 import org.apache.commons.pool2.ObjectPool;
 
+import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
-import com.fabahaba.jedipus.primitive.IJedis;
 
 import redis.clients.jedis.BinaryJedisCluster;
 import redis.clients.jedis.exceptions.JedisConnectionException;

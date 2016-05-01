@@ -1,4 +1,4 @@
-package com.fabahaba.jedipus.primitive;
+package com.fabahaba.jedipus;
 
 import redis.clients.jedis.AdvancedBinaryJedisCommands;
 import redis.clients.jedis.AdvancedJedisCommands;

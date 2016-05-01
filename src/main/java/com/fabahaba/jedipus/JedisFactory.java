@@ -5,7 +5,6 @@ import org.apache.commons.pool2.PooledObjectFactory;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 
 import com.fabahaba.jedipus.cluster.ClusterNode;
-import com.fabahaba.jedipus.primitive.IJedis;
 import com.fabahaba.jedipus.primitive.PrimJedis;
 
 import redis.clients.jedis.Protocol;

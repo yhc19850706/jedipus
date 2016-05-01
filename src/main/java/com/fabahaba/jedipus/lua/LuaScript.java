@@ -1,12 +1,12 @@
-package com.fabahaba.jedipus;
+package com.fabahaba.jedipus.lua;
 
 import java.util.List;
 import java.util.stream.Stream;
 
+import com.fabahaba.jedipus.IJedis;
+import com.fabahaba.jedipus.IPipeline;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
-import com.fabahaba.jedipus.primitive.IJedis;
-import com.fabahaba.jedipus.primitive.IPipeline;
 
 
 public interface LuaScript {

@@ -1,4 +1,4 @@
-package com.fabahaba.jedipus;
+package com.fabahaba.jedipus.lua;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -14,10 +14,10 @@ import java.util.stream.Collectors;
 
 import javax.xml.bind.DatatypeConverter;
 
+import com.fabahaba.jedipus.IJedis;
+import com.fabahaba.jedipus.IPipeline;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
-import com.fabahaba.jedipus.primitive.IJedis;
-import com.fabahaba.jedipus.primitive.IPipeline;
 
 public class LuaScriptData implements LuaScript {
 

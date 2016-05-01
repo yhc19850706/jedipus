@@ -4,7 +4,7 @@ import java.util.NoSuchElementException;
 
 import org.apache.commons.pool2.ObjectPool;
 
-import com.fabahaba.jedipus.primitive.IJedis;
+import com.fabahaba.jedipus.IJedis;
 
 import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisException;

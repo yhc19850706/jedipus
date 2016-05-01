@@ -1,4 +1,4 @@
-package com.fabahaba.jedipus.primitive;
+package com.fabahaba.jedipus;
 
 import java.io.Closeable;
 import java.util.List;

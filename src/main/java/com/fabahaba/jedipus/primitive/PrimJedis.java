@@ -1,5 +1,7 @@
 package com.fabahaba.jedipus.primitive;
 
+import com.fabahaba.jedipus.IJedis;
+import com.fabahaba.jedipus.IPipeline;
 import com.fabahaba.jedipus.cluster.ClusterNode;
 
 import redis.clients.jedis.Jedis;

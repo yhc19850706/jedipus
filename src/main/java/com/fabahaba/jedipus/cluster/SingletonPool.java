@@ -2,7 +2,7 @@ package com.fabahaba.jedipus.cluster;
 
 import org.apache.commons.pool2.ObjectPool;
 
-import com.fabahaba.jedipus.primitive.IJedis;
+import com.fabahaba.jedipus.IJedis;
 
 
 class SingletonPool implements ObjectPool<IJedis> {
