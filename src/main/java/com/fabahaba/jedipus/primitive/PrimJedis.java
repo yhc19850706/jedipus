@@ -3,6 +3,7 @@ package com.fabahaba.jedipus.primitive;
 import com.fabahaba.jedipus.cluster.ClusterNode;
 
 import redis.clients.jedis.Jedis;
+import redis.clients.util.Pool;
 
 public class PrimJedis extends Jedis implements IJedis {
 
@@ -47,4 +48,13 @@ public class PrimJedis extends Jedis implements IJedis {
 
     return pipeline;
   }
+
+  @Override
+  public void close() {
+
+    client.close();
+  }
+
+  @Override
+  public void setDataSource(final Pool<Jedis> jedisPool) {}
 }

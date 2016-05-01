@@ -2,7 +2,7 @@ package com.fabahaba.jedipus.primitive;
 
 import com.fabahaba.jedipus.cluster.ClusterNode;
 
-public interface IClient {
+public interface JedisClient extends AutoCloseable {
 
   public boolean isConnected();
 

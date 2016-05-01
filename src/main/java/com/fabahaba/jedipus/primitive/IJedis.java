@@ -12,9 +12,9 @@ import redis.clients.jedis.MultiKeyCommands;
 import redis.clients.jedis.ScriptingCommands;
 import redis.clients.jedis.SentinelCommands;
 
-public interface IJedis extends IClient, JedisCommands, MultiKeyCommands, AdvancedJedisCommands,
+public interface IJedis extends JedisClient, JedisCommands, MultiKeyCommands, AdvancedJedisCommands,
     ScriptingCommands, BasicCommands, ClusterCommands, SentinelCommands, BinaryJedisCommands,
-    MultiKeyBinaryCommands, AdvancedBinaryJedisCommands, BinaryScriptingCommands, AutoCloseable {
+    MultiKeyBinaryCommands, AdvancedBinaryJedisCommands, BinaryScriptingCommands {
 
   public IPipeline createPipeline();
 
