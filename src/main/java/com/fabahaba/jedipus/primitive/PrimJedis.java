@@ -31,4 +31,10 @@ public class PrimJedis extends Jedis implements IJedis {
 
     return node;
   }
+
+  @Override
+  public String toString() {
+
+    return node.toString();
+  }
 }

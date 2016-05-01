@@ -45,11 +45,10 @@ try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discove
     .withReadMode(ReadMode.MIXED_SLAVES).create()) {
 
   // Ping-Pong all masters.
-  jce.acceptAllMasters(master -> System.out.format("%s %s%n", master.getClusterNode(), master.ping()));
+  jce.acceptAllMasters(master -> System.out.format("%s %s%n", master, master.ping()));
 
    // Ping-Pong all slaves.
-   jce.acceptAllSlaves(
-      slave -> System.out.format("%s %s%n", slave.getClusterNode(), slave.ping()));
+   jce.acceptAllSlaves(slave -> System.out.format("%s %s%n", slave, slave.ping()));
 
   // Hash tagged pipelined transaction.
   final String hashTag = RCUtils.createNameSpacedHashTag("HT");
