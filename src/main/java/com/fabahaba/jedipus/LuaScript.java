@@ -5,8 +5,8 @@ import java.util.stream.Stream;
 
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
+import com.fabahaba.jedipus.primitive.IJedis;
 
-import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
 
 public interface LuaScript {
@@ -27,17 +27,17 @@ public interface LuaScript {
 
   public Object eval(final Pipeline pipeline, final List<byte[]> keys, final List<byte[]> args);
 
-  public Object eval(final Jedis jedis, final int numRetries, final int keyCount,
+  public Object eval(final IJedis jedis, final int numRetries, final int keyCount,
       final byte[]... params);
 
-  public Object eval(final Jedis jedis, final int numRetries, final List<byte[]> keys,
+  public Object eval(final IJedis jedis, final int numRetries, final List<byte[]> keys,
       final List<byte[]> args);
 
-  public Object eval(final Jedis jedis, final int keyCount, final byte[]... params);
+  public Object eval(final IJedis jedis, final int keyCount, final byte[]... params);
 
-  public Object eval(final Jedis jedis, final List<byte[]> keys, final List<byte[]> args);
+  public Object eval(final IJedis jedis, final List<byte[]> keys, final List<byte[]> args);
 
-  public static void loadIfNotExists(final Jedis jedis, final byte[][] scriptSha1Bytes,
+  public static void loadIfNotExists(final IJedis jedis, final byte[][] scriptSha1Bytes,
       final LuaScript[] luaScripts) {
 
     final List<Long> existResults = jedis.scriptExists(scriptSha1Bytes);

@@ -38,19 +38,18 @@ dependencies {
 
 #####Basic Usage Example
 ```java
-final Collection<HostPort> discoveryHostPorts =
-    Collections.singleton(HostPort.create("localhost", 7000));
+final Collection<ClusterNode> discoveryNodes =
+    Collections.singleton(ClusterNode.create("localhost", 7000));
 
-try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryHostPorts)
+try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes)
     .withReadMode(ReadMode.MIXED_SLAVES).create()) {
 
   // Ping-Pong all masters.
-  jce.acceptAllMasters(master -> System.out.format("MASTER@%s:%d %s%n",
-      master.getClient().getHost(), master.getClient().getPort(), master.ping()));
+  jce.acceptAllMasters(master -> System.out.format("%s %s%n", master.getClusterNode(), master.ping()));
 
-  // Ping-Pong all slaves.
-  jce.acceptAllSlaves(slave -> System.out.format("SLAVE@%s:%d %s%n",
-      slave.getClient().getHost(), slave.getClient().getPort(), slave.ping()));
+   // Ping-Pong all slaves.
+   jce.acceptAllSlaves(
+      slave -> System.out.format("%s %s%n", slave.getClusterNode(), slave.ping()));
 
   // Hash tagged pipelined transaction.
   final String hashTag = RCUtils.createNameSpacedHashTag("HT");
@@ -111,11 +110,11 @@ public final class RedisLock {
 
    public static void main(final String[] args) {
 
-      final Collection<HostPort> discoveryHostPorts =
-        Collections.singleton(HostPort.create("localhost", 7000));
+      final Collection<ClusterNode> discoveryNodes =
+        Collections.singleton(ClusterNode.create("localhost", 7000));
 
       try (final JedisClusterExecutor jce =
-        JedisClusterExecutor.startBuilding(discoveryHostPorts).create()) {
+        JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
          LuaScript.loadMissingScripts(jce, TRY_ACQUIRE_LOCK, TRY_RELEASE_LOCK);
 

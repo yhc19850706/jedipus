@@ -7,22 +7,20 @@ import java.util.function.Function;
 
 import org.apache.commons.pool2.ObjectPool;
 
-import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
-
-import redis.clients.jedis.Jedis;
+import com.fabahaba.jedipus.primitive.IJedis;
 
 class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
 
   OptimisticJedisClusterSlotCache(final ReadMode defaultReadMode,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
-      final Set<HostPort> discoveryNodes, final Map<ClusterNode, ObjectPool<Jedis>> masterPools,
-      final ObjectPool<Jedis>[] masterSlots, final Map<ClusterNode, ObjectPool<Jedis>> slavePools,
+      final Set<ClusterNode> discoveryNodes, final Map<ClusterNode, ObjectPool<IJedis>> masterPools,
+      final ObjectPool<IJedis>[] masterSlots, final Map<ClusterNode, ObjectPool<IJedis>> slavePools,
       final LoadBalancedPools[] slaveSlots,
-      final Function<ClusterNode, ObjectPool<Jedis>> masterPoolFactory,
-      final Function<ClusterNode, ObjectPool<Jedis>> slavePoolFactory,
-      final Function<HostPort, Jedis> jedisAskFactory,
-      final Function<ObjectPool<Jedis>[], LoadBalancedPools> lbFactory) {
+      final Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory,
+      final Function<ClusterNode, ObjectPool<IJedis>> slavePoolFactory,
+      final Function<ClusterNode, IJedis> jedisAskFactory,
+      final Function<ObjectPool<IJedis>[], LoadBalancedPools> lbFactory) {
 
     super(defaultReadMode, true, durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes,
         masterPools, masterSlots, slavePools, slaveSlots, masterPoolFactory, slavePoolFactory,
@@ -30,36 +28,35 @@ class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
   }
 
   @Override
-  protected ObjectPool<Jedis> getAskPool(final ClusterNode askNode) {
+  protected ObjectPool<IJedis> getAskPool(final ClusterNode askNode) {
 
-    final ObjectPool<Jedis> pool = getAskPoolGuarded(askNode);
+    final ObjectPool<IJedis> pool = getAskPoolGuarded(askNode);
 
-    return pool == null ? new SingletonPool(jedisAskDiscoveryFactory.apply(askNode.getHostPort()))
-        : pool;
+    return pool == null ? new SingletonPool(jedisAskDiscoveryFactory.apply(askNode)) : pool;
   }
 
   @Override
-  protected ObjectPool<Jedis> getSlotPoolModeChecked(final ReadMode readMode, final int slot) {
+  protected ObjectPool<IJedis> getSlotPoolModeChecked(final ReadMode readMode, final int slot) {
 
     return getLoadBalancedPool(readMode, slot);
   }
 
   @Override
-  ObjectPool<Jedis> getMasterPoolIfPresent(final ClusterNode node) {
+  ObjectPool<IJedis> getMasterPoolIfPresent(final ClusterNode node) {
 
     return masterPools.get(node);
   }
 
   @Override
-  ObjectPool<Jedis> getSlavePoolIfPresent(final ClusterNode node) {
+  ObjectPool<IJedis> getSlavePoolIfPresent(final ClusterNode node) {
 
     return slavePools.get(node);
   }
 
   @Override
-  ObjectPool<Jedis> getPoolIfPresent(final ClusterNode node) {
+  ObjectPool<IJedis> getPoolIfPresent(final ClusterNode node) {
 
-    final ObjectPool<Jedis> pool = masterPools.get(node);
+    final ObjectPool<IJedis> pool = masterPools.get(node);
 
     return pool == null ? slavePools.get(node) : pool;
   }

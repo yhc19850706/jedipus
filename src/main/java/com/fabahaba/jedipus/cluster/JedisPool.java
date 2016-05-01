@@ -4,7 +4,8 @@ import java.util.NoSuchElementException;
 
 import org.apache.commons.pool2.ObjectPool;
 
-import redis.clients.jedis.Jedis;
+import com.fabahaba.jedipus.primitive.IJedis;
+
 import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisException;
 
@@ -12,7 +13,7 @@ final class JedisPool {
 
   private JedisPool() {}
 
-  public static Jedis borrowObject(final ObjectPool<Jedis> pool) {
+  public static IJedis borrowObject(final ObjectPool<IJedis> pool) {
 
     try {
       return pool.borrowObject();
@@ -23,13 +24,13 @@ final class JedisPool {
     }
   }
 
-  public static void returnJedis(final ObjectPool<Jedis> pool, final Jedis jedis) {
+  public static void returnJedis(final ObjectPool<IJedis> pool, final IJedis jedis) {
 
     if (pool == null || jedis == null) {
       return;
     }
 
-    if (jedis.getClient().isBroken()) {
+    if (jedis.isBroken()) {
       try {
         pool.invalidateObject(jedis);
       } catch (final Exception e) {

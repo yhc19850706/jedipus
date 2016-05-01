@@ -2,34 +2,35 @@ package com.fabahaba.jedipus.cluster;
 
 import org.apache.commons.pool2.ObjectPool;
 
-import redis.clients.jedis.Jedis;
+import com.fabahaba.jedipus.primitive.IJedis;
 
-class SingletonPool implements ObjectPool<Jedis> {
 
-  private volatile Jedis jedis;
+class SingletonPool implements ObjectPool<IJedis> {
 
-  SingletonPool(final Jedis jedis) {
+  private volatile IJedis jedis;
+
+  SingletonPool(final IJedis jedis) {
 
     this.jedis = jedis;
   }
 
   @Override
-  public synchronized Jedis borrowObject() {
+  public synchronized IJedis borrowObject() {
 
-    final Jedis borrowed = jedis;
+    final IJedis borrowed = jedis;
     jedis = null;
 
     return borrowed;
   }
 
   @Override
-  public void returnObject(final Jedis jedis) {
+  public void returnObject(final IJedis jedis) {
 
     this.jedis = jedis;
   }
 
   @Override
-  public void invalidateObject(final Jedis jedis) throws Exception {
+  public void invalidateObject(final IJedis jedis) throws Exception {
 
     jedis.close();
   }
@@ -58,7 +59,7 @@ class SingletonPool implements ObjectPool<Jedis> {
   @Override
   public void close() {
 
-    final Jedis close = jedis;
+    final IJedis close = jedis;
     if (close != null) {
       jedis = null;
       close.close();
