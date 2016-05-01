@@ -8,8 +8,8 @@
 * Use known slot integers for O(1) direct primitive array access to a corresponding Jedis pool.
 * Locking is only applied to threads that are accessing slots that are MOVING or for which a client connection cannot be established triggering a slot cache refresh.
 * Minimal dependency tree (Jedipus -> Jedis -> org.apache.commons:commons-pool2).
-* Optional user supplied master and slave `ClusterNode -> Pool<Jedis>` factories.  Useful for client side ip/port mapping or dynamic pool sizes.
-* Load balance read-only requests across pools.  Optional user supplied slave `Pool<Jedis>[] -> LoadBalancedPools` factories.  By default, a round robin strategy is used.
+* Optional user supplied master and slave `ClusterNode -> ObjectPool<Jedis>` factories.  Useful for client side ip/port mapping or dynamic pool sizes.
+* Load balance read-only requests across pools.  Optional user supplied slave `ObjectPool<Jedis>[] -> LoadBalancedPools` factories.  By default, a round robin strategy is used.
 * Configurable retry delay per HostPort for JedisConnectionException's.
 * Utilities to manage and execute Lua scripts.
 

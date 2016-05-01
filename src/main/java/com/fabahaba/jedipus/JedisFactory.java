@@ -57,16 +57,6 @@ public final class JedisFactory implements PooledObjectFactory<Jedis> {
   }
 
   @Override
-  public String toString() {
-    final StringBuilder toString = new StringBuilder();
-    toString.append("JedisFactory [host=").append(host).append(", port=").append(port)
-        .append(", connTimeout=").append(connTimeout).append(", soTimeout=").append(soTimeout)
-        .append(", clientName=").append(clientName).append(", initReadOnly=").append(initReadOnly)
-        .append("]");
-    return toString.toString();
-  }
-
-  @Override
   public PooledObject<Jedis> makeObject() throws Exception {
 
     final Jedis jedis = new Jedis(host, port, connTimeout, soTimeout);
@@ -97,9 +87,9 @@ public final class JedisFactory implements PooledObjectFactory<Jedis> {
   }
 
   @Override
-  public boolean validateObject(final PooledObject<Jedis> pooledJedis) {
+  public boolean validateObject(final PooledObject<Jedis> pooledObj) {
 
-    final BinaryJedis jedis = pooledJedis.getObject();
+    final BinaryJedis jedis = pooledObj.getObject();
     try {
       if (jedis.isConnected()) {
         jedis.ping();
@@ -116,6 +106,16 @@ public final class JedisFactory implements PooledObjectFactory<Jedis> {
 
   @Override
   public void passivateObject(final PooledObject<Jedis> pooledObj) throws Exception {}
+
+  @Override
+  public String toString() {
+    final StringBuilder toString = new StringBuilder();
+    toString.append("JedisFactory [host=").append(host).append(", port=").append(port)
+        .append(", connTimeout=").append(connTimeout).append(", soTimeout=").append(soTimeout)
+        .append(", clientName=").append(clientName).append(", initReadOnly=").append(initReadOnly)
+        .append("]");
+    return toString.toString();
+  }
 
   public static class Builder {
 
