@@ -118,7 +118,7 @@ public final class JedisClusterExecutor implements AutoCloseable {
   private final int maxRetries;
   private final int tryRandomAfter;
 
-  private final HostPortRetryDelay hostPortRetryDelay;
+  private final ClusterNodeRetryDelay clusterNodeRetryDelay;
 
   private final JedisClusterConnHandler connHandler;
 
@@ -134,7 +134,7 @@ public final class JedisClusterExecutor implements AutoCloseable {
 
   private JedisClusterExecutor(final ReadMode defaultReadMode,
       final Collection<ClusterNode> discoveryNodes, final int maxRedirections, final int maxRetries,
-      final int tryRandomAfter, final HostPortRetryDelay hostPortRetryDelay,
+      final int tryRandomAfter, final ClusterNodeRetryDelay clusterNodeRetryDelay,
       final boolean optimisticReads, final Duration durationBetweenCacheRefresh,
       final Duration maxAwaitCacheRefresh,
       final Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory,
@@ -150,7 +150,7 @@ public final class JedisClusterExecutor implements AutoCloseable {
     this.maxRetries = maxRetries;
     this.tryRandomAfter = tryRandomAfter;
 
-    this.hostPortRetryDelay = hostPortRetryDelay;
+    this.clusterNodeRetryDelay = clusterNodeRetryDelay;
   }
 
   public ReadMode getDefaultReadMode() {
@@ -502,8 +502,8 @@ public final class JedisClusterExecutor implements AutoCloseable {
 
       retries = 1;
 
-      if (hostPortRetryDelay != null && jedis != null) {
-        hostPortRetryDelay.markFailure(JedisClusterSlotCache.createHostPort(jedis));
+      if (clusterNodeRetryDelay != null && jedis != null) {
+        clusterNodeRetryDelay.markFailure(jedis.getClusterNode());
       }
     } catch (final JedisAskDataException askEx) {
 
@@ -530,8 +530,8 @@ public final class JedisClusterExecutor implements AutoCloseable {
           jedis = JedisPool.borrowObject(pool);
 
           final R result = jedisConsumer.apply(jedis);
-          if (retries > 0 && hostPortRetryDelay != null) {
-            hostPortRetryDelay.markSuccess(JedisClusterSlotCache.createHostPort(jedis));
+          if (clusterNodeRetryDelay != null) {
+            clusterNodeRetryDelay.markSuccess(jedis.getClusterNode());
           }
 
           return result;
@@ -556,8 +556,8 @@ public final class JedisClusterExecutor implements AutoCloseable {
           throw jce;
         }
 
-        if (hostPortRetryDelay != null && jedis != null) {
-          hostPortRetryDelay.markFailure(JedisClusterSlotCache.createHostPort(jedis));
+        if (clusterNodeRetryDelay != null && jedis != null) {
+          clusterNodeRetryDelay.markFailure(jedis.getClusterNode());
         }
         continue;
       } catch (final JedisAskDataException askEx) {
@@ -629,8 +629,8 @@ public final class JedisClusterExecutor implements AutoCloseable {
 
           jedisConsumer.accept(jedis);
 
-          if (retries > 0 && hostPortRetryDelay != null && jedis != null) {
-            hostPortRetryDelay.markSuccess(JedisClusterSlotCache.createHostPort(jedis));
+          if (clusterNodeRetryDelay != null) {
+            clusterNodeRetryDelay.markSuccess(jedis.getClusterNode());
           }
           break;
         } catch (final JedisConnectionException jce) {
@@ -639,8 +639,8 @@ public final class JedisClusterExecutor implements AutoCloseable {
             throw jce;
           }
 
-          if (hostPortRetryDelay != null && jedis != null) {
-            hostPortRetryDelay.markFailure(JedisClusterSlotCache.createHostPort(jedis));
+          if (clusterNodeRetryDelay != null && jedis != null) {
+            clusterNodeRetryDelay.markFailure(jedis.getClusterNode());
           }
 
           continue;
@@ -664,7 +664,7 @@ public final class JedisClusterExecutor implements AutoCloseable {
     private int maxRedirections = DEFAULT_MAX_REDIRECTIONS;
     private int maxRetries = DEFAULT_MAX_RETRIES;
     private int tryRandomAfter = DEFAULT_TRY_RANDOM_AFTER;
-    private HostPortRetryDelay hostPortRetryDelay;
+    private ClusterNodeRetryDelay clusterNodeRetryDelay;
     private GenericObjectPoolConfig poolConfig = DEFAULT_POOL_CONFIG;
     private Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory =
         DEFAULT_MASTER_POOL_FACTORY;
@@ -690,7 +690,7 @@ public final class JedisClusterExecutor implements AutoCloseable {
     public JedisClusterExecutor create() {
 
       return new JedisClusterExecutor(defaultReadMode, discoveryNodes, maxRedirections, maxRetries,
-          tryRandomAfter, hostPortRetryDelay, optimisticReads, durationBetweenCacheRefresh,
+          tryRandomAfter, clusterNodeRetryDelay, optimisticReads, durationBetweenCacheRefresh,
           maxAwaitCacheRefresh, masterPoolFactory, slavePoolFactory, jedisAskDiscoveryFactory,
           slavePools -> lbFactory.apply(defaultReadMode, slavePools));
     }
@@ -740,12 +740,12 @@ public final class JedisClusterExecutor implements AutoCloseable {
       return this;
     }
 
-    public HostPortRetryDelay getHostPortRetryDelay() {
-      return hostPortRetryDelay;
+    public ClusterNodeRetryDelay getHostPortRetryDelay() {
+      return clusterNodeRetryDelay;
     }
 
-    public Builder withHostPortRetryDelay(final HostPortRetryDelay hostPortRetryDelay) {
-      this.hostPortRetryDelay = hostPortRetryDelay;
+    public Builder withHostPortRetryDelay(final ClusterNodeRetryDelay hostPortRetryDelay) {
+      this.clusterNodeRetryDelay = hostPortRetryDelay;
       return this;
     }
 

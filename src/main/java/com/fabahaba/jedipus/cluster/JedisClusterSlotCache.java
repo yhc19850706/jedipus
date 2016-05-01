@@ -17,7 +17,6 @@ import java.util.function.Function;
 
 import org.apache.commons.pool2.ObjectPool;
 
-import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.primitive.IJedis;
@@ -358,11 +357,6 @@ class JedisClusterSlotCache implements AutoCloseable {
         lock.unlockWrite(writeStamp);
       }
     }
-  }
-
-  static HostPort createHostPort(final IJedis jedis) {
-
-    return HostPort.create(jedis.getHost(), jedis.getPort());
   }
 
   ObjectPool<IJedis> getAskPool(final ClusterNode askNode) {

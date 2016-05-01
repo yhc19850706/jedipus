@@ -1,6 +1,5 @@
 package com.fabahaba.jedipus.primitive;
 
-import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.cluster.ClusterNode;
 
 public interface IClient {
@@ -19,11 +18,6 @@ public interface IClient {
   default int getPort() {
 
     return getClusterNode().getPort();
-  }
-
-  default HostPort getHostPort() {
-
-    return getClusterNode().getHostPort();
   }
 
   public ClusterNode getClusterNode();

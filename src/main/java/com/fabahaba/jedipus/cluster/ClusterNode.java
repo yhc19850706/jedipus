@@ -7,7 +7,7 @@ import com.fabahaba.jedipus.RESP;
 
 import redis.clients.jedis.HostAndPort;
 
-public final class ClusterNode {
+public final class ClusterNode implements HostPort {
 
   private final HostPort hostPort;
   private final String id;
@@ -50,11 +50,13 @@ public final class ClusterNode {
     return hostPort;
   }
 
+  @Override
   public String getHost() {
 
     return hostPort.getHost();
   }
 
+  @Override
   public int getPort() {
 
     return hostPort.getPort();
