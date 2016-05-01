@@ -48,8 +48,6 @@ class JedisClusterSlotCache implements AutoCloseable {
   private final Function<ClusterNode, Pool<Jedis>> slavePoolFactory;
   protected final Function<HostPort, Jedis> jedisAskDiscoveryFactory;
 
-  private static final int MASTER_NODE_INDEX = 2;
-
   JedisClusterSlotCache(final ReadMode defaultReadMode, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
       final Set<HostPort> discoveryNodes, final Map<ClusterNode, Pool<Jedis>> masterPools,
@@ -143,8 +141,7 @@ class JedisClusterSlotCache implements AutoCloseable {
             case MIXED_SLAVES:
             case MIXED:
             case MASTER:
-              final ClusterNode masterNode =
-                  ClusterNode.create((List<Object>) slotInfo.get(MASTER_NODE_INDEX));
+              final ClusterNode masterNode = ClusterNode.create((List<Object>) slotInfo.get(2));
               allDiscoveryHostPorts.add(masterNode.getHostPort());
 
               final Pool<Jedis> masterPool = masterPoolFactory.apply(masterNode);
@@ -157,11 +154,15 @@ class JedisClusterSlotCache implements AutoCloseable {
               break;
           }
 
-          final ArrayList<Pool<Jedis>> slotSlavePools =
-              defaultReadMode == ReadMode.MASTER ? null : new ArrayList<>(2);
+          final int slotInfoSize = slotInfo.size();
+          if (slotInfoSize < 4) {
+            continue;
+          }
 
-          for (int i = MASTER_NODE_INDEX + 1, slotInfoSize =
-              slotInfo.size(); i < slotInfoSize; i++) {
+          final Pool<Jedis>[] slotSlavePools =
+              defaultReadMode == ReadMode.MASTER ? null : new Pool[slotInfoSize - 3];
+
+          for (int i = 3, poolIndex = 0; i < slotInfoSize; i++) {
 
             final ClusterNode slaveNode = ClusterNode.create((List<Object>) slotInfo.get(i));
             allDiscoveryHostPorts.add(slaveNode.getHostPort());
@@ -172,7 +173,7 @@ class JedisClusterSlotCache implements AutoCloseable {
               case MIXED_SLAVES:
                 final Pool<Jedis> slavePool = slavePoolFactory.apply(slaveNode);
                 slavePools.put(slaveNode, slavePool);
-                slotSlavePools.add(slavePool);
+                slotSlavePools[poolIndex++] = slavePool;
                 break;
               case MASTER:
               default:
@@ -182,8 +183,7 @@ class JedisClusterSlotCache implements AutoCloseable {
 
           if (defaultReadMode != ReadMode.MASTER) {
 
-            final LoadBalancedPools lbPools =
-                lbFactory.apply(slotSlavePools.toArray(new Pool[slotSlavePools.size()]));
+            final LoadBalancedPools lbPools = lbFactory.apply(slotSlavePools);
 
             Arrays.fill(slaveSlots, slotBegin, slotEnd, lbPools);
           }
@@ -289,8 +289,7 @@ class JedisClusterSlotCache implements AutoCloseable {
           case MIXED_SLAVES:
           case MIXED:
           case MASTER:
-            final ClusterNode masterNode =
-                ClusterNode.create((List<Object>) slotInfo.get(MASTER_NODE_INDEX));
+            final ClusterNode masterNode = ClusterNode.create((List<Object>) slotInfo.get(2));
             discoveryHostPorts.add(masterNode.getHostPort());
 
             final Pool<Jedis> masterPool = masterPoolFactory.apply(masterNode);
@@ -303,10 +302,15 @@ class JedisClusterSlotCache implements AutoCloseable {
             break;
         }
 
-        final ArrayList<Pool<Jedis>> slotSlavePools =
-            defaultReadMode == ReadMode.MASTER ? null : new ArrayList<>(2);
+        final int slotInfoSize = slotInfo.size();
+        if (slotInfoSize < 4) {
+          continue;
+        }
 
-        for (int i = MASTER_NODE_INDEX + 1, slotInfoSize = slotInfo.size(); i < slotInfoSize; i++) {
+        final Pool<Jedis>[] slotSlavePools =
+            defaultReadMode == ReadMode.MASTER ? null : new Pool[slotInfoSize - 3];
+
+        for (int i = 3, poolIndex = 0; i < slotInfoSize; i++) {
 
           final ClusterNode slaveNode = ClusterNode.create((List<Object>) slotInfo.get(i));
           discoveryHostPorts.add(slaveNode.getHostPort());
@@ -316,9 +320,7 @@ class JedisClusterSlotCache implements AutoCloseable {
             case MIXED:
             case MIXED_SLAVES:
               staleSlavePools.remove(slaveNode);
-
-              final Pool<Jedis> slavePool = slavePools.computeIfAbsent(slaveNode, slavePoolFactory);
-              slotSlavePools.add(slavePool);
+              slotSlavePools[poolIndex++] = slavePools.computeIfAbsent(slaveNode, slavePoolFactory);
               break;
             case MASTER:
             default:
@@ -328,9 +330,7 @@ class JedisClusterSlotCache implements AutoCloseable {
 
         if (defaultReadMode != ReadMode.MASTER) {
 
-          final LoadBalancedPools lbPools =
-              lbFactory.apply(slotSlavePools.toArray(new Pool[slotSlavePools.size()]));
-
+          final LoadBalancedPools lbPools = lbFactory.apply(slotSlavePools);
           Arrays.fill(slaveSlots, slotBegin, slotEnd, lbPools);
         }
       }
