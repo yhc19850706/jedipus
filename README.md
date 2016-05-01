@@ -47,8 +47,8 @@ try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discove
   // Ping-Pong all masters.
   jce.acceptAllMasters(master -> System.out.format("%s %s%n", master, master.ping()));
 
-   // Ping-Pong all slaves.
-   jce.acceptAllSlaves(slave -> System.out.format("%s %s%n", slave, slave.ping()));
+  // Ping-Pong all slaves.
+  jce.acceptAllSlaves(slave -> System.out.format("%s %s%n", slave, slave.ping()));
 
   // Hash tagged pipelined transaction.
   final String hashTag = RCUtils.createNameSpacedHashTag("HT");
@@ -110,10 +110,9 @@ public final class RedisLock {
    public static void main(final String[] args) {
 
       final Collection<ClusterNode> discoveryNodes =
-        Collections.singleton(ClusterNode.create("localhost", 7000));
+         Collections.singleton(ClusterNode.create("localhost", 7000));
 
-      try (final JedisClusterExecutor jce =
-        JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
+      try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
          LuaScript.loadMissingScripts(jce, TRY_ACQUIRE_LOCK, TRY_RELEASE_LOCK);
 
