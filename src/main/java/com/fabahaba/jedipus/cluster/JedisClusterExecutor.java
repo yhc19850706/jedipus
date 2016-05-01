@@ -539,8 +539,9 @@ public final class JedisClusterExecutor implements AutoCloseable {
           return result;
         }
 
-        final Jedis askNode = JedisPool.borrowObject(askPool);
+        Jedis askNode = null;
         try {
+          askNode = JedisPool.borrowObject(askPool);
           askNode.asking();
           return jedisConsumer.apply(askNode);
         } finally {
@@ -643,6 +644,7 @@ public final class JedisClusterExecutor implements AutoCloseable {
           if (hostPortRetryDelay != null && jedis != null) {
             hostPortRetryDelay.markFailure(JedisClusterSlotCache.createHostPort(jedis));
           }
+
           continue;
         } finally {
           JedisPool.returnJedis(pool, jedis);
