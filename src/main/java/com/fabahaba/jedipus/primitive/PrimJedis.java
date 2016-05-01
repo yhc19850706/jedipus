@@ -37,4 +37,14 @@ public class PrimJedis extends Jedis implements IJedis {
 
     return node.toString();
   }
+
+  @Override
+  public IPipeline createPipeline() {
+
+    final PrimPipeline pipeline = new PrimPipeline();
+    pipeline.setClient(client);
+    this.pipeline = pipeline;
+
+    return pipeline;
+  }
 }

@@ -17,8 +17,7 @@ import javax.xml.bind.DatatypeConverter;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.primitive.IJedis;
-
-import redis.clients.jedis.Pipeline;
+import com.fabahaba.jedipus.primitive.IPipeline;
 
 public class LuaScriptData implements LuaScript {
 
@@ -85,27 +84,27 @@ public class LuaScriptData implements LuaScript {
   }
 
   @Override
-  public Object eval(final Pipeline pipeline, final int numRetries, final int keyCount,
+  public Object eval(final IPipeline pipeline, final int numRetries, final int keyCount,
       final byte[]... params) {
 
     return pipeline.evalsha(sha1HexBytes, keyCount, params);
   }
 
   @Override
-  public Object eval(final Pipeline pipeline, final int numRetries, final List<byte[]> keys,
+  public Object eval(final IPipeline pipeline, final int numRetries, final List<byte[]> keys,
       final List<byte[]> args) {
 
     return pipeline.evalsha(sha1HexBytes, keys, args);
   }
 
   @Override
-  public Object eval(final Pipeline pipeline, final int keyCount, final byte[]... params) {
+  public Object eval(final IPipeline pipeline, final int keyCount, final byte[]... params) {
 
     return pipeline.evalsha(sha1HexBytes, keyCount, params);
   }
 
   @Override
-  public Object eval(final Pipeline pipeline, final List<byte[]> keys, final List<byte[]> args) {
+  public Object eval(final IPipeline pipeline, final List<byte[]> keys, final List<byte[]> args) {
 
     return pipeline.evalsha(sha1HexBytes, keys, args);
   }

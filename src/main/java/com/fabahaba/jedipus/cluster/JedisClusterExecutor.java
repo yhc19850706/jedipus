@@ -14,9 +14,9 @@ import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
 import com.fabahaba.jedipus.JedisFactory;
 import com.fabahaba.jedipus.primitive.IJedis;
+import com.fabahaba.jedipus.primitive.IPipeline;
 import com.fabahaba.jedipus.primitive.PrimJedis;
 
-import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Protocol;
 import redis.clients.jedis.exceptions.JedisAskDataException;
 import redis.clients.jedis.exceptions.JedisClusterMaxRedirectionsException;
@@ -251,104 +251,104 @@ public final class JedisClusterExecutor implements AutoCloseable {
     return applyJedis(readMode, JedisClusterCRC16.getSlot(slotKey), jedisConsumer, maxRetries);
   }
 
-  public <R> R applyPipeline(final byte[] slotKey, final Function<Pipeline, R> pipelineConsumer) {
+  public <R> R applyPipeline(final byte[] slotKey, final Function<IPipeline, R> pipelineConsumer) {
 
     return applyPipeline(JedisClusterCRC16.getSlot(slotKey), pipelineConsumer, maxRetries);
   }
 
   public <R> R applyPipeline(final ReadMode readMode, final byte[] slotKey,
-      final Function<Pipeline, R> pipelineConsumer) {
+      final Function<IPipeline, R> pipelineConsumer) {
 
     return applyPipeline(readMode, JedisClusterCRC16.getSlot(slotKey), pipelineConsumer,
         maxRetries);
   }
 
-  public <R> R applyPipeline(final int slot, final Function<Pipeline, R> pipelineConsumer) {
+  public <R> R applyPipeline(final int slot, final Function<IPipeline, R> pipelineConsumer) {
 
     return applyPipeline(slot, pipelineConsumer, maxRetries);
   }
 
   public <R> R applyPipeline(final ReadMode readMode, final int slot,
-      final Function<Pipeline, R> pipelineConsumer) {
+      final Function<IPipeline, R> pipelineConsumer) {
 
     return applyPipeline(readMode, slot, pipelineConsumer, maxRetries);
   }
 
-  public <R> R applyPipeline(final byte[] slotKey, final Function<Pipeline, R> pipelineConsumer,
+  public <R> R applyPipeline(final byte[] slotKey, final Function<IPipeline, R> pipelineConsumer,
       final int maxRetries) {
 
     return applyPipeline(JedisClusterCRC16.getSlot(slotKey), pipelineConsumer, maxRetries);
   }
 
   public <R> R applyPipeline(final ReadMode readMode, final byte[] slotKey,
-      final Function<Pipeline, R> pipelineConsumer, final int maxRetries) {
+      final Function<IPipeline, R> pipelineConsumer, final int maxRetries) {
 
     return applyPipeline(readMode, JedisClusterCRC16.getSlot(slotKey), pipelineConsumer,
         maxRetries);
   }
 
-  public <R> R applyPipeline(final int slot, final Function<Pipeline, R> pipelineConsumer,
+  public <R> R applyPipeline(final int slot, final Function<IPipeline, R> pipelineConsumer,
       final int maxRetries) {
 
     return applyPipeline(connHandler.getDefaultReadMode(), slot, pipelineConsumer, maxRetries);
   }
 
   public <R> R applyPipeline(final ReadMode readMode, final int slot,
-      final Function<Pipeline, R> pipelineConsumer, final int maxRetries) {
+      final Function<IPipeline, R> pipelineConsumer, final int maxRetries) {
 
     return applyJedis(readMode, slot, jedis -> {
-      final Pipeline pipeline = jedis.pipelined();
+      final IPipeline pipeline = jedis.createPipeline();
       final R result = pipelineConsumer.apply(pipeline);
       pipeline.sync();
       return result;
     }, maxRetries);
   }
 
-  public void acceptPipeline(final byte[] slotKey, final Consumer<Pipeline> pipelineConsumer) {
+  public void acceptPipeline(final byte[] slotKey, final Consumer<IPipeline> pipelineConsumer) {
 
     acceptPipeline(JedisClusterCRC16.getSlot(slotKey), pipelineConsumer, maxRetries);
   }
 
   public void acceptPipeline(final ReadMode readMode, final byte[] slotKey,
-      final Consumer<Pipeline> pipelineConsumer) {
+      final Consumer<IPipeline> pipelineConsumer) {
 
     acceptPipeline(readMode, JedisClusterCRC16.getSlot(slotKey), pipelineConsumer, maxRetries);
   }
 
-  public void acceptPipeline(final int slot, final Consumer<Pipeline> pipelineConsumer) {
+  public void acceptPipeline(final int slot, final Consumer<IPipeline> pipelineConsumer) {
 
     acceptPipeline(slot, pipelineConsumer, maxRetries);
   }
 
   public void acceptPipeline(final ReadMode readMode, final int slot,
-      final Consumer<Pipeline> pipelineConsumer) {
+      final Consumer<IPipeline> pipelineConsumer) {
 
     acceptPipeline(readMode, slot, pipelineConsumer, maxRetries);
   }
 
-  public void acceptPipeline(final byte[] slotKey, final Consumer<Pipeline> pipelineConsumer,
+  public void acceptPipeline(final byte[] slotKey, final Consumer<IPipeline> pipelineConsumer,
       final int maxRetries) {
 
     acceptPipeline(JedisClusterCRC16.getSlot(slotKey), pipelineConsumer, maxRetries);
   }
 
   public void acceptPipeline(final ReadMode readMode, final byte[] slotKey,
-      final Consumer<Pipeline> pipelineConsumer, final int maxRetries) {
+      final Consumer<IPipeline> pipelineConsumer, final int maxRetries) {
 
     acceptPipeline(readMode, JedisClusterCRC16.getSlot(slotKey), pipelineConsumer, maxRetries);
   }
 
-  public void acceptPipeline(final int slot, final Consumer<Pipeline> pipelineConsumer,
+  public void acceptPipeline(final int slot, final Consumer<IPipeline> pipelineConsumer,
       final int maxRetries) {
 
     acceptPipeline(connHandler.getDefaultReadMode(), slot, pipelineConsumer, maxRetries);
   }
 
   public void acceptPipeline(final ReadMode readMode, final int slot,
-      final Consumer<Pipeline> pipelineConsumer, final int maxRetries) {
+      final Consumer<IPipeline> pipelineConsumer, final int maxRetries) {
 
     applyJedis(readMode, slot, jedis -> {
-      final Pipeline pipeline = jedis.pipelined();
+      final IPipeline pipeline = jedis.createPipeline();
       pipelineConsumer.accept(pipeline);
       pipeline.sync();
       return null;
@@ -356,57 +356,57 @@ public final class JedisClusterExecutor implements AutoCloseable {
   }
 
   public <R> R applyPipelinedTransaction(final byte[] slotKey,
-      final Function<Pipeline, R> pipelineConsumer) {
+      final Function<IPipeline, R> pipelineConsumer) {
 
     return applyPipelinedTransaction(JedisClusterCRC16.getSlot(slotKey), pipelineConsumer,
         maxRetries);
   }
 
   public <R> R applyPipelinedTransaction(final ReadMode readMode, final byte[] slotKey,
-      final Function<Pipeline, R> pipelineConsumer) {
+      final Function<IPipeline, R> pipelineConsumer) {
 
     return applyPipelinedTransaction(readMode, JedisClusterCRC16.getSlot(slotKey), pipelineConsumer,
         maxRetries);
   }
 
   public <R> R applyPipelinedTransaction(final int slot,
-      final Function<Pipeline, R> pipelineConsumer) {
+      final Function<IPipeline, R> pipelineConsumer) {
 
     return applyPipelinedTransaction(slot, pipelineConsumer, maxRetries);
   }
 
   public <R> R applyPipelinedTransaction(final ReadMode readMode, final int slot,
-      final Function<Pipeline, R> pipelineConsumer) {
+      final Function<IPipeline, R> pipelineConsumer) {
 
     return applyPipelinedTransaction(readMode, slot, pipelineConsumer, maxRetries);
   }
 
   public <R> R applyPipelinedTransaction(final byte[] slotKey,
-      final Function<Pipeline, R> pipelineConsumer, final int maxRetries) {
+      final Function<IPipeline, R> pipelineConsumer, final int maxRetries) {
 
     return applyPipelinedTransaction(JedisClusterCRC16.getSlot(slotKey), pipelineConsumer,
         maxRetries);
   }
 
   public <R> R applyPipelinedTransaction(final ReadMode readMode, final byte[] slotKey,
-      final Function<Pipeline, R> pipelineConsumer, final int maxRetries) {
+      final Function<IPipeline, R> pipelineConsumer, final int maxRetries) {
 
     return applyPipelinedTransaction(readMode, JedisClusterCRC16.getSlot(slotKey), pipelineConsumer,
         maxRetries);
   }
 
   public <R> R applyPipelinedTransaction(final int slot,
-      final Function<Pipeline, R> pipelineConsumer, final int maxRetries) {
+      final Function<IPipeline, R> pipelineConsumer, final int maxRetries) {
 
     return applyPipelinedTransaction(connHandler.getDefaultReadMode(), slot, pipelineConsumer,
         maxRetries);
   }
 
   public <R> R applyPipelinedTransaction(final ReadMode readMode, final int slot,
-      final Function<Pipeline, R> pipelineConsumer, final int maxRetries) {
+      final Function<IPipeline, R> pipelineConsumer, final int maxRetries) {
 
     return applyJedis(readMode, slot, jedis -> {
-      final Pipeline pipeline = jedis.pipelined();
+      final IPipeline pipeline = jedis.createPipeline();
       pipeline.multi();
       final R result = pipelineConsumer.apply(pipeline);
       pipeline.exec();
@@ -416,44 +416,44 @@ public final class JedisClusterExecutor implements AutoCloseable {
   }
 
   public void acceptPipelinedTransaction(final byte[] slotKey,
-      final Consumer<Pipeline> pipelineConsumer) {
+      final Consumer<IPipeline> pipelineConsumer) {
 
     acceptPipelinedTransaction(JedisClusterCRC16.getSlot(slotKey), pipelineConsumer, maxRetries);
   }
 
   public void acceptPipelinedTransaction(final ReadMode readMode, final byte[] slotKey,
-      final Consumer<Pipeline> pipelineConsumer) {
+      final Consumer<IPipeline> pipelineConsumer) {
 
     acceptPipelinedTransaction(readMode, JedisClusterCRC16.getSlot(slotKey), pipelineConsumer,
         maxRetries);
   }
 
   public void acceptPipelinedTransaction(final int slot,
-      final Consumer<Pipeline> pipelineConsumer) {
+      final Consumer<IPipeline> pipelineConsumer) {
 
     acceptPipelinedTransaction(slot, pipelineConsumer, maxRetries);
   }
 
   public void acceptPipelinedTransaction(final ReadMode readMode, final int slot,
-      final Consumer<Pipeline> pipelineConsumer) {
+      final Consumer<IPipeline> pipelineConsumer) {
 
     acceptPipelinedTransaction(readMode, slot, pipelineConsumer, maxRetries);
   }
 
   public void acceptPipelinedTransaction(final byte[] slotKey,
-      final Consumer<Pipeline> pipelineConsumer, final int maxRetries) {
+      final Consumer<IPipeline> pipelineConsumer, final int maxRetries) {
 
     acceptPipelinedTransaction(JedisClusterCRC16.getSlot(slotKey), pipelineConsumer, maxRetries);
   }
 
   public void acceptPipelinedTransaction(final ReadMode readMode, final byte[] slotKey,
-      final Consumer<Pipeline> pipelineConsumer, final int maxRetries) {
+      final Consumer<IPipeline> pipelineConsumer, final int maxRetries) {
 
     acceptPipelinedTransaction(readMode, JedisClusterCRC16.getSlot(slotKey), pipelineConsumer,
         maxRetries);
   }
 
-  public void acceptPipelinedTransaction(final int slot, final Consumer<Pipeline> pipelineConsumer,
+  public void acceptPipelinedTransaction(final int slot, final Consumer<IPipeline> pipelineConsumer,
       final int maxRetries) {
 
     acceptPipelinedTransaction(connHandler.getDefaultReadMode(), slot, pipelineConsumer,
@@ -461,10 +461,10 @@ public final class JedisClusterExecutor implements AutoCloseable {
   }
 
   public void acceptPipelinedTransaction(final ReadMode readMode, final int slot,
-      final Consumer<Pipeline> pipelineConsumer, final int maxRetries) {
+      final Consumer<IPipeline> pipelineConsumer, final int maxRetries) {
 
     applyJedis(readMode, slot, jedis -> {
-      final Pipeline pipeline = jedis.pipelined();
+      final IPipeline pipeline = jedis.createPipeline();
       pipeline.multi();
       pipelineConsumer.accept(pipeline);
       pipeline.exec();
