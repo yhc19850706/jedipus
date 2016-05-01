@@ -8,7 +8,6 @@ import com.fabahaba.jedipus.IPipeline;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
 
-
 public interface LuaScript {
 
   public String getLuaScript();
