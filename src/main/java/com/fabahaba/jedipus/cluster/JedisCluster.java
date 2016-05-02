@@ -263,6 +263,49 @@ final class JedisCluster implements JedisClusterExecutor {
   }
 
   @Override
+  public <R> R applyNodeIfPresent(final ClusterNode node, final Function<IJedis, R> jedisConsumer,
+      final int maxRetries) {
+
+    for (int retries = 0;;) {
+
+      ObjectPool<IJedis> pool = connHandler.getPoolIfPresent(node);
+      if (pool == null) {
+
+        connHandler.renewSlotCache(getDefaultReadMode());
+        pool = connHandler.getPoolIfPresent(node);
+        if (pool == null) {
+          return null;
+        }
+      }
+
+      IJedis jedis = null;
+      try {
+        jedis = JedisPool.borrowObject(pool);
+
+        final R result = jedisConsumer.apply(jedis);
+        if (clusterNodeRetryDelay != null) {
+          clusterNodeRetryDelay.markSuccess(jedis.getClusterNode());
+        }
+
+        return result;
+      } catch (final JedisConnectionException jce) {
+
+        if (++retries > maxRetries) {
+          throw jce;
+        }
+
+        if (clusterNodeRetryDelay != null && jedis != null) {
+          clusterNodeRetryDelay.markFailure(jedis.getClusterNode());
+        }
+
+        continue;
+      } finally {
+        JedisPool.returnJedis(pool, jedis);
+      }
+    }
+  }
+
+  @Override
   public void acceptAllMasters(final Consumer<IJedis> jedisConsumer, final int maxRetries) {
 
     acceptAll(connHandler.getMasterPools(), jedisConsumer, maxRetries);

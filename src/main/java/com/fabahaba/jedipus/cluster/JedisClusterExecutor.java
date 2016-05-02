@@ -524,4 +524,27 @@ public interface JedisClusterExecutor extends AutoCloseable {
   }
 
   public void acceptAll(final Consumer<IJedis> jedisConsumer, final int maxRetries);
+
+  default void acceptNodeIfPresent(final ClusterNode node, final Consumer<IJedis> jedisConsumer) {
+
+    acceptNodeIfPresent(node, jedisConsumer, getMaxRetries());
+  }
+
+  default void acceptNodeIfPresent(final ClusterNode node, final Consumer<IJedis> jedisConsumer,
+      final int maxRetries) {
+
+    applyNodeIfPresent(node, jedis -> {
+      jedisConsumer.accept(jedis);
+      return null;
+    }, maxRetries);
+  }
+
+  default <R> R applyNodeIfPresent(final ClusterNode node,
+      final Function<IJedis, R> jedisConsumer) {
+
+    return applyNodeIfPresent(node, jedisConsumer, getMaxRetries());
+  }
+
+  public <R> R applyNodeIfPresent(final ClusterNode node, final Function<IJedis, R> jedisConsumer,
+      final int maxRetries);
 }
