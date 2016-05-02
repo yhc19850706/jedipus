@@ -130,7 +130,7 @@ public final class RedisLock {
          System.out.format("'%s' has lock '%s' for %dms.%n", RESP.toString(currentOwner),
              RESP.toString(lockName), pttl);
 
-         final byte[] tryReleaseOwner = (byte[]) TRY_RELEASE_LOCK.eval(jce, 1, lockName, ownerId);
+         final byte[] tryReleaseOwner = TRY_RELEASE_LOCK.eval(jce, 1, lockName, ownerId);
 
          if (tryReleaseOwner != null && Arrays.equals(tryReleaseOwner, ownerId)) {
            // Lock was released by 'myOwnerId'.
