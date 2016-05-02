@@ -29,4 +29,6 @@ public interface JedisPipeline
   public Response<String> clientSetname(final String name);
 
   public Response<String> clientSetname(final byte[] name);
+
+  public Response<String> scriptLoad(final String script);
 }

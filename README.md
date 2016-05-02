@@ -101,11 +101,9 @@ public final class RedisLock {
 
   private RedisLock() {}
 
-  private static final LuaScriptData TRY_ACQUIRE_LOCK =
-      LuaScriptData.fromResourcePath("/TRY_ACQUIRE_LOCK.lua");
+  private static final LuaScript<List<Object>> TRY_ACQUIRE_LOCK = LuaScript.fromResourcePath("/TRY_ACQUIRE_LOCK.lua");
 
-  private static final LuaScriptData TRY_RELEASE_LOCK =
-      LuaScriptData.fromResourcePath("/TRY_RELEASE_LOCK.lua");
+  private static final LuaScript<byte[]> TRY_RELEASE_LOCK = LuaScript.fromResourcePath("/TRY_RELEASE_LOCK.lua");
 
    public static void main(final String[] args) {
 
@@ -120,9 +118,7 @@ public final class RedisLock {
          final byte[] ownerId = RESP.toBytes("myOwnerId");
          final byte[] pexpire = RESP.toBytes(1000);
 
-         @SuppressWarnings("unchecked")
-         final List<Object> lockOwners =
-             (List<Object>) TRY_ACQUIRE_LOCK.eval(jce, 1, lockName, ownerId, pexpire);
+         final List<Object> lockOwners = TRY_ACQUIRE_LOCK.eval(jce, 1, lockName, ownerId, pexpire);
 
          // final byte[] previousOwner = (byte[]) lockOwners.get(0);
          final byte[] currentOwner = (byte[]) lockOwners.get(1);
