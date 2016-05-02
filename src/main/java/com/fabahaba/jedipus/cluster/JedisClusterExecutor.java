@@ -511,6 +511,39 @@ public interface JedisClusterExecutor extends AutoCloseable {
 
   public void acceptAllMasters(final Consumer<IJedis> jedisConsumer, final int maxRetries);
 
+  default void acceptAllPipelinedMasters(final Consumer<JedisPipeline> pipelineConsumer) {
+
+    acceptAllPipelinedMasters(pipelineConsumer, getMaxRetries());
+  }
+
+  default void acceptAllPipelinedMasters(final Consumer<JedisPipeline> pipelineConsumer,
+      final int maxRetries) {
+
+    acceptAllMasters(jedis -> {
+      final JedisPipeline pipeline = jedis.createPipeline();
+      pipelineConsumer.accept(pipeline);
+      pipeline.sync();
+    }, maxRetries);
+  }
+
+  default void acceptAllPipelinedTransactionMasters(
+      final Consumer<JedisPipeline> pipelineConsumer) {
+
+    acceptAllPipelinedTransactionMasters(pipelineConsumer, getMaxRetries());
+  }
+
+  default void acceptAllPipelinedTransactionMasters(final Consumer<JedisPipeline> pipelineConsumer,
+      final int maxRetries) {
+
+    acceptAllMasters(jedis -> {
+      final JedisPipeline pipeline = jedis.createPipeline();
+      pipeline.multi();
+      pipelineConsumer.accept(pipeline);
+      pipeline.exec();
+      pipeline.sync();
+    }, maxRetries);
+  }
+
   default void acceptAllSlaves(final Consumer<IJedis> jedisConsumer) {
 
     acceptAllSlaves(jedisConsumer, getMaxRetries());
@@ -518,12 +551,76 @@ public interface JedisClusterExecutor extends AutoCloseable {
 
   public void acceptAllSlaves(final Consumer<IJedis> jedisConsumer, final int maxRetries);
 
+  default void acceptAllPipelinedSlaves(final Consumer<JedisPipeline> pipelineConsumer) {
+
+    acceptAllPipelinedSlaves(pipelineConsumer, getMaxRetries());
+  }
+
+  default void acceptAllPipelinedSlaves(final Consumer<JedisPipeline> pipelineConsumer,
+      final int maxRetries) {
+
+    acceptAllMasters(jedis -> {
+      final JedisPipeline pipeline = jedis.createPipeline();
+      pipelineConsumer.accept(pipeline);
+      pipeline.sync();
+    }, maxRetries);
+  }
+
+  default void acceptAllPipelinedTransactionSlaves(final Consumer<JedisPipeline> pipelineConsumer) {
+
+    acceptAllPipelinedTransactionSlaves(pipelineConsumer, getMaxRetries());
+  }
+
+  default void acceptAllPipelinedTransactionSlaves(final Consumer<JedisPipeline> pipelineConsumer,
+      final int maxRetries) {
+
+    acceptAllMasters(jedis -> {
+      final JedisPipeline pipeline = jedis.createPipeline();
+      pipeline.multi();
+      pipelineConsumer.accept(pipeline);
+      pipeline.exec();
+      pipeline.sync();
+    }, maxRetries);
+  }
+
   default void acceptAll(final Consumer<IJedis> jedisConsumer) {
 
     acceptAll(jedisConsumer, getMaxRetries());
   }
 
   public void acceptAll(final Consumer<IJedis> jedisConsumer, final int maxRetries);
+
+  default void acceptAllPipelined(final Consumer<JedisPipeline> pipelineConsumer) {
+
+    acceptAllPipelined(pipelineConsumer, getMaxRetries());
+  }
+
+  default void acceptAllPipelined(final Consumer<JedisPipeline> pipelineConsumer,
+      final int maxRetries) {
+
+    acceptAllMasters(jedis -> {
+      final JedisPipeline pipeline = jedis.createPipeline();
+      pipelineConsumer.accept(pipeline);
+      pipeline.sync();
+    }, maxRetries);
+  }
+
+  default void acceptAllPipelinedTransaction(final Consumer<JedisPipeline> pipelineConsumer) {
+
+    acceptAllPipelinedTransaction(pipelineConsumer, getMaxRetries());
+  }
+
+  default void acceptAllPipelinedTransaction(final Consumer<JedisPipeline> pipelineConsumer,
+      final int maxRetries) {
+
+    acceptAllMasters(jedis -> {
+      final JedisPipeline pipeline = jedis.createPipeline();
+      pipeline.multi();
+      pipelineConsumer.accept(pipeline);
+      pipeline.exec();
+      pipeline.sync();
+    }, maxRetries);
+  }
 
   default void acceptNodeIfPresent(final ClusterNode node, final Consumer<IJedis> jedisConsumer) {
 
@@ -539,10 +636,82 @@ public interface JedisClusterExecutor extends AutoCloseable {
     }, maxRetries);
   }
 
+  default void acceptPipelinedNodeIfPresent(final ClusterNode node,
+      final Consumer<JedisPipeline> pipelineConsumer) {
+
+    acceptPipelinedNodeIfPresent(node, pipelineConsumer, getMaxRetries());
+  }
+
+  default void acceptPipelinedNodeIfPresent(final ClusterNode node,
+      final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries) {
+
+    applyNodeIfPresent(node, jedis -> {
+      final JedisPipeline pipeline = jedis.createPipeline();
+      pipelineConsumer.accept(pipeline);
+      pipeline.sync();
+      return null;
+    }, maxRetries);
+  }
+
+  default void acceptPipelinedTransactionNodeIfPresent(final ClusterNode node,
+      final Consumer<JedisPipeline> pipelineConsumer) {
+
+    acceptPipelinedTransactionNodeIfPresent(node, pipelineConsumer, getMaxRetries());
+  }
+
+  default void acceptPipelinedTransactionNodeIfPresent(final ClusterNode node,
+      final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries) {
+
+    applyNodeIfPresent(node, jedis -> {
+      final JedisPipeline pipeline = jedis.createPipeline();
+      pipeline.multi();
+      pipelineConsumer.accept(pipeline);
+      pipeline.exec();
+      pipeline.sync();
+      return null;
+    }, maxRetries);
+  }
+
   default <R> R applyNodeIfPresent(final ClusterNode node,
       final Function<IJedis, R> jedisConsumer) {
 
     return applyNodeIfPresent(node, jedisConsumer, getMaxRetries());
+  }
+
+  default <R> R applyPipelinedNodeIfPresent(final ClusterNode node,
+      final Function<JedisPipeline, R> pipelineConsumer) {
+
+    return applyPipelinedNodeIfPresent(node, pipelineConsumer, getMaxRetries());
+  }
+
+  default <R> R applyPipelinedNodeIfPresent(final ClusterNode node,
+      final Function<JedisPipeline, R> pipelineConsumer, final int maxRetries) {
+
+    return applyNodeIfPresent(node, jedis -> {
+      final JedisPipeline pipeline = jedis.createPipeline();
+      final R result = pipelineConsumer.apply(pipeline);
+      pipeline.sync();
+      return result;
+    }, maxRetries);
+  }
+
+  default <R> R applyPipelinedTransasctionNodeIfPresent(final ClusterNode node,
+      final Function<JedisPipeline, R> pipelineConsumer) {
+
+    return applyPipelinedTransasctionNodeIfPresent(node, pipelineConsumer, getMaxRetries());
+  }
+
+  default <R> R applyPipelinedTransasctionNodeIfPresent(final ClusterNode node,
+      final Function<JedisPipeline, R> pipelineConsumer, final int maxRetries) {
+
+    return applyNodeIfPresent(node, jedis -> {
+      final JedisPipeline pipeline = jedis.createPipeline();
+      pipeline.multi();
+      final R result = pipelineConsumer.apply(pipeline);
+      pipeline.exec();
+      pipeline.sync();
+      return result;
+    }, maxRetries);
   }
 
   public <R> R applyNodeIfPresent(final ClusterNode node, final Function<IJedis, R> jedisConsumer,

@@ -317,7 +317,6 @@ final class JedisCluster implements JedisClusterExecutor {
     acceptAll(connHandler.getSlavePools(), jedisConsumer, maxRetries);
   }
 
-
   @Override
   public void acceptAll(final Consumer<IJedis> jedisConsumer, final int maxRetries) {
 
