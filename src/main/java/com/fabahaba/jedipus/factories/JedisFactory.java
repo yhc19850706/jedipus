@@ -118,7 +118,7 @@ public class JedisFactory extends BasePooledObjectFactory<IJedis> {
     private int connTimeout = Protocol.DEFAULT_TIMEOUT;
     private int soTimeout = Protocol.DEFAULT_TIMEOUT;
     private String pass;
-    private String clientName = "test";
+    private String clientName;
     private boolean initReadOnly;
 
     private Builder() {}
