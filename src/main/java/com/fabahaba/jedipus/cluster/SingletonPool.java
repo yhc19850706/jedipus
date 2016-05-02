@@ -4,7 +4,6 @@ import org.apache.commons.pool2.ObjectPool;
 
 import com.fabahaba.jedipus.IJedis;
 
-
 class SingletonPool implements ObjectPool<IJedis> {
 
   private volatile IJedis jedis;

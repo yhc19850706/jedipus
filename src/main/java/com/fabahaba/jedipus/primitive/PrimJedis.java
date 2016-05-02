@@ -36,12 +36,6 @@ public class PrimJedis extends Jedis implements IJedis {
   }
 
   @Override
-  public String toString() {
-
-    return node.toString();
-  }
-
-  @Override
   public JedisPipeline createPipeline() {
 
     final PrimPipeline pipeline = new PrimPipeline();
@@ -59,4 +53,11 @@ public class PrimJedis extends Jedis implements IJedis {
 
   @Override
   public void setDataSource(final Pool<Jedis> jedisPool) {}
+
+
+  @Override
+  public String toString() {
+
+    return node.toString();
+  }
 }

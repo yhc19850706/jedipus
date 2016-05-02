@@ -13,7 +13,7 @@ final class JedisPool {
 
   private JedisPool() {}
 
-  public static IJedis borrowObject(final ObjectPool<IJedis> pool) {
+  static IJedis borrowObject(final ObjectPool<IJedis> pool) {
 
     try {
       return pool.borrowObject();
@@ -24,7 +24,7 @@ final class JedisPool {
     }
   }
 
-  public static void returnJedis(final ObjectPool<IJedis> pool, final IJedis jedis) {
+  static void returnJedis(final ObjectPool<IJedis> pool, final IJedis jedis) {
 
     if (pool == null || jedis == null) {
       return;

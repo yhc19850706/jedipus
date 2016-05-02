@@ -170,7 +170,6 @@ public class JedisFactory extends BasePooledObjectFactory<IJedis> {
           return new PipelinedInitFactory(node, connTimeout, connTimeout, pass, clientName,
               initReadOnly);
       }
-
     }
 
     public String getHost() {

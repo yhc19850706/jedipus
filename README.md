@@ -4,7 +4,7 @@
 
 ######Features
 * Re-uses the awesome work already done on Jedis so that all `Jedis` client functionality is usable, e.g., pipelines and transactions.
-* Execute `Consumer<IJedis>` and `Function<IJedis>` Java Lambas against a Redis Cluster.
+* Execute `Consumer<IJedis>` and `Function<IJedis, R>` Lambas against a Redis Cluster.
 * Use known slot integers for O(1) direct primitive array access to a corresponding `IJedis` pool.
 * Locking is only applied to threads that are accessing slots that are MOVING or for which a client connection cannot be established triggering a slot cache refresh.
 * Minimal dependencies, Jedis and org.apache.commons:commons-pool2.
