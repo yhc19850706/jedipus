@@ -101,9 +101,11 @@ public final class RedisLock {
 
   private RedisLock() {}
 
-  private static final LuaScript<List<Object>> TRY_ACQUIRE_LOCK = LuaScript.fromResourcePath("/TRY_ACQUIRE_LOCK.lua");
+   private static final LuaScript<List<Object>> TRY_ACQUIRE_LOCK =
+     LuaScript.fromResourcePath("/TRY_ACQUIRE_LOCK.lua");
 
-  private static final LuaScript<byte[]> TRY_RELEASE_LOCK = LuaScript.fromResourcePath("/TRY_RELEASE_LOCK.lua");
+   private static final LuaScript<byte[]> TRY_RELEASE_LOCK =
+     LuaScript.fromResourcePath("/TRY_RELEASE_LOCK.lua");
 
    public static void main(final String[] args) {
 
