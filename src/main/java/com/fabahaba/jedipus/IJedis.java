@@ -16,7 +16,11 @@ public interface IJedis extends JedisClient, JedisCommands, MultiKeyCommands, Ad
     ScriptingCommands, BasicCommands, ClusterCommands, SentinelCommands, BinaryJedisCommands,
     MultiKeyBinaryCommands, AdvancedBinaryJedisCommands, BinaryScriptingCommands {
 
-  public IPipeline createPipeline();
+  public String clientSetname(final String name);
+
+  public String clientSetname(final byte[] name);
+
+  public JedisPipeline createPipeline();
 
   public String asking();
 

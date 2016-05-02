@@ -13,7 +13,7 @@ import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
 import com.fabahaba.jedipus.IJedis;
-import com.fabahaba.jedipus.JedisFactory;
+import com.fabahaba.jedipus.factories.JedisFactory;
 import com.fabahaba.jedipus.primitive.PrimJedis;
 
 import redis.clients.jedis.Protocol;

@@ -1,16 +1,16 @@
-##Jedipus [![Build Status](https://travis-ci.org/jamespedwards42/jedipus.svg?branch=master)](https://travis-ci.org/jamespedwards42/jedipus) [![JCenter](https://api.bintray.com/packages/jamespedwards42/libs/jedipus/images/download.svg) ](https://bintray.com/jamespedwards42/libs/jedipus/_latestVersion) [![License](http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat) ](http://www.apache.org/licenses/LICENSE-2.0) [![Gitter Chat](https://badges.gitter.im/jamespedwards42/jedipus.svg)](https://gitter.im/jamespedwards42/jedipus?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+##Jedipus [![Build Status](https://travis-ci.org/jamespedwards42/jedipus.svg?branch=master)](https://travis-ci.org/jamespedwards42/jedipus) [ ![Download](https://api.bintray.com/packages/jamespedwards42/libs/jedipus/images/download.svg) ](https://bintray.com/jamespedwards42/libs/jedipus/_latestVersion) [![License](http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat) ](http://www.apache.org/licenses/LICENSE-2.0) [![Gitter Chat](https://badges.gitter.im/jamespedwards42/jedipus.svg)](https://gitter.im/jamespedwards42/jedipus?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
->Jedipus is a Redis Cluster Java client that manages Jedis pool's.
+>Jedipus is a Redis Cluster Java client that manages [Jedis](https://github.com/xetorthio/jedis) object pools.
 
 ######Features
 * Re-uses the awesome work already done on Jedis so that all `Jedis` client functionality is usable, e.g., pipelines and transactions.
-* Execute Jedis Consumer and Function Java Lambas against a Redis Cluster.
+* Execute `Consumer<IJedis>` and `Function<IJedis>` Java Lambas against a Redis Cluster.
 * Use known slot integers for O(1) direct primitive array access to a corresponding `IJedis` pool.
 * Locking is only applied to threads that are accessing slots that are MOVING or for which a client connection cannot be established triggering a slot cache refresh.
-* Minimal dependency tree (Jedipus -> Jedis -> org.apache.commons:commons-pool2).
-* Optional user supplied master and slave `ClusterNode -> ObjectPool<IJedis>` factories.  Useful for client side ip/port mapping or dynamic pool sizes.
+* Minimal dependencies, Jedis and org.apache.commons:commons-pool2.
+* Optional user supplied master and slave `ClusterNode -> ObjectPool<IJedis>` factories.
 * Load balance read-only requests across pools.  Optional user supplied `ObjectPool<IJedis>[] -> LoadBalancedPools` factories.  By default, a round robin strategy is used.
-* Configurable retry delay per HostPort for JedisConnectionException's.
+* Configurable retry delay per cluster node for `JedisConnectionException's`.
 * Utilities to manage and execute Lua scripts.
 
 ######Read Modes

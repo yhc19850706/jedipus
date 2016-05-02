@@ -1,25 +1,28 @@
-package com.fabahaba.jedipus;
+package com.fabahaba.jedipus.factories;
 
+import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.PooledObjectFactory;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 
+import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.cluster.ClusterNode;
 import com.fabahaba.jedipus.primitive.PrimJedis;
 
 import redis.clients.jedis.Protocol;
 import redis.clients.jedis.exceptions.JedisException;
 
-public final class JedisFactory implements PooledObjectFactory<IJedis> {
+public class JedisFactory extends BasePooledObjectFactory<IJedis> {
 
   private final ClusterNode node;
   private final int connTimeout;
   private final int soTimeout;
-  private final String pass;
-  private final String clientName;
-  private final boolean initReadOnly;
 
-  private JedisFactory(final ClusterNode node, final int connTimeout, final int soTimeout,
+  protected final String pass;
+  protected final String clientName;
+  protected final boolean initReadOnly;
+
+  JedisFactory(final ClusterNode node, final int connTimeout, final int soTimeout,
       final String pass, final String clientName, final boolean initReadOnly) {
 
     this.node = node;
@@ -35,19 +38,44 @@ public final class JedisFactory implements PooledObjectFactory<IJedis> {
     return new Builder();
   }
 
+  protected void initJedis(final IJedis jedis) {}
+
+  @Override
+  public IJedis create() throws Exception {
+
+    final PrimJedis jedis = new PrimJedis(node, connTimeout, soTimeout);
+
+    try {
+      jedis.connect();
+      initJedis(jedis);
+    } catch (final JedisException je) {
+      jedis.close();
+      throw je;
+    }
+
+    return jedis;
+  }
+
+  @Override
+  public PooledObject<IJedis> wrap(final IJedis jedis) {
+
+    return new DefaultPooledObject<>(jedis);
+  }
+
   @Override
   public void destroyObject(final PooledObject<IJedis> pooledJedis) throws Exception {
 
     final IJedis jedis = pooledJedis.getObject();
 
     if (jedis.isConnected()) {
-      try {
-        try {
-          jedis.quit();
-        } catch (final RuntimeException e) {
-          // closing anyways
-        }
 
+      try {
+        jedis.quit();
+      } catch (final RuntimeException e) {
+        // closing anyways
+      }
+
+      try {
         jedis.disconnect();
       } catch (final RuntimeException e) {
         // closing anyways
@@ -56,55 +84,23 @@ public final class JedisFactory implements PooledObjectFactory<IJedis> {
   }
 
   @Override
-  public PooledObject<IJedis> makeObject() throws Exception {
+  public boolean validateObject(final PooledObject<IJedis> pooledJedis) {
 
-    final PrimJedis jedis = new PrimJedis(node, connTimeout, soTimeout);
+    final IJedis jedis = pooledJedis.getObject();
 
     try {
-      jedis.connect();
 
-      if (pass != null) {
-
-        jedis.auth(pass);
-      }
-
-      if (clientName != null) {
-
-        jedis.clientSetname(clientName);
-      }
-
-      if (initReadOnly) {
-
-        jedis.readonly();
-      }
-    } catch (final JedisException je) {
-      jedis.close();
-      throw je;
-    }
-
-    return new DefaultPooledObject<>(jedis);
-  }
-
-  @Override
-  public boolean validateObject(final PooledObject<IJedis> pooledObj) {
-
-    final IJedis jedis = pooledObj.getObject();
-    try {
       if (jedis.isConnected()) {
+
         jedis.ping();
         return true;
       }
+
       return false;
     } catch (final RuntimeException e) {
       return false;
     }
   }
-
-  @Override
-  public void activateObject(final PooledObject<IJedis> pooledObj) throws Exception {}
-
-  @Override
-  public void passivateObject(final PooledObject<IJedis> pooledObj) throws Exception {}
 
   @Override
   public String toString() {
@@ -122,37 +118,59 @@ public final class JedisFactory implements PooledObjectFactory<IJedis> {
     private int connTimeout = Protocol.DEFAULT_TIMEOUT;
     private int soTimeout = Protocol.DEFAULT_TIMEOUT;
     private String pass;
-    private String clientName;
+    private String clientName = "test";
     private boolean initReadOnly;
 
     private Builder() {}
 
-    public JedisFactory create() {
+    public PooledObjectFactory<IJedis> create() {
 
-      return new JedisFactory(ClusterNode.create(host, port), connTimeout, connTimeout, pass,
-          clientName, initReadOnly);
+      return create(host, port);
     }
 
-    public JedisFactory create(final String host, final int port) {
+    public PooledObjectFactory<IJedis> create(final String host, final int port) {
 
-      return new JedisFactory(ClusterNode.create(host, port), connTimeout, connTimeout, pass,
-          clientName, initReadOnly);
+      return create(ClusterNode.create(host, port));
     }
 
-    public JedisFactory create(final String host, final int port, final boolean initReadOnly) {
+    public PooledObjectFactory<IJedis> create(final String host, final int port,
+        final boolean initReadOnly) {
 
-      return new JedisFactory(ClusterNode.create(host, port), connTimeout, connTimeout, pass,
-          clientName, initReadOnly);
+      return create(ClusterNode.create(host, port), initReadOnly);
     }
 
-    public JedisFactory create(final ClusterNode node) {
+    public PooledObjectFactory<IJedis> create(final ClusterNode node) {
 
-      return new JedisFactory(node, connTimeout, connTimeout, pass, clientName, initReadOnly);
+      return create(node, initReadOnly);
     }
 
-    public JedisFactory create(final ClusterNode node, final boolean initReadOnly) {
+    public PooledObjectFactory<IJedis> create(final ClusterNode node, final boolean initReadOnly) {
 
-      return new JedisFactory(node, connTimeout, connTimeout, pass, clientName, initReadOnly);
+      int numInits = 0;
+
+      if (pass != null) {
+        numInits++;
+      }
+
+      if (clientName != null) {
+        numInits++;
+      }
+
+      if (initReadOnly) {
+        numInits++;
+      }
+
+      switch (numInits) {
+        case 0:
+          return new JedisFactory(node, connTimeout, connTimeout, pass, clientName, initReadOnly);
+        case 1:
+          return new SingleInitFactory(node, connTimeout, connTimeout, pass, clientName,
+              initReadOnly);
+        default:
+          return new PipelinedInitFactory(node, connTimeout, connTimeout, pass, clientName,
+              initReadOnly);
+      }
+
     }
 
     public String getHost() {

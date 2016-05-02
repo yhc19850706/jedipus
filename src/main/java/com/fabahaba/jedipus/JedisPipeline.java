@@ -12,7 +12,7 @@ import redis.clients.jedis.MultiKeyCommandsPipeline;
 import redis.clients.jedis.Response;
 import redis.clients.jedis.commands.RedisPipeline;
 
-public interface IPipeline
+public interface JedisPipeline
     extends BinaryRedisPipeline, RedisPipeline, BasicRedisPipeline, MultiKeyBinaryRedisPipeline,
     MultiKeyCommandsPipeline, ClusterPipeline, BinaryScriptingCommandsPipeline, Closeable {
 
@@ -21,4 +21,12 @@ public interface IPipeline
   public Response<List<Object>> exec();
 
   public void sync();
+
+  public Response<String> auth(final String password);
+
+  public Response<String> readonly();
+
+  public Response<String> clientSetname(final String name);
+
+  public Response<String> clientSetname(final byte[] name);
 }

@@ -1,7 +1,7 @@
 package com.fabahaba.jedipus.primitive;
 
 import com.fabahaba.jedipus.IJedis;
-import com.fabahaba.jedipus.IPipeline;
+import com.fabahaba.jedipus.JedisPipeline;
 import com.fabahaba.jedipus.cluster.ClusterNode;
 
 import redis.clients.jedis.Jedis;
@@ -42,7 +42,7 @@ public class PrimJedis extends Jedis implements IJedis {
   }
 
   @Override
-  public IPipeline createPipeline() {
+  public JedisPipeline createPipeline() {
 
     final PrimPipeline pipeline = new PrimPipeline();
     pipeline.setClient(client);

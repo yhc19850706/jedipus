@@ -1,9 +1,38 @@
 package com.fabahaba.jedipus.primitive;
 
-import com.fabahaba.jedipus.IPipeline;
+import com.fabahaba.jedipus.JedisPipeline;
 
+import redis.clients.jedis.BuilderFactory;
 import redis.clients.jedis.Pipeline;
+import redis.clients.jedis.Response;
 
-public class PrimPipeline extends Pipeline implements IPipeline {
+public class PrimPipeline extends Pipeline implements JedisPipeline {
 
+  @Override
+  public Response<String> auth(final String password) {
+
+    client.auth(password);
+    return getResponse(BuilderFactory.STRING);
+  }
+
+  @Override
+  public Response<String> readonly() {
+
+    client.readonly();
+    return getResponse(BuilderFactory.STRING);
+  }
+
+  @Override
+  public Response<String> clientSetname(final String name) {
+
+    client.clientSetname(name);
+    return getResponse(BuilderFactory.STRING);
+  }
+
+  @Override
+  public Response<String> clientSetname(final byte[] name) {
+
+    client.clientSetname(name);
+    return getResponse(BuilderFactory.STRING);
+  }
 }
