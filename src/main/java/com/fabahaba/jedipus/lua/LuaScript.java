@@ -60,7 +60,6 @@ public interface LuaScript<R> {
 
     try {
 
-      jedis.readonly();
       return (R) jedis.evalsha(getSha1HexBytes(), keyCount, params);
     } catch (final JedisDataException jde) {
 
