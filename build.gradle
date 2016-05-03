@@ -25,13 +25,6 @@ project.version = scmVersion.version
 
 sourceCompatibility = 1.8
 
-configurations.all {
-   resolutionStrategy {
-      cacheDynamicVersionsFor 10, 'minutes'
-      cacheChangingModulesFor 10, 'minutes'
-   }
-}
-
 repositories {
    maven { url "http://oss.sonatype.org/content/repositories/snapshots" }
    jcenter()
@@ -44,6 +37,28 @@ dependencies {
 
    testCompile 'junit:junit:+'
    testCompile "org.mockito:mockito-core:+"
+}
+
+sourceSets {
+   main {
+      java {
+         srcDir 'src/main/java'
+      }
+      resources {
+         srcDir 'src/main/resources'
+      }
+   }
+
+   test {
+      java {
+         srcDir 'src/test/unit/java'
+         srcDir 'src/test/integ/java'
+      }
+      resources {
+         srcDir 'src/test/unit/resources'
+         srcDir 'src/test/integ/resources'
+      }
+   }
 }
 
 task startRedis(type:Exec) {

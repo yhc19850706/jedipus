@@ -12,30 +12,39 @@ import org.apache.commons.pool2.PooledObjectFactory;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
 
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.JedisTransaction;
 import com.fabahaba.jedipus.primitive.JedisFactory;
 
 import redis.clients.jedis.exceptions.JedisDataException;
+import redis.clients.jedis.exceptions.JedisException;
 
-@RunWith(MockitoJUnitRunner.class)
 public class JedisPoolTest extends Assert {
 
-  private static final ClusterNode node = ClusterNode.create("localhost", 9736);
+  private final ClusterNode defaultNode = ClusterNode.create("localhost", 9736);
 
-  private static final PooledObjectFactory<IJedis> DEFAULT_JEDIS_FACTORY =
-      JedisFactory.startBuilding().withAuth("pass").createPooled(node);
+  private PooledObjectFactory<IJedis> defaultJedisFactory;
+  private GenericObjectPoolConfig config;
+  private GenericObjectPool<IJedis> pool;
+
+  @Before
+  public void before() throws Exception {
+
+    defaultJedisFactory = JedisFactory.startBuilding().withAuth("pass").createPooled(defaultNode);
+    config = new GenericObjectPoolConfig();
+    pool = new GenericObjectPool<>(defaultJedisFactory, config);
+  }
+
+  @After
+  public void after() throws Exception {}
 
   @Test
   public void checkCloseableConnections() {
-
-    final GenericObjectPool<IJedis> pool =
-        new GenericObjectPool<>(DEFAULT_JEDIS_FACTORY, new GenericObjectPoolConfig());
 
     final IJedis jedis = JedisPool.borrowObject(pool);
 
@@ -50,9 +59,6 @@ public class JedisPoolTest extends Assert {
 
   @Test
   public void checkJedisIsReusedWhenReturned() {
-
-    final GenericObjectPool<IJedis> pool =
-        new GenericObjectPool<>(DEFAULT_JEDIS_FACTORY, new GenericObjectPoolConfig());
 
     IJedis jedis = JedisPool.borrowObject(pool);
 
@@ -70,9 +76,6 @@ public class JedisPoolTest extends Assert {
   @Test
   public void checkPoolRepairedWhenJedisIsBroken() {
 
-    final GenericObjectPool<IJedis> pool =
-        new GenericObjectPool<>(DEFAULT_JEDIS_FACTORY, new GenericObjectPoolConfig());
-
     IJedis jedis = JedisPool.borrowObject(pool);
     jedis.quit();
     JedisPool.returnJedis(pool, jedis);
@@ -88,11 +91,10 @@ public class JedisPoolTest extends Assert {
   @Test(expected = NoSuchElementException.class)
   public void checkPoolOverflow() {
 
-    final GenericObjectPoolConfig config = new GenericObjectPoolConfig();
     config.setMaxTotal(1);
     config.setBlockWhenExhausted(false);
 
-    final GenericObjectPool<IJedis> pool = new GenericObjectPool<>(DEFAULT_JEDIS_FACTORY, config);
+    final GenericObjectPool<IJedis> pool = new GenericObjectPool<>(defaultJedisFactory, config);
 
     final IJedis jedis = JedisPool.borrowObject(pool);
     jedis.set("foo", "0");
@@ -104,10 +106,8 @@ public class JedisPoolTest extends Assert {
   @Test
   public void securePool() {
 
-    final GenericObjectPoolConfig config = new GenericObjectPoolConfig();
     config.setTestOnBorrow(true);
-
-    final GenericObjectPool<IJedis> pool = new GenericObjectPool<>(DEFAULT_JEDIS_FACTORY, config);
+    final GenericObjectPool<IJedis> pool = new GenericObjectPool<>(defaultJedisFactory, config);
 
     final IJedis jedis = JedisPool.borrowObject(pool);
     jedis.set("foo", "bar");
@@ -119,9 +119,6 @@ public class JedisPoolTest extends Assert {
 
   @Test
   public void nonDefaultDatabase() {
-
-    final GenericObjectPool<IJedis> pool =
-        new GenericObjectPool<>(DEFAULT_JEDIS_FACTORY, new GenericObjectPoolConfig());
 
     final IJedis jedis0 = JedisPool.borrowObject(pool);
     jedis0.set("foo", "bar");
@@ -141,9 +138,8 @@ public class JedisPoolTest extends Assert {
   @Test
   public void customClientName() {
 
-    final GenericObjectPool<IJedis> pool =
-        new GenericObjectPool<>(JedisFactory.startBuilding().withClientName("my_shiny_client_name")
-            .withAuth("pass").createPooled(node), new GenericObjectPoolConfig());
+    final GenericObjectPool<IJedis> pool = new GenericObjectPool<>(JedisFactory.startBuilding()
+        .withClientName("my_shiny_client_name").withAuth("pass").createPooled(defaultNode), config);
 
     final IJedis jedis = JedisPool.borrowObject(pool);
     assertEquals("my_shiny_client_name", jedis.clientGetname());
@@ -153,36 +149,40 @@ public class JedisPoolTest extends Assert {
     assertTrue(pool.isClosed());
   }
 
-  @Test
+  private static class CrashingPool extends BasePooledObjectFactory<IJedis> {
+
+    private final AtomicInteger destroyed;
+
+    public CrashingPool(final AtomicInteger destroyed) {
+      this.destroyed = destroyed;
+    }
+
+    @Override
+    public void destroyObject(final PooledObject<IJedis> poolObj) throws Exception {
+
+      destroyed.incrementAndGet();
+    }
+
+    @Override
+    public IJedis create() throws Exception {
+
+      final IJedis crashingJedis = mock(IJedis.class);
+      doThrow(new JedisException("crashed")).when(crashingJedis).resetState();
+      return crashingJedis;
+    }
+
+    @Override
+    public PooledObject<IJedis> wrap(final IJedis crashingJedis) {
+
+      return new DefaultPooledObject<>(crashingJedis);
+    }
+  }
+
+  @Test(expected = JedisException.class)
   public void returnResourceDestroysResourceOnException() {
 
     final AtomicInteger destroyed = new AtomicInteger(0);
-
-    final PooledObjectFactory<IJedis> crashingFactory = new BasePooledObjectFactory<IJedis>() {
-
-      @Override
-      public void destroyObject(final PooledObject<IJedis> poolObj) throws Exception {
-
-        destroyed.incrementAndGet();
-      }
-
-      @Override
-      public IJedis create() throws Exception {
-
-        final IJedis crashingJedis = mock(IJedis.class);
-        doThrow(new RuntimeException()).when(crashingJedis).resetState();
-        return crashingJedis;
-      }
-
-      @Override
-      public PooledObject<IJedis> wrap(final IJedis crashingJedis) {
-
-        return new DefaultPooledObject<>(crashingJedis);
-      }
-    };
-
-    final GenericObjectPoolConfig config = new GenericObjectPoolConfig();
-    config.setMaxTotal(1);
+    final PooledObjectFactory<IJedis> crashingFactory = new CrashingPool(destroyed);
 
     final GenericObjectPool<IJedis> pool = new GenericObjectPool<>(crashingFactory, config);
 
@@ -190,19 +190,18 @@ public class JedisPoolTest extends Assert {
 
     try {
       JedisPool.returnJedis(pool, jedis);
-    } catch (final RuntimeException ignored) {
-      // expected
+    } catch (final RuntimeException re) {
+      assertEquals(destroyed.get(), 1);
+      throw re;
     }
-
-    assertEquals(destroyed.get(), 1);
   }
 
   @Test
   public void returnResourceShouldResetState() {
-    final GenericObjectPoolConfig config = new GenericObjectPoolConfig();
+
     config.setMaxTotal(1);
     config.setBlockWhenExhausted(false);
-    final GenericObjectPool<IJedis> pool = new GenericObjectPool<>(DEFAULT_JEDIS_FACTORY, config);
+    final GenericObjectPool<IJedis> pool = new GenericObjectPool<>(defaultJedisFactory, config);
 
     final IJedis jedis = JedisPool.borrowObject(pool);
     try {
@@ -228,10 +227,9 @@ public class JedisPoolTest extends Assert {
   @Test
   public void checkResourceIsCloseable() {
 
-    final GenericObjectPoolConfig config = new GenericObjectPoolConfig();
     config.setMaxTotal(1);
     config.setBlockWhenExhausted(false);
-    final GenericObjectPool<IJedis> pool = new GenericObjectPool<>(DEFAULT_JEDIS_FACTORY, config);
+    final GenericObjectPool<IJedis> pool = new GenericObjectPool<>(defaultJedisFactory, config);
 
     final IJedis jedis = JedisPool.borrowObject(pool);
     try {
@@ -253,21 +251,14 @@ public class JedisPoolTest extends Assert {
   @Test
   public void getNumActiveIdleIsZeroWhenPoolIsClosed() {
 
-    final GenericObjectPool<IJedis> pool =
-        new GenericObjectPool<>(DEFAULT_JEDIS_FACTORY, new GenericObjectPoolConfig());
-
     pool.close();
     assertTrue(pool.isClosed());
     assertTrue(pool.getNumActive() == 0);
     assertTrue(pool.getNumIdle() == 0);
   }
 
-
   @Test
   public void getNumActiveReturnsTheCorrectNumber() {
-
-    final GenericObjectPool<IJedis> pool =
-        new GenericObjectPool<>(DEFAULT_JEDIS_FACTORY, new GenericObjectPoolConfig());
 
     final IJedis jedis = JedisPool.borrowObject(pool);
     jedis.set("foo", "bar");
@@ -294,7 +285,7 @@ public class JedisPoolTest extends Assert {
   public void testCloseConnectionOnMakeObject() {
 
     final GenericObjectPool<IJedis> pool = new GenericObjectPool<>(
-        JedisFactory.startBuilding().withAuth("wrong").createPooled(node), new GenericObjectPoolConfig());
+        JedisFactory.startBuilding().withAuth("wrong").createPooled(defaultNode), config);
 
     JedisPool.borrowObject(pool);
   }
