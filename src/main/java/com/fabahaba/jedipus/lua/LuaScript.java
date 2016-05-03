@@ -5,9 +5,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.xml.bind.DatatypeConverter;
 
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.JedisPipeline;
@@ -20,24 +25,46 @@ import redis.clients.jedis.exceptions.JedisDataException;
 
 public interface LuaScript<R> {
 
-  public static <R> LuaScript<R> create(final String luaScript) {
-
-    return new LuaScriptData<>(luaScript);
-  }
-
   public static <R> LuaScript<R> fromResourcePath(final String resourcePath) {
 
-    return new LuaScriptData<>(readFromResourcePath(resourcePath));
+    return create(readFromResourcePath(resourcePath));
   }
 
-  public static OLuaScript ocreate(final String luaScript) {
+  public static <R> LuaScript<R> create(final String luaScript) {
 
-    return new OLuaScriptData(luaScript);
+    return create(luaScript, sha1(luaScript));
+  }
+
+  public static <R> LuaScript<R> create(final String luaScript, final String sha1Hex) {
+
+    return new LuaScriptData<>(luaScript, sha1Hex);
   }
 
   public static OLuaScript ofromResourcePath(final String resourcePath) {
 
-    return new OLuaScriptData(readFromResourcePath(resourcePath));
+    return ocreate(readFromResourcePath(resourcePath));
+  }
+
+  public static OLuaScript ocreate(final String luaScript) {
+
+    return new OLuaScriptData(luaScript, sha1(luaScript));
+  }
+
+  public static OLuaScript ocreate(final String luaScript, final String sha1Hex) {
+
+    return new OLuaScriptData(luaScript, sha1Hex);
+  }
+
+  public static String sha1(final String script) {
+
+    try {
+      return DatatypeConverter
+          .printHexBinary(
+              MessageDigest.getInstance("SHA-1").digest(script.getBytes(StandardCharsets.UTF_8)))
+          .toLowerCase(Locale.ENGLISH);
+    } catch (final NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    }
   }
 
   public String getLuaScript();

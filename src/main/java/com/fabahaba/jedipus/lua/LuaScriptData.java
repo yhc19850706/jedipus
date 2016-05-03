@@ -1,33 +1,18 @@
 package com.fabahaba.jedipus.lua;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
-import java.util.Locale;
-
-import javax.xml.bind.DatatypeConverter;
 
 class LuaScriptData<R> implements LuaScript<R> {
-
-  private static final ThreadLocal<MessageDigest> SHA1 = ThreadLocal.withInitial(() -> {
-    try {
-      return MessageDigest.getInstance("SHA-1");
-    } catch (final NoSuchAlgorithmException e) {
-      throw new AssertionError(e);
-    }
-  });
 
   private final String luaScript;
   private final String sha1Hex;
   private final byte[] sha1HexBytes;
 
-  LuaScriptData(final String luaScript) {
+  LuaScriptData(final String luaScript, final String sha1Hex) {
 
     this.luaScript = luaScript;
-    this.sha1Hex = DatatypeConverter
-        .printHexBinary(SHA1.get().digest(luaScript.getBytes(StandardCharsets.UTF_8)))
-        .toLowerCase(Locale.ENGLISH);
+    this.sha1Hex = sha1Hex;
     this.sha1HexBytes = sha1Hex.getBytes(StandardCharsets.UTF_8);
   }
 
