@@ -3,14 +3,14 @@
 >Jedipus is a Redis Cluster Java client that manages [Jedis](https://github.com/xetorthio/jedis) object pools.
 
 ######Features
-* Reuses the awesome work already done on Jedis by supporting all super interfaces of both [`Jedis`](https://github.com/xetorthio/jedis/blob/master/src/main/java/redis/clients/jedis/Jedis.java) and [`Pipeline`](https://github.com/xetorthio/jedis/blob/master/src/main/java/redis/clients/jedis/Pipeline.java).
+* Reuses the awesome work already done on Jedis by supporting all super interfaces of both  [`Jedis`](https://github.com/xetorthio/jedis/blob/master/src/main/java/redis/clients/jedis/Jedis.java) and [`Pipeline`](https://github.com/xetorthio/jedis/blob/master/src/main/java/redis/clients/jedis/Pipeline.java).
 * Execute `Consumer<IJedis>` and `Function<IJedis, R>` lambas.
-* Direct O(1) primitive array access to a corresponding `IJedis` pool.
+* Direct O(1) primitive array access to a corresponding [`IJedis`](src/main/java/com/fabahaba/jedipus/IJedis.java) pool.
 * Reuse known slot integers.
-* Locking is only applied to threads that are accessing slots that are MOVING or for which a client connection cannot be established triggering a slot cache refresh.
+* Locking is only applied to threads that are accessing slots that are moving, there is no known node, or for which a client connection continually cannot be established, triggering a slot cache refresh.
 * Minimal dependencies, Jedis and org.apache.commons:commons-pool2.
-* Optional user supplied `ClusterNode -> ObjectPool<IJedis>` factories.
-* Load balance read-only requests across pools.  Optional user supplied `ObjectPool<IJedis>[] -> LoadBalancedPools` factories.  By default, a round robin strategy is used.
+* Optional user supplied [`ClusterNode`](src/main/java/com/fabahaba/jedipus/cluster/ClusterNode.java) -> `ObjectPool<IJedis>` factories.
+* Load balance read-only requests across pools.  Optional user supplied `ObjectPool<IJedis>[]` -> [`LoadBalancedPools`](src/main/java/com/fabahaba/jedipus/cluster/LoadBalancedPools.java) factories.  By default, a round robin strategy is used.
 * Configurable retry delay per cluster node for `JedisConnectionException's`.
 * Execute against known nodes or random nodes.
 * Utilities to manage and execute Lua scripts.
