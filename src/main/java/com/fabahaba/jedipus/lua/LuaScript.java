@@ -330,9 +330,10 @@ public interface LuaScript<R> {
 
         final String newline = System.getProperty("line.separator");
 
-        return reader.lines().map(String::trim).filter(line -> !line.isEmpty())
-            .map(line -> line.replaceFirst("^\\s+", "").replaceAll("\\s+", " "))
-            .filter(line -> !line.startsWith("--")).collect(Collectors.joining(newline));
+        return reader.lines()
+            .map(line -> line.trim().replaceFirst("^\\s+", "").replaceFirst("--.*", "")
+                .replaceAll("\\s+", " "))
+            .filter(line -> !line.isEmpty()).collect(Collectors.joining(newline));
       }
     } catch (final IOException e) {
 

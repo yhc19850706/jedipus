@@ -6,7 +6,12 @@ import redis.clients.jedis.BuilderFactory;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Response;
 
-public class PrimPipeline extends Pipeline implements JedisPipeline {
+class PrimPipeline extends Pipeline implements JedisPipeline {
+
+  PrimPipeline() {
+
+    super();
+  }
 
   @Override
   public Response<String> auth(final String password) {

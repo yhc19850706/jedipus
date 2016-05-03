@@ -1,4 +1,4 @@
-package com.fabahaba.jedipus.factories;
+package com.fabahaba.jedipus.primitive;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLParameters;
@@ -11,7 +11,6 @@ import org.apache.commons.pool2.impl.DefaultPooledObject;
 
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.cluster.ClusterNode;
-import com.fabahaba.jedipus.primitive.PrimJedis;
 
 import redis.clients.jedis.Protocol;
 import redis.clients.jedis.exceptions.JedisException;
@@ -148,28 +147,29 @@ public class JedisFactory extends BasePooledObjectFactory<IJedis> {
 
     private Builder() {}
 
-    public PooledObjectFactory<IJedis> create() {
+    public PooledObjectFactory<IJedis> createPooled() {
 
-      return create(host, port);
+      return createPooled(host, port);
     }
 
-    public PooledObjectFactory<IJedis> create(final String host, final int port) {
+    public PooledObjectFactory<IJedis> createPooled(final String host, final int port) {
 
-      return create(ClusterNode.create(host, port));
+      return createPooled(ClusterNode.create(host, port));
     }
 
-    public PooledObjectFactory<IJedis> create(final String host, final int port,
+    public PooledObjectFactory<IJedis> createPooled(final String host, final int port,
         final boolean initReadOnly) {
 
-      return create(ClusterNode.create(host, port), initReadOnly);
+      return createPooled(ClusterNode.create(host, port), initReadOnly);
     }
 
-    public PooledObjectFactory<IJedis> create(final ClusterNode node) {
+    public PooledObjectFactory<IJedis> createPooled(final ClusterNode node) {
 
-      return create(node, initReadOnly);
+      return createPooled(node, initReadOnly);
     }
 
-    public PooledObjectFactory<IJedis> create(final ClusterNode node, final boolean initReadOnly) {
+    public PooledObjectFactory<IJedis> createPooled(final ClusterNode node,
+        final boolean initReadOnly) {
 
       int numInits = 0;
 
@@ -199,6 +199,34 @@ public class JedisFactory extends BasePooledObjectFactory<IJedis> {
 
       return new PipelinedInitFactory(node, connTimeout, connTimeout, pass, clientName,
           initReadOnly, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
+    }
+
+    public IJedis create(final ClusterNode node) {
+
+      return create(node, initReadOnly);
+    }
+
+    public IJedis create(final ClusterNode node, final boolean initReadOnly) {
+
+      final PrimJedis jedis = new PrimJedis(node, connTimeout, soTimeout, ssl, sslSocketFactory,
+          sslParameters, hostnameVerifier);
+
+      if (pass != null) {
+
+        jedis.auth(pass);
+      }
+
+      if (clientName != null) {
+
+        jedis.clientSetname(clientName);
+      }
+
+      if (initReadOnly) {
+
+        jedis.readonly();
+      }
+
+      return jedis;
     }
 
     public String getHost() {
@@ -241,7 +269,7 @@ public class JedisFactory extends BasePooledObjectFactory<IJedis> {
       return pass;
     }
 
-    public Builder withPass(final String pass) {
+    public Builder withAuth(final String pass) {
       this.pass = pass;
       return this;
     }

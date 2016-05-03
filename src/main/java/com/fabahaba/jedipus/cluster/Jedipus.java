@@ -13,10 +13,8 @@ import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
 import com.fabahaba.jedipus.IJedis;
-import com.fabahaba.jedipus.factories.JedisFactory;
-import com.fabahaba.jedipus.primitive.PrimJedis;
+import com.fabahaba.jedipus.primitive.JedisFactory;
 
-import redis.clients.jedis.Protocol;
 import redis.clients.jedis.exceptions.JedisAskDataException;
 import redis.clients.jedis.exceptions.JedisClusterMaxRedirectionsException;
 import redis.clients.jedis.exceptions.JedisConnectionException;
@@ -55,14 +53,15 @@ final class Jedipus implements JedisClusterExecutor {
   private static final JedisFactory.Builder DEFAULT_JEDIS_FACTORY = JedisFactory.startBuilding();
 
   private static final Function<ClusterNode, ObjectPool<IJedis>> DEFAULT_MASTER_POOL_FACTORY =
-      node -> new GenericObjectPool<>(DEFAULT_JEDIS_FACTORY.create(node), DEFAULT_POOL_CONFIG);
+      node -> new GenericObjectPool<>(DEFAULT_JEDIS_FACTORY.createPooled(node),
+          DEFAULT_POOL_CONFIG);
 
   private static final Function<ClusterNode, ObjectPool<IJedis>> DEFAULT_SLAVE_POOL_FACTORY =
-      node -> new GenericObjectPool<>(DEFAULT_JEDIS_FACTORY.create(node, true),
+      node -> new GenericObjectPool<>(DEFAULT_JEDIS_FACTORY.createPooled(node, true),
           DEFAULT_POOL_CONFIG);
 
   private static final Function<ClusterNode, IJedis> DEFAULT_JEDIS_ASK_DISCOVERY_FACTORY =
-      node -> new PrimJedis(node, Protocol.DEFAULT_TIMEOUT, Protocol.DEFAULT_TIMEOUT);
+      DEFAULT_JEDIS_FACTORY::create;
 
   private static final BiFunction<ReadMode, ObjectPool<IJedis>[], LoadBalancedPools> DEFAULT_LB_FACTORIES =
       (defaultReadMode, slavePools) -> {

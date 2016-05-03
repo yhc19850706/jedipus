@@ -19,9 +19,15 @@ public interface IJedis extends JedisClient, JedisCommands, MultiKeyCommands, Ad
 
   public String clientSetname(final byte[] name);
 
+  public String clientGetname();
+
   public JedisPipeline createPipeline();
 
+  public JedisTransaction createMulti();
+
   public String asking();
+
+  public void resetState();
 
   @Override
   public void close();

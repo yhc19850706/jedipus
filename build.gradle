@@ -38,9 +38,26 @@ repositories {
 }
 
 dependencies {
+
    compile 'org.apache.commons:commons-pool2:+'
    compile 'redis.clients:jedis:+'
+
+   testCompile 'junit:junit:+'
+   testCompile "org.mockito:mockito-core:+"
 }
+
+task startRedis(type:Exec) {
+
+   commandLine './scripts/startTestRedis.sh', '9736', '0', '7379'
+}
+
+task rmRedis(type:Exec) {
+
+   commandLine './scripts/rmTestRedis.sh'
+}
+
+test.dependsOn startRedis
+test.finalizedBy rmRedis
 
 task sourcesJar(type: Jar, dependsOn: classes) {
    from sourceSets.main.allSource

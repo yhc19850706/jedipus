@@ -1,4 +1,4 @@
-package com.fabahaba.jedipus.factories;
+package com.fabahaba.jedipus.primitive;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLParameters;

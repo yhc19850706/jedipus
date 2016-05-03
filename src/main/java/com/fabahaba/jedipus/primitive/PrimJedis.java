@@ -6,22 +6,23 @@ import javax.net.ssl.SSLSocketFactory;
 
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.JedisPipeline;
+import com.fabahaba.jedipus.JedisTransaction;
 import com.fabahaba.jedipus.cluster.ClusterNode;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.util.Pool;
 
-public class PrimJedis extends Jedis implements IJedis {
+class PrimJedis extends Jedis implements IJedis {
 
   private final ClusterNode node;
 
-  public PrimJedis(final ClusterNode node, final int connTimeout, final int soTimeout) {
+  PrimJedis(final ClusterNode node, final int connTimeout, final int soTimeout) {
 
     this(node, connTimeout, soTimeout, false, null, null, null);
   }
 
-  public PrimJedis(final ClusterNode node, final int connTimeout, final int soTimeout,
-      final boolean ssl, final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
+  PrimJedis(final ClusterNode node, final int connTimeout, final int soTimeout, final boolean ssl,
+      final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
       final HostnameVerifier hostnameVerifier) {
 
     super(node.getHost(), node.getPort(), connTimeout, soTimeout);
@@ -33,6 +34,16 @@ public class PrimJedis extends Jedis implements IJedis {
   public boolean isBroken() {
 
     return client.isBroken();
+  }
+
+  @Override
+  public String quit() {
+
+    checkIsInMultiOrPipeline();
+    client.quit();
+    final String quitReturn = client.getStatusCodeReply();
+    client.disconnect();
+    return quitReturn;
   }
 
   @Override
@@ -52,9 +63,12 @@ public class PrimJedis extends Jedis implements IJedis {
   }
 
   @Override
-  public void close() {
+  public JedisTransaction createMulti() {
 
-    client.close();
+    client.multi();
+    final PrimTransaction transaction = new PrimTransaction(client);
+    this.transaction = transaction;
+    return transaction;
   }
 
   @Override

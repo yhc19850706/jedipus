@@ -39,6 +39,19 @@ final class JedisPool {
     }
 
     try {
+      jedis.resetState();
+    } catch (final RuntimeException re) {
+      try {
+        pool.invalidateObject(jedis);
+        throw re;
+      } catch (final RuntimeException re2) {
+        throw re2;
+      } catch (final Exception e) {
+        throw new JedisException("Could not return reset jedis state.", e);
+      }
+    }
+
+    try {
       pool.returnObject(jedis);
     } catch (final RuntimeException re) {
       throw re;
