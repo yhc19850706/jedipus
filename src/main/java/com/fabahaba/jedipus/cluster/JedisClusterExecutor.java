@@ -6,7 +6,7 @@ import java.util.function.Function;
 
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.JedisPipeline;
-import com.fabahaba.jedipus.cluster.JedisCluster.Builder;
+import com.fabahaba.jedipus.cluster.Jedipus.Builder;
 
 import redis.clients.util.JedisClusterCRC16;
 
@@ -18,12 +18,12 @@ public interface JedisClusterExecutor extends AutoCloseable {
 
   public static Builder startBuilding() {
 
-    return new JedisCluster.Builder(null);
+    return new Jedipus.Builder(null);
   }
 
   public static Builder startBuilding(final Collection<ClusterNode> discoveryNodes) {
 
-    return new JedisCluster.Builder(discoveryNodes);
+    return new Jedipus.Builder(discoveryNodes);
   }
 
   public ReadMode getDefaultReadMode();

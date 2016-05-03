@@ -22,7 +22,7 @@ import redis.clients.jedis.exceptions.JedisClusterMaxRedirectionsException;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisRedirectionException;
 
-final class JedisCluster implements JedisClusterExecutor {
+final class Jedipus implements JedisClusterExecutor {
 
   private static final int DEFAULT_MAX_REDIRECTIONS = 5;
   private static final int DEFAULT_MAX_RETRIES = 2;
@@ -79,13 +79,19 @@ final class JedisCluster implements JedisClusterExecutor {
           case SLAVES:
 
             if (slavePools.length == 1) {
-              return rm -> slavePools[0];
+
+              final ObjectPool<IJedis> pool = slavePools[0];
+
+              return rm -> pool;
             }
 
             return new RoundRobinPools(slavePools);
           case MIXED_SLAVES:
 
             if (slavePools.length == 1) {
+
+              final ObjectPool<IJedis> pool = slavePools[0];
+
               return rm -> {
                 switch (rm) {
                   case MASTER:
@@ -96,7 +102,7 @@ final class JedisCluster implements JedisClusterExecutor {
                   case MIXED_SLAVES:
                   case SLAVES:
                   default:
-                    return slavePools[0];
+                    return pool;
                 }
               };
             }
@@ -116,7 +122,7 @@ final class JedisCluster implements JedisClusterExecutor {
 
   private final JedisClusterConnHandler connHandler;
 
-  private JedisCluster(final ReadMode defaultReadMode, final Collection<ClusterNode> discoveryNodes,
+  private Jedipus(final ReadMode defaultReadMode, final Collection<ClusterNode> discoveryNodes,
       final int maxRedirections, final int maxRetries, final int tryRandomAfter,
       final ClusterNodeRetryDelay clusterNodeRetryDelay, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
@@ -396,7 +402,7 @@ final class JedisCluster implements JedisClusterExecutor {
 
     public JedisClusterExecutor create() {
 
-      return new JedisCluster(defaultReadMode, discoveryNodes, maxRedirections, maxRetries,
+      return new Jedipus(defaultReadMode, discoveryNodes, maxRedirections, maxRetries,
           tryRandomAfter, clusterNodeRetryDelay, optimisticReads, durationBetweenCacheRefresh,
           maxAwaitCacheRefresh, masterPoolFactory, slavePoolFactory, jedisAskDiscoveryFactory,
           slavePools -> lbFactory.apply(defaultReadMode, slavePools));
@@ -530,6 +536,23 @@ final class JedisCluster implements JedisClusterExecutor {
         final BiFunction<ReadMode, ObjectPool<IJedis>[], LoadBalancedPools> lbFactory) {
       this.lbFactory = lbFactory;
       return this;
+    }
+
+    @Override
+    public String toString() {
+
+      return new StringBuilder("JedisClusterExecutor.Builder [defaultReadMode=")
+          .append(defaultReadMode).append(", discoveryNodes=").append(discoveryNodes)
+          .append(", maxRedirections=").append(maxRedirections).append(", maxRetries=")
+          .append(maxRetries).append(", tryRandomAfter=").append(tryRandomAfter)
+          .append(", clusterNodeRetryDelay=").append(clusterNodeRetryDelay).append(", poolConfig=")
+          .append(poolConfig).append(", masterPoolFactory=").append(masterPoolFactory)
+          .append(", slavePoolFactory=").append(slavePoolFactory)
+          .append(", jedisAskDiscoveryFactory=").append(jedisAskDiscoveryFactory)
+          .append(", lbFactory=").append(lbFactory).append(", optimisticReads=")
+          .append(optimisticReads).append(", durationBetweenCacheRefresh=")
+          .append(durationBetweenCacheRefresh).append(", maxAwaitCacheRefresh=")
+          .append(maxAwaitCacheRefresh).append("]").toString();
     }
   }
 }

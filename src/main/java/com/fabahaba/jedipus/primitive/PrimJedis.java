@@ -1,5 +1,9 @@
 package com.fabahaba.jedipus.primitive;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSocketFactory;
+
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.JedisPipeline;
 import com.fabahaba.jedipus.cluster.ClusterNode;
@@ -11,12 +15,14 @@ public class PrimJedis extends Jedis implements IJedis {
 
   private final ClusterNode node;
 
-  public PrimJedis(final String host, final int port, final int connTimeout, final int soTimeout) {
+  public PrimJedis(final ClusterNode node, final int connTimeout, final int soTimeout) {
 
-    this(ClusterNode.create(host, port), connTimeout, soTimeout);
+    this(node, connTimeout, soTimeout, false, null, null, null);
   }
 
-  public PrimJedis(final ClusterNode node, final int connTimeout, final int soTimeout) {
+  public PrimJedis(final ClusterNode node, final int connTimeout, final int soTimeout,
+      final boolean ssl, final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
+      final HostnameVerifier hostnameVerifier) {
 
     super(node.getHost(), node.getPort(), connTimeout, soTimeout);
 

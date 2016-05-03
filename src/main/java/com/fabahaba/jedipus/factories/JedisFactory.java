@@ -1,5 +1,9 @@
 package com.fabahaba.jedipus.factories;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLSocketFactory;
+
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.PooledObjectFactory;
@@ -22,8 +26,15 @@ public class JedisFactory extends BasePooledObjectFactory<IJedis> {
   protected final String clientName;
   protected final boolean initReadOnly;
 
+  private final boolean ssl;
+  private final SSLSocketFactory sslSocketFactory;
+  private final SSLParameters sslParameters;
+  private final HostnameVerifier hostnameVerifier;
+
   JedisFactory(final ClusterNode node, final int connTimeout, final int soTimeout,
-      final String pass, final String clientName, final boolean initReadOnly) {
+      final String pass, final String clientName, final boolean initReadOnly, final boolean ssl,
+      final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
+      final HostnameVerifier hostnameVerifier) {
 
     this.node = node;
     this.connTimeout = connTimeout;
@@ -31,6 +42,11 @@ public class JedisFactory extends BasePooledObjectFactory<IJedis> {
     this.pass = pass;
     this.clientName = clientName;
     this.initReadOnly = initReadOnly;
+
+    this.ssl = ssl;
+    this.sslSocketFactory = sslSocketFactory;
+    this.sslParameters = sslParameters;
+    this.hostnameVerifier = hostnameVerifier;
   }
 
   public static Builder startBuilding() {
@@ -43,7 +59,8 @@ public class JedisFactory extends BasePooledObjectFactory<IJedis> {
   @Override
   public IJedis create() throws Exception {
 
-    final PrimJedis jedis = new PrimJedis(node, connTimeout, soTimeout);
+    final PrimJedis jedis = new PrimJedis(node, connTimeout, soTimeout, ssl, sslSocketFactory,
+        sslParameters, hostnameVerifier);
 
     try {
       jedis.connect();
@@ -104,11 +121,13 @@ public class JedisFactory extends BasePooledObjectFactory<IJedis> {
 
   @Override
   public String toString() {
-    final StringBuilder toString = new StringBuilder();
-    toString.append("JedisFactory [node=").append(node).append(", connTimeout=").append(connTimeout)
-        .append(", soTimeout=").append(soTimeout).append(", clientName=").append(clientName)
-        .append(", initReadOnly=").append(initReadOnly).append("]");
-    return toString.toString();
+
+    return new StringBuilder("JedisFactory [node=").append(node).append(", connTimeout=")
+        .append(connTimeout).append(", soTimeout=").append(soTimeout).append(", pass=").append(pass)
+        .append(", clientName=").append(clientName).append(", initReadOnly=").append(initReadOnly)
+        .append(", ssl=").append(ssl).append(", sslSocketFactory=").append(sslSocketFactory)
+        .append(", sslParameters=").append(sslParameters).append(", hostnameVerifier=")
+        .append(hostnameVerifier).append("]").toString();
   }
 
   public static class Builder {
@@ -117,9 +136,15 @@ public class JedisFactory extends BasePooledObjectFactory<IJedis> {
     private int port;
     private int connTimeout = Protocol.DEFAULT_TIMEOUT;
     private int soTimeout = Protocol.DEFAULT_TIMEOUT;
+
     private String pass;
     private String clientName;
     private boolean initReadOnly;
+
+    private boolean ssl;
+    private SSLSocketFactory sslSocketFactory;
+    private SSLParameters sslParameters;
+    private HostnameVerifier hostnameVerifier;
 
     private Builder() {}
 
@@ -160,16 +185,20 @@ public class JedisFactory extends BasePooledObjectFactory<IJedis> {
         numInits++;
       }
 
-      switch (numInits) {
-        case 0:
-          return new JedisFactory(node, connTimeout, connTimeout, pass, clientName, initReadOnly);
-        case 1:
-          return new SingleInitFactory(node, connTimeout, connTimeout, pass, clientName,
-              initReadOnly);
-        default:
-          return new PipelinedInitFactory(node, connTimeout, connTimeout, pass, clientName,
-              initReadOnly);
+      if (numInits == 0) {
+
+        return new JedisFactory(node, connTimeout, connTimeout, pass, clientName, initReadOnly, ssl,
+            sslSocketFactory, sslParameters, hostnameVerifier);
       }
+
+      if (numInits == 1) {
+
+        return new SingleInitFactory(node, connTimeout, connTimeout, pass, clientName, initReadOnly,
+            ssl, sslSocketFactory, sslParameters, hostnameVerifier);
+      }
+
+      return new PipelinedInitFactory(node, connTimeout, connTimeout, pass, clientName,
+          initReadOnly, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
     }
 
     public String getHost() {
@@ -235,14 +264,52 @@ public class JedisFactory extends BasePooledObjectFactory<IJedis> {
       return this;
     }
 
+    public boolean isSsl() {
+      return ssl;
+    }
+
+    public Builder withSsl(final boolean ssl) {
+      this.ssl = ssl;
+      return this;
+    }
+
+    public SSLSocketFactory getSslSocketFactory() {
+      return sslSocketFactory;
+    }
+
+    public Builder withSslSocketFactory(final SSLSocketFactory sslSocketFactory) {
+      this.sslSocketFactory = sslSocketFactory;
+      return this;
+    }
+
+    public SSLParameters getSslParameters() {
+      return sslParameters;
+    }
+
+    public Builder withSslParameters(final SSLParameters sslParameters) {
+      this.sslParameters = sslParameters;
+      return this;
+    }
+
+    public HostnameVerifier getHostnameVerifier() {
+      return hostnameVerifier;
+    }
+
+    public Builder withHostnameVerifier(final HostnameVerifier hostnameVerifier) {
+      this.hostnameVerifier = hostnameVerifier;
+      return this;
+    }
+
     @Override
     public String toString() {
-      final StringBuilder toString = new StringBuilder();
-      toString.append("Builder [host=").append(host).append(", port=").append(port)
-          .append(", connTimeout=").append(connTimeout).append(", soTimeout=").append(soTimeout)
-          .append(", clientName=").append(clientName).append(", initReadOnly=").append(initReadOnly)
-          .append("]");
-      return toString.toString();
+
+      return new StringBuilder("JedisFactory.Builder [host=").append(host).append(", port=")
+          .append(port).append(", connTimeout=").append(connTimeout).append(", soTimeout=")
+          .append(soTimeout).append(", pass=").append(pass).append(", clientName=")
+          .append(clientName).append(", initReadOnly=").append(initReadOnly).append(", ssl=")
+          .append(ssl).append(", sslSocketFactory=").append(sslSocketFactory)
+          .append(", sslParameters=").append(sslParameters).append(", hostnameVerifier=")
+          .append(hostnameVerifier).append("]").toString();
     }
   }
 }
