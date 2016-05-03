@@ -319,8 +319,7 @@ public interface LuaScript<R> {
 
   public static String readFromResourcePath(final String resourcePath) {
 
-    try (final InputStream scriptInputStream =
-        LuaScriptData.class.getResourceAsStream(resourcePath)) {
+    try (final InputStream scriptInputStream = LuaScript.class.getResourceAsStream(resourcePath)) {
 
       if (scriptInputStream == null) {
         throw new IllegalStateException("No script found on resource path at " + resourcePath);
@@ -329,9 +328,11 @@ public interface LuaScript<R> {
       try (final BufferedReader reader =
           new BufferedReader(new InputStreamReader(scriptInputStream, StandardCharsets.UTF_8))) {
 
+        final String newline = System.getProperty("line.separator");
+
         return reader.lines().map(String::trim).filter(line -> !line.isEmpty())
             .map(line -> line.replaceFirst("^\\s+", "").replaceAll("\\s+", " "))
-            .filter(line -> !line.startsWith("--")).collect(Collectors.joining(" "));
+            .filter(line -> !line.startsWith("--")).collect(Collectors.joining(newline));
       }
     } catch (final IOException e) {
 
