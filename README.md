@@ -3,8 +3,8 @@
 >Jedipus is a Redis Cluster Java client that manages [Jedis](https://github.com/xetorthio/jedis) object pools.
 
 ######Features
-* Reuses the awesome work already done on Jedis so that all `Jedis` client functionality is usable, e.g., pipelines and transactions.
-* Execute `Consumer<IJedis>` and `Function<IJedis, R>` Lambas against a Redis Cluster.
+* Reuses the awesome work already done on Jedis by supporting all super interfaces of both [`Jedis`](https://github.com/xetorthio/jedis/blob/master/src/main/java/redis/clients/jedis/Jedis.java) and [`Pipeline`](https://github.com/xetorthio/jedis/blob/master/src/main/java/redis/clients/jedis/Pipeline.java).
+* Execute `Consumer<IJedis>` and `Function<IJedis, R>` lambas.
 * Direct O(1) primitive array access to a corresponding `IJedis` pool.
 * Reuse known slot integers.
 * Locking is only applied to threads that are accessing slots that are MOVING or for which a client connection cannot be established triggering a slot cache refresh.
@@ -38,7 +38,7 @@ dependencies {
 }
 ```
 
-#####Basic Usage Example
+#####Basic Usage Demo
 ```java
 final Collection<ClusterNode> discoveryNodes =
     Collections.singleton(ClusterNode.create("localhost", 7000));
@@ -96,7 +96,7 @@ try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discove
 }
 ```
 
-#####Redis Lock Lua Example
+#####Lua Redis Lock
 
 ```java
 public final class RedisLock {
