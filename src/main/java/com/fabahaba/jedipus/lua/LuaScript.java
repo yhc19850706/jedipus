@@ -2,6 +2,7 @@ package com.fabahaba.jedipus.lua;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -318,14 +319,20 @@ public interface LuaScript<R> {
 
   public static String readFromResourcePath(final String resourcePath) {
 
-    try (final BufferedReader reader = new BufferedReader(new InputStreamReader(
-        LuaScriptData.class.getResourceAsStream(resourcePath), StandardCharsets.UTF_8))) {
+    try (final InputStream scriptInputStream =
+        LuaScriptData.class.getResourceAsStream(resourcePath)) {
 
-      final String luaScript = reader.lines().map(String::trim).filter(line -> !line.isEmpty())
-          .map(line -> line.replaceAll("\\s+", " ")).filter(line -> !line.startsWith("--"))
-          .collect(Collectors.joining(" "));
+      if (scriptInputStream == null) {
+        throw new IllegalStateException("No script found on resource path at " + resourcePath);
+      }
 
-      return luaScript;
+      try (final BufferedReader reader =
+          new BufferedReader(new InputStreamReader(scriptInputStream, StandardCharsets.UTF_8))) {
+
+        return reader.lines().map(String::trim).filter(line -> !line.isEmpty())
+            .map(line -> line.replaceFirst("^\\s+", "").replaceAll("\\s+", " "))
+            .filter(line -> !line.startsWith("--")).collect(Collectors.joining(" "));
+      }
     } catch (final IOException e) {
 
       throw new UncheckedIOException(e);
