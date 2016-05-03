@@ -48,7 +48,7 @@ dependencies {
 
 task startRedis(type:Exec) {
 
-   commandLine './scripts/startTestRedis.sh', '9736', '0', '7379'
+   commandLine './scripts/startTestRedis.sh', project.name, '9736', '7379', '0'
 }
 
 task rmRedis(type:Exec) {

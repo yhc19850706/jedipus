@@ -33,7 +33,7 @@ final class JedisPool {
       } catch (final RuntimeException re) {
         throw re;
       } catch (final Exception e) {
-        throw new JedisException("Could not return broken resource to the pool.", e);
+        throw new JedisException("Could not return broken jedis to its pool.", e);
       }
       return;
     }
@@ -43,12 +43,13 @@ final class JedisPool {
     } catch (final RuntimeException re) {
       try {
         pool.invalidateObject(jedis);
-        throw re;
       } catch (final RuntimeException re2) {
         throw re2;
       } catch (final Exception e) {
-        throw new JedisException("Could not return reset jedis state.", e);
+        throw new JedisException("Could not return broken jedis to its pool.", e);
       }
+
+      throw re;
     }
 
     try {
@@ -56,7 +57,7 @@ final class JedisPool {
     } catch (final RuntimeException re) {
       throw re;
     } catch (final Exception e) {
-      throw new JedisException("Could not return the resource to the pool.", e);
+      throw new JedisException("Could not return jedis to its pool.", e);
     }
   }
 }
