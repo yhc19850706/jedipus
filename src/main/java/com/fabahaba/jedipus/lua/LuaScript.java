@@ -321,8 +321,9 @@ public interface LuaScript<R> {
     try (final BufferedReader reader = new BufferedReader(new InputStreamReader(
         LuaScriptData.class.getResourceAsStream(resourcePath), StandardCharsets.UTF_8))) {
 
-      final String luaScript = reader.lines().filter(l -> !l.isEmpty() && !l.contains("--"))
-          .collect(Collectors.joining(" ")).replaceAll("\\s+", " ");
+      final String luaScript = reader.lines().map(String::trim).filter(line -> !line.isEmpty())
+          .map(line -> line.replaceAll("\\s+", " ")).filter(line -> !line.startsWith("--"))
+          .collect(Collectors.joining(" "));
 
       return luaScript;
     } catch (final IOException e) {
