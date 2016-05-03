@@ -59,7 +59,7 @@ try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discove
   final String hashTaggedKey = hashTag + "key";
   final String fooKey = hashTag + "foo";
 
-  final List<Response<?>> results = new ArrayList<>(2);
+  final Response<?>[] responses = new Response[2];
 
   jce.acceptPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
 
@@ -68,15 +68,15 @@ try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discove
     pipeline.zadd(fooKey, .37, "barinsky");
     pipeline.zadd(fooKey, 42, "barikoviev");
 
-    results.add(pipeline.get(hashTaggedKey));
-    results.add(pipeline.zrangeWithScores(fooKey, 0, -1));
+    responses[0] = pipeline.get(hashTaggedKey);
+    responses[1] = pipeline.zrangeWithScores(fooKey, 0, -1);
   });
 
   // '{HT}:key': value
-  System.out.format("%n'%s': %s%n", hashTaggedKey, results.get(0).get());
+  System.out.format("%n'%s': %s%n", hashTaggedKey, responses[0].get());
 
   @SuppressWarnings("unchecked")
-  final Set<Tuple> zrangeResult = (Set<Tuple>) results.get(1).get();
+  final Set<Tuple> zrangeResult = (Set<Tuple>) responses[1].get();
   final String values = zrangeResult.stream()
       .map(tuple -> String.format("%s (%s)", tuple.getElement(), tuple.getScore()))
       .collect(Collectors.joining(", "));
