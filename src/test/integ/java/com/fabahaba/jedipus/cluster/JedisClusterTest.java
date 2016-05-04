@@ -86,7 +86,7 @@ public class JedisClusterTest extends Assert {
       masterClients[i].clusterAddSlots(slots[i]);
     }
 
-    waitForClusterReady();
+    waitForClusterReady(masterClients);
 
     setUpSlaves(getClusterNodes(masterClients[0].clusterNodes()));
   }
@@ -160,11 +160,11 @@ public class JedisClusterTest extends Assert {
     }
   }
 
-  void waitForClusterReady() throws InterruptedException {
+  private static void waitForClusterReady(final IJedis[] clients) throws InterruptedException {
 
-    for (final IJedis master : masterClients) {
+    for (final IJedis client : clients) {
 
-      while (!master.clusterInfo().startsWith("cluster_state:ok")) {
+      while (!client.clusterInfo().startsWith("cluster_state:ok")) {
 
         Thread.sleep(20);
       }
