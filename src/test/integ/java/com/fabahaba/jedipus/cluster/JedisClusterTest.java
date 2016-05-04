@@ -41,7 +41,7 @@ public class JedisClusterTest extends Assert {
   private static final ClusterNode[] slaves = new ClusterNode[NUM_MASTERS * NUM_SLAVES_EACH];
   private static final int[][] slots = new int[NUM_MASTERS][];
 
-  private IJedis[] masterClients;
+  private static final IJedis[] masterClients = new IJedis[NUM_MASTERS];
 
   // protected final Logger log = Logger.getLogger(getClass().getName());
 
@@ -68,8 +68,6 @@ public class JedisClusterTest extends Assert {
 
   @Before
   public void before() throws InterruptedException {
-
-    masterClients = new IJedis[NUM_MASTERS];
 
     int clientIndex = 0;
     for (final ClusterNode master : masters) {
