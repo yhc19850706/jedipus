@@ -3,7 +3,7 @@
 >Jedipus is a Redis Cluster Java client that manages [Jedis](https://github.com/xetorthio/jedis) object pools.
 
 ######Features
-* Reuses the awesome work already done on Jedis by supporting all super interfaces of both  [`Jedis`](https://github.com/xetorthio/jedis/blob/master/src/main/java/redis/clients/jedis/Jedis.java) and [`Pipeline`](https://github.com/xetorthio/jedis/blob/master/src/main/java/redis/clients/jedis/Pipeline.java).
+* Reuses the awesome work already done on Jedis by supporting all super interfaces of [`Jedis`](https://github.com/xetorthio/jedis/blob/master/src/main/java/redis/clients/jedis/Jedis.java), [`Pipeline`](https://github.com/xetorthio/jedis/blob/master/src/main/java/redis/clients/jedis/Pipeline.java) and [`Transaction`](https://github.com/xetorthio/jedis/blob/master/src/main/java/redis/clients/jedis/Transaction.java).
 * Execute `Consumer<IJedis>` and `Function<IJedis, R>` lambas.
 * Direct O(1) primitive array access to a corresponding [`IJedis`](src/main/java/com/fabahaba/jedipus/IJedis.java) pool.
 * Reuse known slot integers.

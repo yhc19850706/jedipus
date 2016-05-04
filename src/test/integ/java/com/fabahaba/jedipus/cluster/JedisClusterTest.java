@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 import org.junit.After;
@@ -43,6 +44,8 @@ public class JedisClusterTest extends Assert {
 
   private static final IJedis[] masterClients = new IJedis[NUM_MASTERS];
 
+  private static Set<ClusterNode> discoveryNodes;
+
   // protected final Logger log = Logger.getLogger(getClass().getName());
 
   @BeforeClass
@@ -52,6 +55,7 @@ public class JedisClusterTest extends Assert {
     for (int i = 0; i < NUM_MASTERS; i++, port++) {
       masters[i] = ClusterNode.create(ANNOUNCE_IP, port);
     }
+    discoveryNodes = Collections.singleton(masters[0]);
 
     for (int i = 0; i < slaves.length; i++, port++) {
       slaves[i] = ClusterNode.create(ANNOUNCE_IP, port);
@@ -184,13 +188,12 @@ public class JedisClusterTest extends Assert {
 
       assertEquals(12182, jme.getSlot());
 
-      try (JedisClusterExecutor jce =
-          JedisClusterExecutor.startBuilding(Collections.singleton(masters[0])).create()) {
+      try (final JedisClusterExecutor jce =
+          JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
         jce.acceptJedis(12182,
             jedis -> assertEquals(jedis.getPort(), jme.getTargetNode().getPort()));
       }
-
       return;
     }
 
