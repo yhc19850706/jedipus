@@ -40,15 +40,6 @@ dependencies {
 }
 
 sourceSets {
-   main {
-      java {
-         srcDir 'src/main/java'
-      }
-      resources {
-         srcDir 'src/main/resources'
-      }
-   }
-
    test {
       java {
          srcDir 'src/test/unit/java'
@@ -64,12 +55,15 @@ sourceSets {
 project.ext.set('redisServerPort', '9736')
 project.ext.set('startingClusterPort', '7379')
 project.ext.set('numClusterNodes', '6')
+project.ext.set('numMasters', '3')
+project.ext.set('numSlavesEach', '1')
 
 test {
 
    systemProperty 'jedipus.redis.port', project.redisServerPort
    systemProperty 'jedipus.redis.cluster.startingport', project.startingClusterPort
-   systemProperty 'jedipus.redis.cluster.numnodes', project.numClusterNodes
+   systemProperty 'jedipus.redis.cluster.nummasters', project.numMasters
+   systemProperty 'jedipus.redis.cluster.numslaveseach', project.numSlavesEach
 }
 
 task startRedis(type:Exec) {

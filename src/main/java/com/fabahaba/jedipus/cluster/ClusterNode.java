@@ -23,6 +23,11 @@ public final class ClusterNode implements HostPort {
     return new ClusterNode(hostPort, null);
   }
 
+  public static ClusterNode create(final HostPort hostPort, final String nodeId) {
+
+    return new ClusterNode(hostPort, nodeId);
+  }
+
   public static ClusterNode create(final HostAndPort hostAndPort) {
 
     return create(HostPort.create(hostAndPort));
@@ -31,6 +36,11 @@ public final class ClusterNode implements HostPort {
   public static ClusterNode create(final String host, final int port) {
 
     return create(HostPort.create(host, port));
+  }
+
+  public static ClusterNode create(final String host, final int port, final String nodeId) {
+
+    return create(HostPort.create(host, port), nodeId);
   }
 
   static ClusterNode create(final List<Object> hostInfos) {
