@@ -55,8 +55,7 @@ sourceSets {
 project.ext.set('redisServerPort', '9736')
 
 project.ext.set('announceIp', '127.0.0.1')
-project.ext.set('startingClusterPort', '7379')
-project.ext.set('numClusterNodes', '6')
+project.ext.set('startingClusterPort', '7379') 
 project.ext.set('numMasters', '3')
 project.ext.set('numSlavesEach', '1')
 
@@ -72,7 +71,10 @@ test {
 
 task startRedis(type:Exec) {
 
-   commandLine './scripts/startRedis.sh', project.name, project.redisServerPort, project.startingClusterPort, project.numClusterNodes, project.announceIp
+   int numMasters = project.numMasters.toInteger()
+   int numClusterNodes = numMasters + numMasters *  project.numSlavesEach.toInteger()
+
+   commandLine './scripts/startRedis.sh', project.name, project.redisServerPort, project.startingClusterPort, numClusterNodes, project.announceIp
 }
 
 task rmRedis(type:Exec) {
