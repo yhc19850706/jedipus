@@ -61,14 +61,25 @@ sourceSets {
    }
 }
 
+project.ext.set('redisServerPort', '9736')
+project.ext.set('startingClusterPort', '7379')
+project.ext.set('numClusterNodes', '6')
+
+test {
+
+   systemProperty 'jedipus.redis.port', project.redisServerPort
+   systemProperty 'jedipus.redis.cluster.startingport', project.startingClusterPort
+   systemProperty 'jedipus.redis.cluster.numnodes', project.numClusterNodes
+}
+
 task startRedis(type:Exec) {
 
-   commandLine './scripts/startTestRedis.sh', project.name, '9736', '7379', '0'
+   commandLine './scripts/startRedis.sh', project.name, project.redisServerPort, project.startingClusterPort, project.numClusterNodes
 }
 
 task rmRedis(type:Exec) {
 
-   commandLine './scripts/rmTestRedis.sh'
+   commandLine './scripts/rmRedis.sh', project.name
 }
 
 test.dependsOn startRedis

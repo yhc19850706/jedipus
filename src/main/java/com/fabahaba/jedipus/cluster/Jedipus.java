@@ -364,6 +364,12 @@ final class Jedipus implements JedisClusterExecutor {
   }
 
   @Override
+  public void refreshSlotCache() {
+
+    connHandler.renewSlotCache(getDefaultReadMode());
+  }
+
+  @Override
   public void close() {
 
     connHandler.close();

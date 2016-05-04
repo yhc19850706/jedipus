@@ -8,6 +8,8 @@ public interface JedisClient extends AutoCloseable {
 
   public boolean isBroken();
 
+  public void connect();
+
   public void disconnect();
 
   default String getHost() {

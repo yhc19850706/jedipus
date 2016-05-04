@@ -716,4 +716,6 @@ public interface JedisClusterExecutor extends AutoCloseable {
 
   public <R> R applyNodeIfPresent(final ClusterNode node, final Function<IJedis, R> jedisConsumer,
       final int maxRetries);
+
+  public void refreshSlotCache();
 }

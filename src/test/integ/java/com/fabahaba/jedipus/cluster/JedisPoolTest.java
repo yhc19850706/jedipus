@@ -4,6 +4,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.pool2.BasePooledObjectFactory;
@@ -26,7 +27,10 @@ import redis.clients.jedis.exceptions.JedisException;
 
 public class JedisPoolTest extends Assert {
 
-  private final ClusterNode defaultNode = ClusterNode.create("localhost", 9736);
+  private static final int REDIS_PORT = Optional
+      .ofNullable(System.getProperty("jedipus.redis.port")).map(Integer::parseInt).orElse(9736);
+
+  private final ClusterNode defaultNode = ClusterNode.create("localhost", REDIS_PORT);
 
   private PooledObjectFactory<IJedis> defaultJedisFactory;
   private GenericObjectPoolConfig config;
@@ -35,7 +39,7 @@ public class JedisPoolTest extends Assert {
   @Before
   public void before() throws Exception {
 
-    defaultJedisFactory = JedisFactory.startBuilding().withAuth("pass").createPooled(defaultNode);
+    defaultJedisFactory = JedisFactory.startBuilding().withAuth("42").createPooled(defaultNode);
     config = new GenericObjectPoolConfig();
     pool = new GenericObjectPool<>(defaultJedisFactory, config);
   }
@@ -139,7 +143,7 @@ public class JedisPoolTest extends Assert {
   public void customClientName() {
 
     final GenericObjectPool<IJedis> pool = new GenericObjectPool<>(JedisFactory.startBuilding()
-        .withClientName("my_shiny_client_name").withAuth("pass").createPooled(defaultNode), config);
+        .withClientName("my_shiny_client_name").withAuth("42").createPooled(defaultNode), config);
 
     final IJedis jedis = JedisPool.borrowObject(pool);
     assertEquals("my_shiny_client_name", jedis.clientGetname());
