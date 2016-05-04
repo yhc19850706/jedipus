@@ -22,6 +22,9 @@ import redis.clients.jedis.exceptions.JedisMovedDataException;
 
 public class JedisClusterTest extends Assert {
 
+  private static final String ANNOUNCE_IP = Optional
+      .ofNullable(System.getProperty("jedipus.redis.cluster.announceip")).orElse("127.0.0.1");
+
   private static final int STARTING_PORT =
       Optional.ofNullable(System.getProperty("jedipus.redis.cluster.startingport"))
           .map(Integer::parseInt).orElse(7379);
@@ -47,11 +50,11 @@ public class JedisClusterTest extends Assert {
 
     int port = STARTING_PORT;
     for (int i = 0; i < NUM_MASTERS; i++, port++) {
-      masters[i] = ClusterNode.create("127.0.0.1", port);
+      masters[i] = ClusterNode.create(ANNOUNCE_IP, port);
     }
 
     for (int i = 0; i < slaves.length; i++, port++) {
-      slaves[i] = ClusterNode.create("127.0.0.1", port);
+      slaves[i] = ClusterNode.create(ANNOUNCE_IP, port);
     }
 
     final int slotIncrement = (int) Math.ceil(JedisCluster.HASHSLOTS / (double) NUM_MASTERS);

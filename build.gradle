@@ -53,6 +53,8 @@ sourceSets {
 }
 
 project.ext.set('redisServerPort', '9736')
+
+project.ext.set('announceIp', '127.0.0.1')
 project.ext.set('startingClusterPort', '7379')
 project.ext.set('numClusterNodes', '6')
 project.ext.set('numMasters', '3')
@@ -61,6 +63,8 @@ project.ext.set('numSlavesEach', '1')
 test {
 
    systemProperty 'jedipus.redis.port', project.redisServerPort
+
+   systemProperty 'jedipus.redis.cluster.announceip', project.announceIp
    systemProperty 'jedipus.redis.cluster.startingport', project.startingClusterPort
    systemProperty 'jedipus.redis.cluster.nummasters', project.numMasters
    systemProperty 'jedipus.redis.cluster.numslaveseach', project.numSlavesEach
@@ -68,7 +72,7 @@ test {
 
 task startRedis(type:Exec) {
 
-   commandLine './scripts/startRedis.sh', project.name, project.redisServerPort, project.startingClusterPort, project.numClusterNodes
+   commandLine './scripts/startRedis.sh', project.name, project.redisServerPort, project.startingClusterPort, project.numClusterNodes, project.announceIp
 }
 
 task rmRedis(type:Exec) {
