@@ -22,17 +22,22 @@ class JedisClusterConnHandler implements AutoCloseable {
       final Collection<ClusterNode> discoveryNodes,
       final Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory,
       final Function<ClusterNode, ObjectPool<IJedis>> slavePoolFactory,
-      final Function<ClusterNode, IJedis> jedisAskDiscoveryFactory,
+      final Function<ClusterNode, IJedis> nodeUnknownFactory,
       final Function<ObjectPool<IJedis>[], LoadBalancedPools> lbFactory) {
 
     this.slotPoolCache = JedisClusterSlotCache.create(defaultReadMode, optimisticReads,
         durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes, masterPoolFactory,
-        slavePoolFactory, jedisAskDiscoveryFactory, lbFactory);
+        slavePoolFactory, nodeUnknownFactory, lbFactory);
   }
 
   ReadMode getDefaultReadMode() {
 
     return slotPoolCache.getDefaultReadMode();
+  }
+
+  IJedis createUnknownNode(final ClusterNode unknown) {
+
+    return slotPoolCache.getNodeUnknownFactory().apply(unknown);
   }
 
   ObjectPool<IJedis> getRandomPool(final ReadMode readMode) {

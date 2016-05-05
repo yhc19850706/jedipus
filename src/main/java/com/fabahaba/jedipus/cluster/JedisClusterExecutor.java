@@ -717,5 +717,99 @@ public interface JedisClusterExecutor extends AutoCloseable {
   public <R> R applyNodeIfPresent(final ClusterNode node, final Function<IJedis, R> jedisConsumer,
       final int maxRetries);
 
+  default void acceptUnknownNode(final ClusterNode node, final Consumer<IJedis> jedisConsumer) {
+
+    acceptUnknownNode(node, jedisConsumer, getMaxRetries());
+  }
+
+  default void acceptUnknownNode(final ClusterNode node, final Consumer<IJedis> jedisConsumer,
+      final int maxRetries) {
+
+    applyUnknownNode(node, jedis -> {
+      jedisConsumer.accept(jedis);
+      return null;
+    }, maxRetries);
+  }
+
+  default void acceptPipelinedUnknownNode(final ClusterNode node,
+      final Consumer<JedisPipeline> pipelineConsumer) {
+
+    acceptPipelinedUnknownNode(node, pipelineConsumer, getMaxRetries());
+  }
+
+  default void acceptPipelinedUnknownNode(final ClusterNode node,
+      final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries) {
+
+    applyUnknownNode(node, jedis -> {
+      final JedisPipeline pipeline = jedis.createPipeline();
+      pipelineConsumer.accept(pipeline);
+      pipeline.sync();
+      return null;
+    }, maxRetries);
+  }
+
+  default void acceptPipelinedTransactionUnknownNode(final ClusterNode node,
+      final Consumer<JedisPipeline> pipelineConsumer) {
+
+    acceptPipelinedTransactionUnknownNode(node, pipelineConsumer, getMaxRetries());
+  }
+
+  default void acceptPipelinedTransactionUnknownNode(final ClusterNode node,
+      final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries) {
+
+    applyUnknownNode(node, jedis -> {
+      final JedisPipeline pipeline = jedis.createPipeline();
+      pipeline.multi();
+      pipelineConsumer.accept(pipeline);
+      pipeline.exec();
+      pipeline.sync();
+      return null;
+    }, maxRetries);
+  }
+
+  default <R> R applyUnknownNode(final ClusterNode node, final Function<IJedis, R> jedisConsumer) {
+
+    return applyUnknownNode(node, jedisConsumer, getMaxRetries());
+  }
+
+  default <R> R applyPipelinedUnknownNode(final ClusterNode node,
+      final Function<JedisPipeline, R> pipelineConsumer) {
+
+    return applyPipelinedUnknownNode(node, pipelineConsumer, getMaxRetries());
+  }
+
+  default <R> R applyPipelinedUnknownNode(final ClusterNode node,
+      final Function<JedisPipeline, R> pipelineConsumer, final int maxRetries) {
+
+    return applyUnknownNode(node, jedis -> {
+      final JedisPipeline pipeline = jedis.createPipeline();
+      final R result = pipelineConsumer.apply(pipeline);
+      pipeline.sync();
+      return result;
+    }, maxRetries);
+  }
+
+  default <R> R applyPipelinedTransasctionUnknownNode(final ClusterNode node,
+      final Function<JedisPipeline, R> pipelineConsumer) {
+
+    return applyPipelinedTransasctionUnknownNode(node, pipelineConsumer, getMaxRetries());
+  }
+
+  default <R> R applyPipelinedTransasctionUnknownNode(final ClusterNode node,
+      final Function<JedisPipeline, R> pipelineConsumer, final int maxRetries) {
+
+    return applyUnknownNode(node, jedis -> {
+      final JedisPipeline pipeline = jedis.createPipeline();
+      pipeline.multi();
+      final R result = pipelineConsumer.apply(pipeline);
+      pipeline.exec();
+      pipeline.sync();
+      return result;
+    }, maxRetries);
+  }
+
+  public <R> R applyUnknownNode(final ClusterNode node, final Function<IJedis, R> jedisConsumer,
+      final int maxRetries);
+
   public void refreshSlotCache();
 }

@@ -127,12 +127,12 @@ final class Jedipus implements JedisClusterExecutor {
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
       final Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory,
       final Function<ClusterNode, ObjectPool<IJedis>> slavePoolFactory,
-      final Function<ClusterNode, IJedis> jedisAskDiscoveryFactory,
+      final Function<ClusterNode, IJedis> nodeUnknownFactory,
       final Function<ObjectPool<IJedis>[], LoadBalancedPools> lbFactory) {
 
     this.connHandler = new JedisClusterConnHandler(defaultReadMode, optimisticReads,
         durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes, masterPoolFactory,
-        slavePoolFactory, jedisAskDiscoveryFactory, lbFactory);
+        slavePoolFactory, nodeUnknownFactory, lbFactory);
 
     this.maxRedirections = maxRedirections;
     this.maxRetries = maxRetries;
@@ -312,6 +312,26 @@ final class Jedipus implements JedisClusterExecutor {
   }
 
   @Override
+  public <R> R applyUnknownNode(final ClusterNode node, final Function<IJedis, R> jedisConsumer,
+      final int maxRetries) {
+
+    for (int retries = 0;;) {
+
+      try (IJedis jedis = connHandler.createUnknownNode(node)) {
+
+        return jedisConsumer.apply(jedis);
+      } catch (final JedisConnectionException jce) {
+
+        if (++retries > maxRetries) {
+          throw jce;
+        }
+
+        continue;
+      }
+    }
+  }
+
+  @Override
   public void acceptAllMasters(final Consumer<IJedis> jedisConsumer, final int maxRetries) {
 
     acceptAll(connHandler.getMasterPools(), jedisConsumer, maxRetries);
@@ -389,8 +409,7 @@ final class Jedipus implements JedisClusterExecutor {
         DEFAULT_MASTER_POOL_FACTORY;
     private Function<ClusterNode, ObjectPool<IJedis>> slavePoolFactory = DEFAULT_SLAVE_POOL_FACTORY;
     // Used for ASK requests if no pool exists and random cluster discovery.
-    private Function<ClusterNode, IJedis> jedisAskDiscoveryFactory =
-        DEFAULT_JEDIS_ASK_DISCOVERY_FACTORY;
+    private Function<ClusterNode, IJedis> nodeUnknownFactory = DEFAULT_JEDIS_ASK_DISCOVERY_FACTORY;
     private BiFunction<ReadMode, ObjectPool<IJedis>[], LoadBalancedPools> lbFactory =
         DEFAULT_LB_FACTORIES;
     // If true, access to slot pool cache will not lock when retreiving a pool/client during a slot
@@ -410,7 +429,7 @@ final class Jedipus implements JedisClusterExecutor {
 
       return new Jedipus(defaultReadMode, discoveryNodes, maxRedirections, maxRetries,
           tryRandomAfter, clusterNodeRetryDelay, optimisticReads, durationBetweenCacheRefresh,
-          maxAwaitCacheRefresh, masterPoolFactory, slavePoolFactory, jedisAskDiscoveryFactory,
+          maxAwaitCacheRefresh, masterPoolFactory, slavePoolFactory, nodeUnknownFactory,
           slavePools -> lbFactory.apply(defaultReadMode, slavePools));
     }
 
@@ -524,13 +543,12 @@ final class Jedipus implements JedisClusterExecutor {
       return this;
     }
 
-    public Function<ClusterNode, IJedis> getJedisAskFactory() {
-      return jedisAskDiscoveryFactory;
+    public Function<ClusterNode, IJedis> getNodeUnknownFactory() {
+      return nodeUnknownFactory;
     }
 
-    public Builder withJedisAskFactory(
-        final Function<ClusterNode, IJedis> jedisAskDiscoveryFactory) {
-      this.jedisAskDiscoveryFactory = jedisAskDiscoveryFactory;
+    public Builder withNodeUnknownFactory(final Function<ClusterNode, IJedis> nodeUnknownFactory) {
+      this.nodeUnknownFactory = nodeUnknownFactory;
       return this;
     }
 
@@ -554,11 +572,10 @@ final class Jedipus implements JedisClusterExecutor {
           .append(", clusterNodeRetryDelay=").append(clusterNodeRetryDelay).append(", poolConfig=")
           .append(poolConfig).append(", masterPoolFactory=").append(masterPoolFactory)
           .append(", slavePoolFactory=").append(slavePoolFactory)
-          .append(", jedisAskDiscoveryFactory=").append(jedisAskDiscoveryFactory)
-          .append(", lbFactory=").append(lbFactory).append(", optimisticReads=")
-          .append(optimisticReads).append(", durationBetweenCacheRefresh=")
-          .append(durationBetweenCacheRefresh).append(", maxAwaitCacheRefresh=")
-          .append(maxAwaitCacheRefresh).append("]").toString();
+          .append(", jedisAskDiscoveryFactory=").append(nodeUnknownFactory).append(", lbFactory=")
+          .append(lbFactory).append(", optimisticReads=").append(optimisticReads)
+          .append(", durationBetweenCacheRefresh=").append(durationBetweenCacheRefresh)
+          .append(", maxAwaitCacheRefresh=").append(maxAwaitCacheRefresh).append("]").toString();
     }
   }
 }

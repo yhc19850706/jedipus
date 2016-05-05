@@ -3,13 +3,15 @@ package com.fabahaba.jedipus.cluster;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayDeque;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.stream.IntStream;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -52,6 +54,7 @@ public class JedisClusterTest {
   private static final int[][] slots = new int[NUM_MASTERS][];
 
   private static Set<ClusterNode> discoveryNodes;
+  private static Queue<ClusterNode> pendingReset;
 
   @BeforeClass
   public static void beforeClass() {
@@ -63,7 +66,7 @@ public class JedisClusterTest {
 
     discoveryNodes = Collections.singleton(masters[0]);
 
-    for (int i = 0; i < slaves.length; i++, port++) {
+    for (int i = 0; i < NUM_SLAVES; i++, port++) {
       slaves[i] = ClusterNode.create(ANNOUNCE_IP, port);
     }
 
@@ -72,6 +75,8 @@ public class JedisClusterTest {
       final int endSlot = Math.min(slotOffset + MAX_SLOT_RANGE, JedisCluster.HASHSLOTS);
       slots[i] = IntStream.range(slotOffset, endSlot).toArray();
     }
+
+    pendingReset = new ArrayDeque<>(NUM_SLAVES);
   }
 
   @Before
@@ -107,33 +112,21 @@ public class JedisClusterTest {
     }
   }
 
-  static Map<HostPort, ClusterNode> getClusterNodes(final String clusterNodes) {
+  @After
+  public void after() {
 
-    final String[] lines = clusterNodes.split("\\r?\\n");
-    final Map<HostPort, ClusterNode> nodes = new HashMap<>(lines.length);
+    for (;;) {
+      final ClusterNode node = pendingReset.poll();
+      if (node == null) {
+        break;
+      }
 
-    for (final String nodeInfo : lines) {
+      try (final IJedis jedis = JedisFactory.startBuilding().create(node)) {
 
-      // 1c02bc94ed7c84d0d13a52079aeef9b259e58ef1 127.0.0.1:7379@17379
-      final String nodeId = nodeInfo.substring(0, 40);
-
-      final int startPort = nodeInfo.indexOf(':', 42);
-      final String host = nodeInfo.substring(41, startPort);
-
-      for (int endPort = startPort + 2;; endPort++) {
-
-        if (!Character.isDigit(nodeInfo.charAt(endPort))) {
-
-          final String port = nodeInfo.substring(startPort + 1, endPort);
-
-          final HostPort hostPort = HostPort.create(host, port);
-          nodes.put(hostPort, ClusterNode.create(hostPort, nodeId));
-          break;
-        }
+        jedis.flushAll();
+        jedis.clusterReset(Reset.SOFT);
       }
     }
-
-    return nodes;
   }
 
   static void setUpSlaves(final Map<HostPort, ClusterNode> clusterNodes)
@@ -168,11 +161,15 @@ public class JedisClusterTest {
   private static void waitForClusterReady(final IJedis[] clients) throws InterruptedException {
 
     for (final IJedis client : clients) {
+      waitForClusterReady(client);
+    }
+  }
 
-      while (!client.clusterInfo().startsWith("cluster_state:ok")) {
+  private static void waitForClusterReady(final IJedis client) throws InterruptedException {
 
-        Thread.sleep(7);
-      }
+    while (!client.clusterInfo().startsWith("cluster_state:ok")) {
+
+      Thread.sleep(7);
     }
   }
 
@@ -244,7 +241,7 @@ public class JedisClusterTest {
 
     try (final IJedis jedis = JedisFactory.startBuilding().create(masters[0])) {
 
-      setUpSlaves(getClusterNodes(jedis.clusterNodes()));
+      setUpSlaves(RCUtils.getClusterNodes(jedis.clusterNodes()));
     }
 
     try (final JedisClusterExecutor jce =
@@ -265,7 +262,7 @@ public class JedisClusterTest {
 
     try (final IJedis jedis = JedisFactory.startBuilding().create(masters[0])) {
 
-      setUpSlaves(getClusterNodes(jedis.clusterNodes()));
+      setUpSlaves(RCUtils.getClusterNodes(jedis.clusterNodes()));
     }
 
     final byte[] key = RESP.toBytes("ro");
@@ -300,23 +297,25 @@ public class JedisClusterTest {
 
         jce.acceptJedis(nextPoolSlot, importing -> {
 
-          exporting.clusterSetSlotMigrating(slot, importing.getClusterNode().getId());
-          importing.clusterSetSlotImporting(slot, exporting.getClusterNode().getId());
+          exporting.clusterSetSlotMigrating(slot, importing.getId());
+          importing.clusterSetSlotImporting(slot, exporting.getId());
 
           try {
             importing.set(key, new byte[0]);
-            fail();
+            fail(
+                "JedisMovedDataException was not thrown after accessing a slot-importing node on first try.");
           } catch (final JedisMovedDataException jme) {
             assertEquals(slot, jme.getSlot());
-            assertEquals(exporting.getClusterNode().getPort(), jme.getTargetNode().getPort());
+            assertEquals(exporting.getPort(), jme.getTargetNode().getPort());
           }
 
           try {
             exporting.set(key, new byte[0]);
-            fail();
+            fail(
+                "JedisAskDataException was not thrown after accessing a slot-migrating node on first try.");
           } catch (final JedisAskDataException jae) {
             assertEquals(slot, jae.getSlot());
-            assertEquals(importing.getClusterNode().getPort(), jae.getTargetNode().getPort());
+            assertEquals(importing.getPort(), jae.getTargetNode().getPort());
           }
         });
       });
@@ -329,18 +328,20 @@ public class JedisClusterTest {
 
           try {
             importing.get(key);
-            fail();
+            fail(
+                "JedisMovedDataException was not thrown after accessing a slot-importing node on first try.");
           } catch (final JedisMovedDataException jme) {
             assertEquals(slot, jme.getSlot());
-            assertEquals(exporting.getClusterNode().getPort(), jme.getTargetNode().getPort());
+            assertEquals(exporting.getPort(), jme.getTargetNode().getPort());
           }
 
           try {
             exporting.get(key);
-            fail();
+            fail(
+                "JedisAskDataException was not thrown after accessing a slot-migrating node on first try.");
           } catch (final JedisAskDataException jae) {
             assertEquals(slot, jae.getSlot());
-            assertEquals(importing.getClusterNode().getPort(), jae.getTargetNode().getPort());
+            assertEquals(importing.getPort(), jae.getTargetNode().getPort());
           }
         });
       });
@@ -351,15 +352,14 @@ public class JedisClusterTest {
 
         jce.acceptJedis(nextPoolSlot, importing -> {
 
-          importing.clusterSetSlotNode(slot, importing.getClusterNode().getId());
-          exporting.clusterSetSlotNode(slot, importing.getClusterNode().getId());
+          importing.clusterSetSlotNode(slot, importing.getId());
+          exporting.clusterSetSlotNode(slot, importing.getId());
 
           assertEquals("val", importing.get(keyString));
         });
       });
     }
   }
-
 
   @Test
   public void testMigrateToNewNode() throws InterruptedException {
@@ -369,35 +369,42 @@ public class JedisClusterTest {
     final int slot = JedisClusterCRC16.getSlot(key);
     final ClusterNode newNode = slaves[0];
 
-    final IJedis client = JedisFactory.startBuilding().create(newNode);
-    client.clusterReset(Reset.HARD);
-    final ClusterNode master = masters[0];
-    client.clusterMeet(master.getHost(), master.getPort());
+    try (final IJedis client = JedisFactory.startBuilding().create(newNode)) {
+
+      client.flushAll();
+      client.clusterReset(Reset.HARD);
+      pendingReset.add(newNode);
+      final ClusterNode master = masters[0];
+      client.clusterMeet(master.getHost(), master.getPort());
+      waitForClusterReady(client);
+    }
 
     try (final JedisClusterExecutor jce =
         JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
       jce.acceptJedis(slot, exporting -> {
 
-        jce.acceptNodeIfPresent(newNode, importing -> {
+        jce.acceptUnknownNode(newNode, importing -> {
 
-          exporting.clusterSetSlotMigrating(slot, importing.getClusterNode().getId());
-          importing.clusterSetSlotImporting(slot, exporting.getClusterNode().getId());
+          exporting.clusterSetSlotMigrating(slot, importing.getId());
+          importing.clusterSetSlotImporting(slot, exporting.getId());
 
           try {
             importing.set(key, new byte[0]);
-            fail();
+            fail(
+                "JedisMovedDataException was not thrown after accessing a slot-importing node on first try.");
           } catch (final JedisMovedDataException jme) {
             assertEquals(slot, jme.getSlot());
-            assertEquals(exporting.getClusterNode().getPort(), jme.getTargetNode().getPort());
+            assertEquals(exporting.getPort(), jme.getTargetNode().getPort());
           }
 
           try {
             exporting.set(key, new byte[0]);
-            fail();
+            fail(
+                "JedisAskDataException was not thrown after accessing a slot-migrating node on first try.");
           } catch (final JedisAskDataException jae) {
             assertEquals(slot, jae.getSlot());
-            assertEquals(importing.getClusterNode().getPort(), jae.getTargetNode().getPort());
+            assertEquals(importing.getPort(), jae.getTargetNode().getPort());
           }
         });
       });
@@ -406,21 +413,23 @@ public class JedisClusterTest {
 
       jce.acceptJedis(slot, exporting -> {
 
-        jce.acceptNodeIfPresent(newNode, importing -> {
+        jce.acceptUnknownNode(newNode, importing -> {
           try {
             importing.get(key);
-            fail();
+            fail(
+                "JedisMovedDataException was not thrown after accessing a slot-importing node on first try.");
           } catch (final JedisMovedDataException jme) {
             assertEquals(slot, jme.getSlot());
-            assertEquals(exporting.getClusterNode().getPort(), jme.getTargetNode().getPort());
+            assertEquals(exporting.getPort(), jme.getTargetNode().getPort());
           }
 
           try {
             exporting.get(key);
-            fail();
+            fail(
+                "JedisAskDataException was not thrown after accessing a slot-migrating node on first try.");
           } catch (final JedisAskDataException jae) {
             assertEquals(slot, jae.getSlot());
-            assertEquals(importing.getClusterNode().getPort(), jae.getTargetNode().getPort());
+            assertEquals(importing.getPort(), jae.getTargetNode().getPort());
           }
         });
       });
@@ -429,13 +438,18 @@ public class JedisClusterTest {
 
       jce.acceptJedis(slot, exporting -> {
 
-        jce.acceptNodeIfPresent(newNode, importing -> {
+        jce.acceptUnknownNode(newNode, importing -> {
 
-          importing.clusterSetSlotNode(slot, importing.getClusterNode().getId());
-          exporting.clusterSetSlotNode(slot, importing.getClusterNode().getId());
+          importing.clusterSetSlotNode(slot, importing.getId());
+          exporting.clusterSetSlotNode(slot, importing.getId());
 
           assertEquals("val", importing.get(keyString));
         });
+      });
+
+      jce.acceptJedis(slot, migrated -> {
+        migrated.get(key);
+        assertEquals(newNode, migrated.getClusterNode());
       });
     }
   }

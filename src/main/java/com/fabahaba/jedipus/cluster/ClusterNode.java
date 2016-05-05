@@ -10,7 +10,7 @@ import redis.clients.jedis.HostAndPort;
 public final class ClusterNode implements HostPort {
 
   private final HostPort hostPort;
-  private final String id;
+  private String id;
 
   private ClusterNode(final HostPort hostPort, final String id) {
 
@@ -77,6 +77,11 @@ public final class ClusterNode implements HostPort {
     return id;
   }
 
+  public String updateId(final String id) {
+
+    return this.id = id;
+  }
+
   @Override
   public boolean equals(final Object other) {
 
@@ -89,7 +94,11 @@ public final class ClusterNode implements HostPort {
     }
 
     final ClusterNode castOther = (ClusterNode) other;
-    return hostPort.equals(castOther.hostPort);
+    if (hostPort.equals(castOther.hostPort)) {
+      return id == null || castOther.id == null || id.equals(castOther.id);
+    }
+
+    return false;
   }
 
   @Override

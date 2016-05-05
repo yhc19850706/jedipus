@@ -29,6 +29,8 @@ public interface IJedis extends JedisClient, JedisCommands, MultiKeyCommands, Ad
 
   public void resetState();
 
+  public String getId();
+
   @Override
   public void close();
 }

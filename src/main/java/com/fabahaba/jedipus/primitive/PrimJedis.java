@@ -8,6 +8,7 @@ import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.JedisPipeline;
 import com.fabahaba.jedipus.JedisTransaction;
 import com.fabahaba.jedipus.cluster.ClusterNode;
+import com.fabahaba.jedipus.cluster.RCUtils;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.util.Pool;
@@ -79,5 +80,22 @@ class PrimJedis extends Jedis implements IJedis {
   public String toString() {
 
     return node.toString();
+  }
+
+  @Override
+  public String getId() {
+
+    String id = node.getId();
+
+    if (id == null) {
+      synchronized (node) {
+        id = node.getId();
+        if (id == null) {
+          return node.updateId(RCUtils.getId(node.getHostPort(), clusterNodes()));
+        }
+      }
+    }
+
+    return id;
   }
 }
