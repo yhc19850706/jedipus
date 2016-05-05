@@ -55,6 +55,7 @@ public class JedisClusterTest extends Assert {
     for (int i = 0; i < NUM_MASTERS; i++, port++) {
       masters[i] = ClusterNode.create(ANNOUNCE_IP, port);
     }
+
     discoveryNodes = Collections.singleton(masters[0]);
 
     for (int i = 0; i < slaves.length; i++, port++) {
@@ -73,19 +74,17 @@ public class JedisClusterTest extends Assert {
   @Before
   public void before() throws InterruptedException {
 
-    int clientIndex = 0;
-    for (final ClusterNode master : masters) {
-
-      final IJedis jedis = JedisFactory.startBuilding().create(master);
-      jedis.connect();
-      masterClients[clientIndex++] = jedis;
-    }
-
-    meet(masterClients[0]);
-
     for (int i = 0; i < NUM_MASTERS; i++) {
 
-      masterClients[i].clusterAddSlots(slots[i]);
+      final IJedis jedis = JedisFactory.startBuilding().create(masters[i]);
+      masterClients[i] = jedis;
+
+      jedis.clusterAddSlots(slots[i]);
+
+      for (final ClusterNode meetNode : slaves) {
+
+        jedis.clusterMeet(meetNode.getHost(), meetNode.getPort());
+      }
     }
 
     waitForClusterReady(masterClients);
@@ -104,29 +103,14 @@ public class JedisClusterTest extends Assert {
     }
   }
 
-  private static void meet(final IJedis jedis) {
-
-    for (int next = 1; next < NUM_MASTERS; next++) {
-
-      final ClusterNode meetNode = masters[next];
-
-      jedis.clusterMeet(meetNode.getHost(), meetNode.getPort());
-    }
-
-    for (final ClusterNode meetNode : slaves) {
-
-      jedis.clusterMeet(meetNode.getHost(), meetNode.getPort());
-    }
-  }
-
   private static Map<HostPort, ClusterNode> getClusterNodes(final String clusterNodes) {
 
-    // 1c02bc94ed7c84d0d13a52079aeef9b259e58ef1 127.0.0.1:7379@17379
     final String[] lines = clusterNodes.split("\\r?\\n");
     final Map<HostPort, ClusterNode> nodes = new HashMap<>(lines.length);
 
     for (final String nodeInfo : lines) {
 
+      // 1c02bc94ed7c84d0d13a52079aeef9b259e58ef1 127.0.0.1:7379@17379
       final String nodeId = nodeInfo.substring(0, 40);
 
       final int startPort = nodeInfo.indexOf(':', 42);
