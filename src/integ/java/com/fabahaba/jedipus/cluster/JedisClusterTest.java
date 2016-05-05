@@ -80,7 +80,7 @@ public class JedisClusterTest {
   }
 
   @Before
-  public void before() throws InterruptedException {
+  public void before() {
 
     final IJedis[] masterClients = new IJedis[NUM_MASTERS];
 
@@ -129,8 +129,7 @@ public class JedisClusterTest {
     }
   }
 
-  static void setUpSlaves(final Map<HostPort, ClusterNode> clusterNodes)
-      throws InterruptedException {
+  static void setUpSlaves(final Map<HostPort, ClusterNode> clusterNodes) {
 
     for (int i = 0; i < NUM_MASTERS; i++) {
 
@@ -152,24 +151,34 @@ public class JedisClusterTest {
 
         while (client.clusterSlaves(master.getId()).size() != NUM_SLAVES_EACH) {
 
-          Thread.sleep(7);
+          try {
+            Thread.sleep(7);
+          } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+          }
         }
       }
     }
   }
 
-  private static void waitForClusterReady(final IJedis[] clients) throws InterruptedException {
+  private static void waitForClusterReady(final IJedis[] clients) {
 
     for (final IJedis client : clients) {
       waitForClusterReady(client);
     }
   }
 
-  private static void waitForClusterReady(final IJedis client) throws InterruptedException {
+  private static void waitForClusterReady(final IJedis client) {
 
     while (!client.clusterInfo().startsWith("cluster_state:ok")) {
 
-      Thread.sleep(7);
+      try {
+        Thread.sleep(7);
+      } catch (final InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException(e);
+      }
     }
   }
 
@@ -237,7 +246,7 @@ public class JedisClusterTest {
   }
 
   @Test
-  public void testDiscoverNodesAutomatically() throws InterruptedException {
+  public void testDiscoverNodesAutomatically() {
 
     try (final IJedis jedis = JedisFactory.startBuilding().create(masters[0])) {
 
@@ -258,7 +267,7 @@ public class JedisClusterTest {
   }
 
   @Test
-  public void testReadonly() throws InterruptedException {
+  public void testReadonly() {
 
     try (final IJedis jedis = JedisFactory.startBuilding().create(masters[0])) {
 
@@ -362,7 +371,7 @@ public class JedisClusterTest {
   }
 
   @Test
-  public void testMigrateToNewNode() throws InterruptedException {
+  public void testMigrateToNewNode() {
 
     final String keyString = "MIGRATE";
     final byte[] key = RESP.toBytes(keyString);
@@ -371,7 +380,6 @@ public class JedisClusterTest {
 
     try (final IJedis client = JedisFactory.startBuilding().create(newNode)) {
 
-      client.flushAll();
       client.clusterReset(Reset.HARD);
       pendingReset.add(newNode);
       final ClusterNode master = masters[0];
@@ -450,6 +458,31 @@ public class JedisClusterTest {
       jce.acceptJedis(slot, migrated -> {
         migrated.get(key);
         assertEquals(newNode, migrated.getClusterNode());
+      });
+    }
+  }
+
+
+  @Test
+  public void testRecalculateSlotsWhenMoved() {
+
+    final byte[] key = RESP.toBytes("51");
+    final int slot = JedisClusterCRC16.getSlot(key);
+    final int nextPoolSlot = rotateSlotNode(slot);
+
+    try (final JedisClusterExecutor jce =
+        JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
+
+      jce.acceptJedis(slot, jedis -> jedis.clusterDelSlots(slot));
+      jce.acceptJedis(nextPoolSlot, jedis -> {
+        jedis.clusterDelSlots(slot);
+        jedis.clusterAddSlots(slot);
+      });
+
+      jce.acceptAllMasters(master -> waitForClusterReady(master));
+      jce.acceptJedis(slot, jedis -> {
+        jedis.set("51", "foo");
+        assertEquals("foo", jedis.get("51"));
       });
     }
   }
