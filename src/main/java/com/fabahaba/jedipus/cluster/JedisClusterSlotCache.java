@@ -305,6 +305,7 @@ class JedisClusterSlotCache implements AutoCloseable {
 
             final ObjectPool<IJedis> masterPool = masterPoolFactory.apply(masterNode);
             masterPools.put(masterNode, masterPool);
+            staleMasterPools.remove(masterNode);
 
             Arrays.fill(masterSlots, slotBegin, slotEnd, masterPool);
             break;

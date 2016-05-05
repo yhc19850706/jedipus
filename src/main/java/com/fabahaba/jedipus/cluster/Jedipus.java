@@ -200,16 +200,17 @@ final class Jedipus implements JedisClusterExecutor {
       JedisPool.returnJedis(pool, jedis);
     }
 
-    for (int redirections = retries == 0 ? 1 : 0;;) {
+    for (int redirections = retries == 0 && askPool == null ? 1 : 0;;) {
 
+      ObjectPool<IJedis> clientPool = null;
       IJedis client = null;
       try {
 
         if (askPool == null) {
 
-          pool = retries > tryRandomAfter ? connHandler.getRandomPool(readMode)
+          clientPool = retries > tryRandomAfter ? connHandler.getRandomPool(readMode)
               : connHandler.getSlotPool(readMode, slot);
-          client = JedisPool.borrowObject(pool);
+          client = JedisPool.borrowObject(clientPool);
 
           final R result = jedisConsumer.apply(client);
           if (clusterNodeRetryDelay != null) {
@@ -244,7 +245,7 @@ final class Jedipus implements JedisClusterExecutor {
         continue;
       } catch (final JedisAskDataException askEx) {
 
-        if (++redirections > maxRedirections) {
+        if (redirections > maxRedirections) {
           throw new JedisClusterMaxRedirectionsException(askEx);
         }
 
@@ -263,7 +264,7 @@ final class Jedipus implements JedisClusterExecutor {
         }
         continue;
       } finally {
-        JedisPool.returnJedis(pool, client);
+        JedisPool.returnJedis(clientPool, client);
       }
     }
   }

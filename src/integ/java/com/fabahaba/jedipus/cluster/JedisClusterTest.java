@@ -462,7 +462,6 @@ public class JedisClusterTest {
     }
   }
 
-
   @Test
   public void testRecalculateSlotsWhenMoved() {
 
@@ -482,6 +481,35 @@ public class JedisClusterTest {
       jce.acceptAllMasters(master -> waitForClusterReady(master));
       jce.acceptJedis(slot, jedis -> {
         jedis.set("51", "foo");
+        assertEquals("foo", jedis.get("51"));
+      });
+    }
+  }
+
+  @Test
+  public void testAskResponse() {
+
+    final byte[] key = RESP.toBytes("51");
+    final int slot = JedisClusterCRC16.getSlot(key);
+    final int nextPoolSlot = rotateSlotNode(slot);
+
+    try (final JedisClusterExecutor jce =
+        JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
+
+      jce.acceptJedis(slot, exporting -> {
+
+        jce.acceptJedis(nextPoolSlot, importing -> {
+
+          importing.clusterSetSlotImporting(slot, exporting.getId());
+          exporting.clusterSetSlotMigrating(slot, importing.getId());
+        });
+      });
+
+      jce.acceptJedis(slot, jedis -> {
+        jedis.set("51", "foo");
+      });
+
+      jce.acceptJedis(slot, jedis -> {
         assertEquals("foo", jedis.get("51"));
       });
     }
