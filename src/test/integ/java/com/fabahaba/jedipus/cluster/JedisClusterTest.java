@@ -7,7 +7,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
 
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -15,11 +14,14 @@ import org.junit.Test;
 
 import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.IJedis;
+import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.primitive.JedisFactory;
 
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.JedisCluster.Reset;
+import redis.clients.jedis.exceptions.JedisAskDataException;
 import redis.clients.jedis.exceptions.JedisMovedDataException;
+import redis.clients.util.JedisClusterCRC16;
 
 public class JedisClusterTest extends Assert {
 
@@ -40,13 +42,11 @@ public class JedisClusterTest extends Assert {
 
   private static final ClusterNode[] masters = new ClusterNode[NUM_MASTERS];
   private static final ClusterNode[] slaves = new ClusterNode[NUM_MASTERS * NUM_SLAVES_EACH];
+  private static final int MAX_SLOT_RANGE =
+      (int) Math.ceil(JedisCluster.HASHSLOTS / (double) NUM_MASTERS);
   private static final int[][] slots = new int[NUM_MASTERS][];
 
-  private static final IJedis[] masterClients = new IJedis[NUM_MASTERS];
-
   private static Set<ClusterNode> discoveryNodes;
-
-  // protected final Logger log = Logger.getLogger(getClass().getName());
 
   @BeforeClass
   public static void beforeClass() {
@@ -62,11 +62,9 @@ public class JedisClusterTest extends Assert {
       slaves[i] = ClusterNode.create(ANNOUNCE_IP, port);
     }
 
-    final int slotIncrement = (int) Math.ceil(JedisCluster.HASHSLOTS / (double) NUM_MASTERS);
+    for (int i = 0, slotOffset = 0; i < NUM_MASTERS; i++, slotOffset += MAX_SLOT_RANGE) {
 
-    for (int i = 0, slotOffset = 0; i < NUM_MASTERS; i++, slotOffset += slotIncrement) {
-
-      final int endSlot = Math.min(slotOffset + slotIncrement, JedisCluster.HASHSLOTS);
+      final int endSlot = Math.min(slotOffset + MAX_SLOT_RANGE, JedisCluster.HASHSLOTS);
       slots[i] = IntStream.range(slotOffset, endSlot).toArray();
     }
   }
@@ -74,10 +72,19 @@ public class JedisClusterTest extends Assert {
   @Before
   public void before() throws InterruptedException {
 
+    final IJedis[] masterClients = new IJedis[NUM_MASTERS];
+
     for (int i = 0; i < NUM_MASTERS; i++) {
 
       final IJedis jedis = JedisFactory.startBuilding().create(masters[i]);
+      jedis.flushAll();
+      jedis.clusterReset(Reset.SOFT);
       masterClients[i] = jedis;
+    }
+
+    for (int i = 0; i < NUM_MASTERS; i++) {
+
+      final IJedis jedis = masterClients[i];
 
       jedis.clusterAddSlots(slots[i]);
 
@@ -89,21 +96,14 @@ public class JedisClusterTest extends Assert {
 
     waitForClusterReady(masterClients);
 
-    setUpSlaves(getClusterNodes(masterClients[0].clusterNodes()));
-  }
-
-  @After
-  public void after() {
-
     for (final IJedis jedis : masterClients) {
 
-      jedis.flushAll();
-      jedis.clusterReset(Reset.SOFT);
       jedis.close();
     }
+    // setUpSlaves(getClusterNodes(masterClients[0].clusterNodes()));
   }
 
-  private static Map<HostPort, ClusterNode> getClusterNodes(final String clusterNodes) {
+  static Map<HostPort, ClusterNode> getClusterNodes(final String clusterNodes) {
 
     final String[] lines = clusterNodes.split("\\r?\\n");
     final Map<HostPort, ClusterNode> nodes = new HashMap<>(lines.length);
@@ -132,7 +132,7 @@ public class JedisClusterTest extends Assert {
     return nodes;
   }
 
-  private static void setUpSlaves(final Map<HostPort, ClusterNode> clusterNodes) {
+  static void setUpSlaves(final Map<HostPort, ClusterNode> clusterNodes) {
 
     for (int i = 0; i < NUM_MASTERS; i++) {
 
@@ -152,35 +152,71 @@ public class JedisClusterTest extends Assert {
 
       while (!client.clusterInfo().startsWith("cluster_state:ok")) {
 
-        Thread.sleep(20);
+        Thread.sleep(7);
       }
     }
   }
 
-  @Test(expected = JedisMovedDataException.class)
-  public void testThrowMovedException() {
+  private static int rotateSlotNode(final int slot) {
 
-    masterClients[0].set("foo", "bar");
+    return (slot + MAX_SLOT_RANGE) % JedisCluster.HASHSLOTS;
   }
 
   @Test
   public void testMovedExceptionParameters() {
 
-    try {
-      masterClients[0].set("foo", "bar");
-    } catch (final JedisMovedDataException jme) {
+    final byte[] key = RESP.toBytes("foo");
+    final int slot = JedisClusterCRC16.getSlot(key);
+    final int invalidSlot = rotateSlotNode(slot);
 
-      assertEquals(12182, jme.getSlot());
+    try (final JedisClusterExecutor jce =
+        JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      try (final JedisClusterExecutor jce =
-          JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
+      jce.acceptJedis(invalidSlot, invalid -> {
 
-        jce.acceptJedis(12182,
-            jedis -> assertEquals(jedis.getPort(), jme.getTargetNode().getPort()));
-      }
-      return;
+        try {
+          invalid.set(key, new byte[0]);
+        } catch (final JedisMovedDataException jme) {
+
+          assertEquals(slot, jme.getSlot());
+
+          jce.acceptJedis(slot,
+              valid -> assertEquals(valid.getPort(), jme.getTargetNode().getPort()));
+          return;
+        }
+
+        fail(String.format(
+            "JedisMovedDataException was not thrown when executing a %d slot key against a %d slot pool.",
+            slot, invalidSlot));
+      });
     }
+  }
 
-    fail();
+  @Test
+  public void testThrowAskException() {
+
+    final byte[] key = RESP.toBytes("test");
+    final int slot = JedisClusterCRC16.getSlot(key);
+    final int nextPoolSlot = rotateSlotNode(slot);
+
+    try (final JedisClusterExecutor jce =
+        JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
+
+      jce.acceptJedis(slot, jedis -> {
+
+        final ClusterNode migrateTo = jce.applyJedis(nextPoolSlot, IJedis::getClusterNode);
+
+        jedis.clusterSetSlotMigrating(slot, migrateTo.getId());
+
+        try {
+          jedis.get(key);
+        } catch (final JedisAskDataException jade) {
+          return;
+        }
+
+        fail(String.format("Slot %d did not migrate from %s to %s.", slot, jedis.getClusterNode(),
+            migrateTo));
+      });
+    }
   }
 }
