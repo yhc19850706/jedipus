@@ -1,7 +1,9 @@
 package com.fabahaba.jedipus.cluster;
 
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -14,9 +16,9 @@ import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.JedisTransaction;
@@ -25,7 +27,7 @@ import com.fabahaba.jedipus.primitive.JedisFactory;
 import redis.clients.jedis.exceptions.JedisDataException;
 import redis.clients.jedis.exceptions.JedisException;
 
-public class JedisPoolTest extends Assert {
+public class JedisPoolTest {
 
   private static final int REDIS_PORT = Optional
       .ofNullable(System.getProperty("jedipus.redis.port")).map(Integer::parseInt).orElse(9736);
@@ -37,7 +39,7 @@ public class JedisPoolTest extends Assert {
   private GenericObjectPool<IJedis> pool;
 
   @Before
-  public void before() throws Exception {
+  public void before() {
 
     defaultJedisFactory = JedisFactory.startBuilding().withAuth("42").createPooled(defaultNode);
     config = new GenericObjectPoolConfig();
@@ -45,7 +47,7 @@ public class JedisPoolTest extends Assert {
   }
 
   @After
-  public void after() throws Exception {}
+  public void after() {}
 
   @Test
   public void checkCloseableConnections() {
@@ -170,8 +172,8 @@ public class JedisPoolTest extends Assert {
     @Override
     public IJedis create() throws Exception {
 
-      final IJedis crashingJedis = mock(IJedis.class);
-      doThrow(new JedisException("crashed")).when(crashingJedis).resetState();
+      final IJedis crashingJedis = Mockito.mock(IJedis.class);
+      Mockito.doThrow(new JedisException("crashed")).when(crashingJedis).resetState();
       return crashingJedis;
     }
 
@@ -182,7 +184,7 @@ public class JedisPoolTest extends Assert {
     }
   }
 
-  @Test(expected = JedisException.class)
+  @Test
   public void returnResourceDestroysResourceOnException() {
 
     final AtomicInteger destroyed = new AtomicInteger(0);
@@ -194,9 +196,9 @@ public class JedisPoolTest extends Assert {
 
     try {
       JedisPool.returnJedis(pool, jedis);
+      fail("Failed to throw JedisException when reseting Jedis state on return to pool.");
     } catch (final RuntimeException re) {
       assertEquals(destroyed.get(), 1);
-      throw re;
     }
   }
 

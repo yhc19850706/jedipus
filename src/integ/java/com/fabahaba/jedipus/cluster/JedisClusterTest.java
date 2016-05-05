@@ -1,5 +1,8 @@
 package com.fabahaba.jedipus.cluster;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -7,7 +10,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -24,7 +26,7 @@ import redis.clients.jedis.exceptions.JedisAskDataException;
 import redis.clients.jedis.exceptions.JedisMovedDataException;
 import redis.clients.util.JedisClusterCRC16;
 
-public class JedisClusterTest extends Assert {
+public class JedisClusterTest {
 
   private static final String ANNOUNCE_IP = Optional
       .ofNullable(System.getProperty("jedipus.redis.cluster.announceip")).orElse("127.0.0.1");
@@ -348,6 +350,86 @@ public class JedisClusterTest extends Assert {
       jce.acceptJedis(slot, exporting -> {
 
         jce.acceptJedis(nextPoolSlot, importing -> {
+
+          importing.clusterSetSlotNode(slot, importing.getClusterNode().getId());
+          exporting.clusterSetSlotNode(slot, importing.getClusterNode().getId());
+
+          assertEquals("val", importing.get(keyString));
+        });
+      });
+    }
+  }
+
+
+  @Test
+  public void testMigrateToNewNode() throws InterruptedException {
+
+    final String keyString = "MIGRATE";
+    final byte[] key = RESP.toBytes(keyString);
+    final int slot = JedisClusterCRC16.getSlot(key);
+    final ClusterNode newNode = slaves[0];
+
+    final IJedis client = JedisFactory.startBuilding().create(newNode);
+    client.clusterReset(Reset.HARD);
+    final ClusterNode master = masters[0];
+    client.clusterMeet(master.getHost(), master.getPort());
+
+    try (final JedisClusterExecutor jce =
+        JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
+
+      jce.acceptJedis(slot, exporting -> {
+
+        jce.acceptNodeIfPresent(newNode, importing -> {
+
+          exporting.clusterSetSlotMigrating(slot, importing.getClusterNode().getId());
+          importing.clusterSetSlotImporting(slot, exporting.getClusterNode().getId());
+
+          try {
+            importing.set(key, new byte[0]);
+            fail();
+          } catch (final JedisMovedDataException jme) {
+            assertEquals(slot, jme.getSlot());
+            assertEquals(exporting.getClusterNode().getPort(), jme.getTargetNode().getPort());
+          }
+
+          try {
+            exporting.set(key, new byte[0]);
+            fail();
+          } catch (final JedisAskDataException jae) {
+            assertEquals(slot, jae.getSlot());
+            assertEquals(importing.getClusterNode().getPort(), jae.getTargetNode().getPort());
+          }
+        });
+      });
+
+      jce.acceptJedis(slot, jedis -> jedis.set(keyString, "val"));
+
+      jce.acceptJedis(slot, exporting -> {
+
+        jce.acceptNodeIfPresent(newNode, importing -> {
+          try {
+            importing.get(key);
+            fail();
+          } catch (final JedisMovedDataException jme) {
+            assertEquals(slot, jme.getSlot());
+            assertEquals(exporting.getClusterNode().getPort(), jme.getTargetNode().getPort());
+          }
+
+          try {
+            exporting.get(key);
+            fail();
+          } catch (final JedisAskDataException jae) {
+            assertEquals(slot, jae.getSlot());
+            assertEquals(importing.getClusterNode().getPort(), jae.getTargetNode().getPort());
+          }
+        });
+      });
+
+      assertEquals("val", jce.applyJedis(slot, jedis -> jedis.get(keyString)));
+
+      jce.acceptJedis(slot, exporting -> {
+
+        jce.acceptNodeIfPresent(newNode, importing -> {
 
           importing.clusterSetSlotNode(slot, importing.getClusterNode().getId());
           exporting.clusterSetSlotNode(slot, importing.getClusterNode().getId());

@@ -31,7 +31,6 @@ repositories {
 }
 
 dependencies {
-
    compile 'org.apache.commons:commons-pool2:+'
    compile 'redis.clients:jedis:+'
 
@@ -42,12 +41,12 @@ dependencies {
 sourceSets {
    test {
       java {
-         srcDir 'src/test/unit/java'
-         srcDir 'src/test/integ/java'
+         srcDir 'src/unit/java'
+         srcDir 'src/integ/java'
       }
       resources {
-         srcDir 'src/test/unit/resources'
-         srcDir 'src/test/integ/resources'
+         srcDir 'src/unit/resources'
+         srcDir 'src/integ/resources'
       }
    }
 }
