@@ -7,25 +7,17 @@ import com.fabahaba.jedipus.RESP;
 
 import redis.clients.jedis.HostAndPort;
 
-public final class ClusterNode implements HostPort {
+public interface ClusterNode extends HostPort {
 
-  private final HostPort hostPort;
-  private String id;
-
-  private ClusterNode(final HostPort hostPort, final String id) {
-
-    this.hostPort = hostPort;
-    this.id = id;
-  }
 
   public static ClusterNode create(final HostPort hostPort) {
 
-    return new ClusterNode(hostPort, null);
+    return new ClusterNodeImpl(hostPort, null);
   }
 
   public static ClusterNode create(final HostPort hostPort, final String nodeId) {
 
-    return new ClusterNode(hostPort, nodeId);
+    return new ClusterNodeImpl(hostPort, nodeId);
   }
 
   public static ClusterNode create(final HostAndPort hostAndPort) {
@@ -49,67 +41,27 @@ public final class ClusterNode implements HostPort {
         HostPort.create(RESP.toString(hostInfos.get(0)), RESP.longToInt(hostInfos.get(1)));
 
     if (hostInfos.size() > 2) {
-      return new ClusterNode(hostPort, RESP.toString(hostInfos.get(2)));
+      return new ClusterNodeImpl(hostPort, RESP.toString(hostInfos.get(2)));
     }
 
     return ClusterNode.create(hostPort);
   }
 
-  public HostPort getHostPort() {
+  public HostPort getHostPort();
 
-    return hostPort;
+  @Override
+  default String getHost() {
+
+    return getHostPort().getHost();
   }
 
   @Override
-  public String getHost() {
+  default int getPort() {
 
-    return hostPort.getHost();
+    return getHostPort().getPort();
   }
 
-  @Override
-  public int getPort() {
+  public String getId();
 
-    return hostPort.getPort();
-  }
-
-  public String getId() {
-
-    return id;
-  }
-
-  public String updateId(final String id) {
-
-    return this.id = id;
-  }
-
-  @Override
-  public boolean equals(final Object other) {
-
-    if (this == other) {
-      return true;
-    }
-
-    if (other == null || !getClass().equals(other.getClass())) {
-      return false;
-    }
-
-    final ClusterNode castOther = (ClusterNode) other;
-    if (hostPort.equals(castOther.hostPort)) {
-      return id == null || castOther.id == null || id.equals(castOther.id);
-    }
-
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-
-    return hostPort.hashCode();
-  }
-
-  @Override
-  public String toString() {
-
-    return id == null ? hostPort.toString() : id + "@" + hostPort;
-  }
+  public String updateId(final String id);
 }
