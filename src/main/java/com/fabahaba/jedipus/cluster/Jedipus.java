@@ -202,17 +202,18 @@ final class Jedipus implements JedisClusterExecutor {
 
     for (int redirections = retries == 0 ? 1 : 0;;) {
 
+      IJedis client = null;
       try {
 
         if (askPool == null) {
 
           pool = retries > tryRandomAfter ? connHandler.getRandomPool(readMode)
               : connHandler.getSlotPool(readMode, slot);
-          jedis = JedisPool.borrowObject(pool);
+          client = JedisPool.borrowObject(pool);
 
-          final R result = jedisConsumer.apply(jedis);
+          final R result = jedisConsumer.apply(client);
           if (clusterNodeRetryDelay != null) {
-            clusterNodeRetryDelay.markSuccess(jedis.getClusterNode());
+            clusterNodeRetryDelay.markSuccess(client.getClusterNode());
           }
 
           return result;
@@ -237,8 +238,8 @@ final class Jedipus implements JedisClusterExecutor {
           throw jce;
         }
 
-        if (clusterNodeRetryDelay != null && jedis != null) {
-          clusterNodeRetryDelay.markFailure(jedis.getClusterNode());
+        if (clusterNodeRetryDelay != null && client != null) {
+          clusterNodeRetryDelay.markFailure(client.getClusterNode());
         }
         continue;
       } catch (final JedisAskDataException askEx) {
@@ -255,14 +256,14 @@ final class Jedipus implements JedisClusterExecutor {
           throw new JedisClusterMaxRedirectionsException(moveEx);
         }
 
-        if (jedis == null) {
+        if (client == null) {
           connHandler.renewSlotCache(readMode);
         } else {
-          connHandler.renewSlotCache(readMode, jedis);
+          connHandler.renewSlotCache(readMode, client);
         }
         continue;
       } finally {
-        JedisPool.returnJedis(pool, jedis);
+        JedisPool.returnJedis(pool, client);
       }
     }
   }

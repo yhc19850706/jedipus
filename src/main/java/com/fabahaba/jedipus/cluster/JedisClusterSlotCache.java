@@ -467,7 +467,7 @@ class JedisClusterSlotCache implements AutoCloseable {
       case SLAVES:
         lbSlaves = slaveSlots[slot];
         if (lbSlaves == null) {
-          return masterSlots[slot];
+          return masterSlots.length == 0 ? null : masterSlots[slot];
         }
 
         return lbSlaves.next(readMode);
