@@ -6,12 +6,19 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
@@ -661,7 +668,8 @@ public class JedisClusterTest {
     jce.acceptAll(jedis -> fail("All pools should have been closed."));
 
     try {
-      jce.acceptJedis(jedis -> fail("All pools should have been closed."));
+      jce.acceptJedis(jedis -> jedis.ping());
+      fail("All pools should have been closed.");
     } catch (final JedisConnectionException jcex) {
       // expected
     }
@@ -681,6 +689,50 @@ public class JedisClusterTest {
         assertEquals(1234, jedis.getConnectionTimeout());
         assertEquals(4321, jedis.getSoTimeout());
       });
+    }
+  }
+
+  @Test
+  public void testJedisClusterRunsWithMultithreaded()
+      throws InterruptedException, ExecutionException {
+
+    final int numCpus = Runtime.getRuntime().availableProcessors();
+
+    final GenericObjectPoolConfig config = new GenericObjectPoolConfig();
+    config.setMaxTotal(numCpus * 2);
+    config.setMaxWaitMillis(0);
+
+    final int numThreads = numCpus * 4;
+    final ThreadPoolExecutor executor = new ThreadPoolExecutor(numThreads, numThreads,
+        Long.MAX_VALUE, TimeUnit.NANOSECONDS, new SynchronousQueue<>(), (task, exec) -> task.run());
+
+    final String keyString = "42";
+    final byte[] key = RESP.toBytes(keyString);
+    final int slot = JedisClusterCRC16.getSlot(key);
+
+    try (final JedisClusterExecutor jce =
+        JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
+
+      final int numSets = 200;
+      final List<Future<String>> futures = new ArrayList<>(numSets);
+      for (int i = 0; i < numSets; i++) {
+
+        final byte[] val = RESP.toBytes(i);
+
+        final Future<String> future = executor.submit(() -> jce.applyPipeline(slot, pipeline -> {
+          pipeline.set(key, val);
+          final Response<byte[]> response = pipeline.get(key);
+          pipeline.sync();
+          return RESP.toString(response.get());
+        }));
+
+        futures.add(future);
+      }
+
+      int count = 0;
+      for (final Future<String> future : futures) {
+        assertEquals(String.valueOf(count++), future.get());
+      }
     }
   }
 }
