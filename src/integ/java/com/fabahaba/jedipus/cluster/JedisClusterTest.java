@@ -1,7 +1,7 @@
 package com.fabahaba.jedipus.cluster;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -28,6 +28,7 @@ import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.JedisCluster.Reset;
 import redis.clients.jedis.Response;
 import redis.clients.jedis.exceptions.JedisAskDataException;
+import redis.clients.jedis.exceptions.JedisClusterException;
 import redis.clients.jedis.exceptions.JedisClusterMaxRedirectionsException;
 import redis.clients.jedis.exceptions.JedisMovedDataException;
 import redis.clients.util.JedisClusterCRC16;
@@ -75,7 +76,6 @@ public class JedisClusterTest {
     }
 
     for (int i = 0, slotOffset = 0; i < NUM_MASTERS; i++, slotOffset += MAX_SLOT_RANGE) {
-
       final int endSlot = Math.min(slotOffset + MAX_SLOT_RANGE, JedisCluster.HASHSLOTS);
       slots[i] = IntStream.range(slotOffset, endSlot).toArray();
     }
@@ -89,7 +89,6 @@ public class JedisClusterTest {
     final IJedis[] masterClients = new IJedis[NUM_MASTERS];
 
     for (int i = 0; i < NUM_MASTERS; i++) {
-
       final IJedis jedis = JedisFactory.startBuilding().create(masters[i]);
       jedis.flushAll();
       jedis.clusterReset(Reset.SOFT);
@@ -97,13 +96,10 @@ public class JedisClusterTest {
     }
 
     for (int i = 0; i < NUM_MASTERS; i++) {
-
       final IJedis jedis = masterClients[i];
-
       jedis.clusterAddSlots(slots[i]);
 
       for (final ClusterNode meetNode : slaves) {
-
         jedis.clusterMeet(meetNode.getHost(), meetNode.getPort());
       }
     }
@@ -111,7 +107,6 @@ public class JedisClusterTest {
     waitForClusterReady(masterClients);
 
     for (final IJedis jedis : masterClients) {
-
       jedis.close();
     }
   }
@@ -126,7 +121,6 @@ public class JedisClusterTest {
       }
 
       try (final IJedis jedis = JedisFactory.startBuilding().create(node)) {
-
         jedis.flushAll();
         jedis.clusterReset(Reset.SOFT);
       }
@@ -140,7 +134,6 @@ public class JedisClusterTest {
       final ClusterNode master = clusterNodes.get(masters[i].getHostPort());
 
       for (int s = i; s < slaves.length; s += NUM_MASTERS) {
-
         try (final IJedis slave = JedisFactory.startBuilding().create(slaves[s])) {
           slave.clusterReplicate(master.getId());
         }
@@ -154,7 +147,6 @@ public class JedisClusterTest {
         final ClusterNode master = clusterNodes.get(masters[i].getHostPort());
 
         while (client.clusterSlaves(master.getId()).size() != NUM_SLAVES_EACH) {
-
           try {
             Thread.sleep(7);
           } catch (final InterruptedException e) {
@@ -176,7 +168,6 @@ public class JedisClusterTest {
   private static void waitForClusterReady(final IJedis client) {
 
     while (!client.clusterInfo().startsWith("cluster_state:ok")) {
-
       try {
         Thread.sleep(7);
       } catch (final InterruptedException e) {
@@ -487,8 +478,8 @@ public class JedisClusterTest {
       jce.acceptAllMasters(master -> waitForClusterReady(master));
 
       jce.acceptPipeline(slot, jedis -> {
-        jedis.sadd("42", "foo");
-        final Response<Long> foo = jedis.scard("42");
+        jedis.sadd(key, new byte[0]);
+        final Response<Long> foo = jedis.scard(key);
         jedis.sync();
         assertEquals(1L, foo.get().longValue());
       });
@@ -556,18 +547,35 @@ public class JedisClusterTest {
 
         jce.acceptAll(node -> assertTrue(node.clusterNodes().contains(client.getId())));
         jce.acceptAll(node -> node.clusterForget(client.getId()));
-        jce.acceptAll(node -> assertTrue(!node.clusterNodes().contains(client.getId())));
+        jce.acceptAll(node -> assertFalse(node.clusterNodes().contains(client.getId())));
       }
     }
   }
 
   @Test
-  public void testRedisHashtag() {
+  public void testClusterFlushSlots() {
 
-    assertEquals(JedisClusterCRC16.getSlot("{bar"), JedisClusterCRC16.getSlot("foo{{bar}}zap"));
-    assertEquals(JedisClusterCRC16.getSlot("{user1000}.following"),
-        JedisClusterCRC16.getSlot("{user1000}.followers"));
-    assertNotEquals(JedisClusterCRC16.getSlot("foo{}{bar}"), JedisClusterCRC16.getSlot("bar"));
-    assertEquals(JedisClusterCRC16.getSlot("foo{bar}{zap}"), JedisClusterCRC16.getSlot("bar"));
+    final byte[] key = RESP.toBytes("42");
+    final int slot = JedisClusterCRC16.getSlot(key);
+
+    try (final JedisClusterExecutor jce =
+        JedisClusterExecutor.startBuilding(discoveryNodes).withReadMode(ReadMode.MIXED).create()) {
+
+      final ClusterNode node = jce.applyJedis(ReadMode.MASTER, slot, jedis -> {
+        jedis.clusterFlushSlots();
+        return jedis.getClusterNode();
+      });
+
+      try {
+        jce.acceptJedis(ReadMode.MASTER, slot, jedis -> jedis.set(key, new byte[0]));
+      } catch (final JedisClusterException jcex) {
+        assertTrue(jcex.getMessage().startsWith("CLUSTERDOWN"));
+      }
+
+      jce.acceptNodeIfPresent(node, jedis -> jedis
+          .clusterAddSlots(slots[(int) ((slot / (double) JedisCluster.HASHSLOTS) * slots.length)]));
+
+      jce.acceptJedis(ReadMode.MASTER, slot, jedis -> jedis.set(key, new byte[0]));
+    }
   }
 }
