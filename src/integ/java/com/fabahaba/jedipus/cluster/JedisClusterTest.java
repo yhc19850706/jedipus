@@ -700,7 +700,9 @@ public class JedisClusterTest {
 
     final GenericObjectPoolConfig config = new GenericObjectPoolConfig();
     config.setMaxTotal(numCpus * 2);
-    config.setMaxWaitMillis(0);
+
+    final Function<ClusterNode, ObjectPool<IJedis>> poolFactory =
+        node -> new GenericObjectPool<>(JedisFactory.startBuilding().createPooled(node), config);
 
     final int numThreads = numCpus * 4;
     final ThreadPoolExecutor executor = new ThreadPoolExecutor(numThreads, numThreads,
@@ -710,8 +712,8 @@ public class JedisClusterTest {
     final byte[] key = RESP.toBytes(keyString);
     final int slot = JedisClusterCRC16.getSlot(key);
 
-    try (final JedisClusterExecutor jce =
-        JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
+    try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes)
+        .withMasterPoolFactory(poolFactory).create()) {
 
       final int numSets = 200;
       final List<Future<String>> futures = new ArrayList<>(numSets);
@@ -733,6 +735,47 @@ public class JedisClusterTest {
       for (final Future<String> future : futures) {
         assertEquals(String.valueOf(count++), future.get());
       }
+    }
+  }
+
+  @Test(timeout = 200)
+  public void testReturnConnectionOnJedisConnectionException() throws InterruptedException {
+
+    final String keyString = "42";
+    final byte[] key = RESP.toBytes(keyString);
+    final int slot = JedisClusterCRC16.getSlot(key);
+
+    final GenericObjectPoolConfig config = new GenericObjectPoolConfig();
+    config.setMaxTotal(1);
+    config.setMaxWaitMillis(0);
+
+    final Function<ClusterNode, ObjectPool<IJedis>> poolFactory = node -> new GenericObjectPool<>(
+        JedisFactory.startBuilding().withConnTimeout(100).withSoTimeout(100).createPooled(node),
+        config);
+
+    try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes)
+        .withMasterPoolFactory(poolFactory).create()) {
+
+      jce.acceptJedis(slot, jedis -> {
+
+        jedis.clientSetname("DEAD");
+
+        for (final String clientInfo : jedis.clientList().split("\n")) {
+
+          final int nameStart = clientInfo.indexOf("name=") + 5;
+          if (clientInfo.substring(nameStart, nameStart + 4).equals("DEAD")) {
+
+            final int addrStart = clientInfo.indexOf("addr=") + 5;
+            final int addrEnd = clientInfo.indexOf(' ', addrStart);
+            jedis.clientKill(clientInfo.substring(addrStart, addrEnd));
+            break;
+          }
+        }
+
+        jedis.close();
+      });
+
+      assertEquals("PONG", jce.applyJedis(slot, IJedis::ping));
     }
   }
 }

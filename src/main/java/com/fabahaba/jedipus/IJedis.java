@@ -33,4 +33,10 @@ public interface IJedis extends JedisClient, JedisCommands, MultiKeyCommands, Ad
 
   @Override
   public void close();
+
+  public String clientKill(final String client);
+
+  public String clientKill(final byte[] client);
+
+  public String clientList();
 }
