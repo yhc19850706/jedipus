@@ -60,7 +60,6 @@ model {
          api {
             dependencies {
                module 'org.apache.commons:commons-pool2:+'
-               module 'redis.clients:jedis:+'
             }
          }
       }
@@ -74,7 +73,7 @@ model {
          dependencies {
             module 'org.mockito:mockito-core:+'
          }
-         
+
          /*test {
             systemProperty 'jedipus.redis.port', project.redisServerPort
 

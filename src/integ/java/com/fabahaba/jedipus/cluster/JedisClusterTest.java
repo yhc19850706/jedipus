@@ -2,6 +2,7 @@ package com.fabahaba.jedipus.cluster;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayDeque;
@@ -551,28 +552,12 @@ public class JedisClusterTest {
     try (final JedisClusterExecutor jce =
         JedisClusterExecutor.startBuilding(discoveryNodes).withReadMode(ReadMode.MIXED).create()) {
 
-      final int numNodes = jce.applyJedis(node -> node.clusterNodes().split("\n").length);
+      try (final IJedis client = JedisFactory.startBuilding().create(slaves[0])) {
 
-      final ClusterNode newNode = slaves[0];
-      final String[] newNodeId = new String[1];
-
-      try (final IJedis client = JedisFactory.startBuilding().create(newNode)) {
-
-        client.clusterReset(Reset.HARD);
-        pendingReset.add(newNode);
-        final ClusterNode master = masters[0];
-        client.clusterMeet(master.getHost(), master.getPort());
-        newNodeId[0] = client.getId();
-        waitForClusterReady(client);
+        jce.acceptAll(node -> assertTrue(node.clusterNodes().contains(client.getId())));
+        jce.acceptAll(node -> node.clusterForget(client.getId()));
+        jce.acceptAll(node -> assertTrue(!node.clusterNodes().contains(client.getId())));
       }
-
-      jce.acceptAll(node -> {
-
-        assertEquals(numNodes + 1, node.clusterNodes().split("\n").length);
-        node.clusterForget(newNodeId[0]);
-      });
-
-      jce.acceptAll(node -> assertEquals(numNodes, node.clusterNodes().split("\n").length));
     }
   }
 
