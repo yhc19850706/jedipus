@@ -495,7 +495,7 @@ public class JedisClusterTest {
   @Test
   public void testAskResponse() {
 
-    final byte[] key = RESP.toBytes("42");
+    final String key = "42";
     final int slot = JedisClusterCRC16.getSlot(key);
     final int nextPoolSlot = rotateSlotNode(slot);
 
@@ -512,14 +512,25 @@ public class JedisClusterTest {
       });
 
       jce.acceptPipeline(slot, jedis -> {
-        jedis.sadd("42", "foo");
+        jedis.sadd(key, "foo");
         // Forced asking pending feedback on the following:
         // https://github.com/antirez/redis/issues/3203
         jedis.asking();
-        final Response<Long> foo = jedis.scard("42");
+        final Response<Long> foo = jedis.scard(key);
         jedis.sync();
         assertEquals(1L, foo.get().longValue());
       });
     }
   }
+
+  // @Test(expected = JedisClusterMaxRedirectionsException.class)
+  // public void testRedisClusterMaxRedirections() {
+  // Set<HostAndPort> jedisClusterNode = new HashSet<HostAndPort>();
+  // jedisClusterNode.add(new HostAndPort("127.0.0.1", 7379));
+  // JedisCluster jc = new JedisCluster(jedisClusterNode);
+  // int slot51 = JedisClusterCRC16.getSlot("51");
+  // // This will cause an infinite redirection loop
+  // node2.clusterSetSlotMigrating(slot51, JedisClusterTestUtil.getNodeId(node3.clusterNodes()));
+  // jc.set("51", "foo");
+  // }
 }
