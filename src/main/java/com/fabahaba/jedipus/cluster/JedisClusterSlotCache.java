@@ -732,6 +732,7 @@ class JedisClusterSlotCache implements AutoCloseable {
       });
 
       masterPools.clear();
+      Arrays.fill(masterSlots, null);
 
       slavePools.forEach((key, pool) -> {
         try {
@@ -744,6 +745,7 @@ class JedisClusterSlotCache implements AutoCloseable {
       });
 
       slavePools.clear();
+      Arrays.fill(slaveSlots, null);
     } finally {
       if (writeStamp > 0) {
         lock.unlockWrite(writeStamp);

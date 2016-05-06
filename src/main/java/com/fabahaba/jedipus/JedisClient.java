@@ -4,6 +4,10 @@ import com.fabahaba.jedipus.cluster.ClusterNode;
 
 public interface JedisClient extends AutoCloseable {
 
+  public int getConnectionTimeout();
+
+  public int getSoTimeout();
+
   public boolean isConnected();
 
   public boolean isBroken();

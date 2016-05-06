@@ -187,18 +187,18 @@ public class JedisFactory extends BasePooledObjectFactory<IJedis> {
 
       if (numInits == 0) {
 
-        return new JedisFactory(node, connTimeout, connTimeout, pass, clientName, initReadOnly, ssl,
+        return new JedisFactory(node, connTimeout, soTimeout, pass, clientName, initReadOnly, ssl,
             sslSocketFactory, sslParameters, hostnameVerifier);
       }
 
       if (numInits == 1) {
 
-        return new SingleInitFactory(node, connTimeout, connTimeout, pass, clientName, initReadOnly,
+        return new SingleInitFactory(node, connTimeout, soTimeout, pass, clientName, initReadOnly,
             ssl, sslSocketFactory, sslParameters, hostnameVerifier);
       }
 
-      return new PipelinedInitFactory(node, connTimeout, connTimeout, pass, clientName,
-          initReadOnly, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
+      return new PipelinedInitFactory(node, connTimeout, soTimeout, pass, clientName, initReadOnly,
+          ssl, sslSocketFactory, sslParameters, hostnameVerifier);
     }
 
     public IJedis create(final ClusterNode node) {

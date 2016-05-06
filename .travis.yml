@@ -44,6 +44,6 @@ cache:
 
 install: /bin/true
 
-script: if [ "$TRAVIS_PULL_REQUEST" == "true" ] && [ "$TRAVIS_BRANCH" == "master" ]; then gradle check; elif [[ "$TRAVIS_BRANCH" == jedipus* ]]; then gradle check; fi
+script: gradle check
 
 after_success: if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ ! -z "$TRAVIS_TAG" ] ; then gradle bintrayUpload; fi

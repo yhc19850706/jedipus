@@ -8,11 +8,16 @@ import static org.junit.Assert.fail;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.IntStream;
 
+import org.apache.commons.pool2.ObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -30,6 +35,7 @@ import redis.clients.jedis.Response;
 import redis.clients.jedis.exceptions.JedisAskDataException;
 import redis.clients.jedis.exceptions.JedisClusterException;
 import redis.clients.jedis.exceptions.JedisClusterMaxRedirectionsException;
+import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisMovedDataException;
 import redis.clients.util.JedisClusterCRC16;
 
@@ -450,13 +456,13 @@ public class JedisClusterTest {
 
     final byte[] key = RESP.toBytes("42");
     final int slot = JedisClusterCRC16.getSlot(key);
-    final int nextPoolSlot = rotateSlotNode(slot);
+    final int addingNodeSlot = rotateSlotNode(slot);
 
     try (final JedisClusterExecutor jce =
         JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
       jce.acceptJedis(slot, jedis -> jedis.clusterDelSlots(slot));
-      jce.acceptPipeline(nextPoolSlot, jedis -> {
+      jce.acceptPipeline(addingNodeSlot, jedis -> {
         jedis.clusterDelSlots(slot);
         final Response<String> addSlots = jedis.clusterAddSlots(slot);
         jedis.sync();
@@ -479,13 +485,13 @@ public class JedisClusterTest {
 
     final String key = "42";
     final int slot = JedisClusterCRC16.getSlot(key);
-    final int nextPoolSlot = rotateSlotNode(slot);
+    final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final JedisClusterExecutor jce =
         JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
       final String exporting = jce.applyJedis(slot, IJedis::getId);
-      final String importing = jce.applyJedis(nextPoolSlot, jedis -> {
+      final String importing = jce.applyJedis(importingNodeSlot, jedis -> {
         jedis.clusterSetSlotImporting(slot, exporting);
         return jedis.getId();
       });
@@ -509,12 +515,12 @@ public class JedisClusterTest {
 
     final byte[] key = RESP.toBytes("42");
     final int slot = JedisClusterCRC16.getSlot(key);
-    final int nextPoolSlot = rotateSlotNode(slot);
+    final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final JedisClusterExecutor jce =
         JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      final String importing = jce.applyJedis(nextPoolSlot, IJedis::getId);
+      final String importing = jce.applyJedis(importingNodeSlot, IJedis::getId);
       jce.acceptJedis(slot, exporting -> exporting.clusterSetSlotMigrating(slot, importing));
       jce.acceptJedis(slot, jedis -> jedis.set(key, new byte[0]));
     }
@@ -598,7 +604,7 @@ public class JedisClusterTest {
     final String keyString = "42";
     final byte[] key = RESP.toBytes(keyString);
     final int slot = JedisClusterCRC16.getSlot(key);
-    final int nextPoolSlot = rotateSlotNode(slot);
+    final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final JedisClusterExecutor jce =
         JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
@@ -608,19 +614,73 @@ public class JedisClusterTest {
         return jedis.getId();
       });
 
-      final String importing = jce.applyJedis(nextPoolSlot, jedis -> {
+      final String importing = jce.applyJedis(importingNodeSlot, jedis -> {
         jedis.clusterSetSlotImporting(slot, exporting);
         return jedis.getId();
       });
 
       assertEquals("107.6", jce.applyJedis(slot, jedis -> jedis.get(keyString)));
-      jce.acceptJedis(nextPoolSlot, jedis -> jedis.clusterSetSlotStable(slot));
+      jce.acceptJedis(importingNodeSlot, jedis -> jedis.clusterSetSlotStable(slot));
       assertEquals("107.6", jce.applyJedis(slot, jedis -> jedis.get(keyString)));
 
       jce.acceptJedis(slot, jedis -> jedis.clusterSetSlotMigrating(slot, importing));
       assertEquals("107.6", jce.applyJedis(slot, jedis -> jedis.get(keyString)));
       jce.acceptJedis(slot, jedis -> jedis.clusterSetSlotStable(slot));
       assertEquals("107.6", jce.applyJedis(slot, jedis -> jedis.get(keyString)));
+    }
+  }
+
+  @Test(expected = NoSuchElementException.class)
+  public void testIfPoolConfigAppliesToClusterPools() {
+
+    final GenericObjectPoolConfig config = new GenericObjectPoolConfig();
+    config.setMaxTotal(0);
+    config.setMaxWaitMillis(0);
+
+    final Function<ClusterNode, ObjectPool<IJedis>> poolFactory =
+        node -> new GenericObjectPool<>(JedisFactory.startBuilding().createPooled(node), config);
+
+    try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes)
+        .withMasterPoolFactory(poolFactory).create()) {
+
+      jce.acceptJedis(jedis -> jedis.set("42", ""));
+    }
+  }
+
+
+  @Test
+  public void testCloseable() {
+
+    final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes).create();
+    try {
+      jce.acceptAll(jedis -> assertEquals("PONG", jedis.ping()));
+    } finally {
+      jce.close();
+    }
+
+    jce.acceptAll(jedis -> fail("All pools should have been closed."));
+
+    try {
+      jce.acceptJedis(jedis -> fail("All pools should have been closed."));
+    } catch (final JedisConnectionException jcex) {
+      // expected
+    }
+  }
+
+  @Test
+  public void testJedisClusterTimeout() {
+
+    final Function<ClusterNode, ObjectPool<IJedis>> poolFactory = node -> new GenericObjectPool<>(
+        JedisFactory.startBuilding().withConnTimeout(1234).withSoTimeout(4321).createPooled(node),
+        new GenericObjectPoolConfig());
+
+    try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes)
+        .withMasterPoolFactory(poolFactory).create()) {
+
+      jce.acceptJedis(jedis -> {
+        assertEquals(1234, jedis.getConnectionTimeout());
+        assertEquals(4321, jedis.getSoTimeout());
+      });
     }
   }
 }

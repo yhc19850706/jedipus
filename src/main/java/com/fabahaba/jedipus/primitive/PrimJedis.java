@@ -32,6 +32,18 @@ class PrimJedis extends Jedis implements IJedis {
   }
 
   @Override
+  public int getConnectionTimeout() {
+
+    return client.getConnectionTimeout();
+  }
+
+  @Override
+  public int getSoTimeout() {
+
+    return client.getSoTimeout();
+  }
+
+  @Override
   public boolean isBroken() {
 
     return client.isBroken();
@@ -74,7 +86,6 @@ class PrimJedis extends Jedis implements IJedis {
 
   @Override
   public void setDataSource(final Pool<Jedis> jedisPool) {}
-
 
   @Override
   public String toString() {
