@@ -1,6 +1,7 @@
 package com.fabahaba.jedipus.cluster;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayDeque;
@@ -26,6 +27,7 @@ import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.JedisCluster.Reset;
 import redis.clients.jedis.Response;
 import redis.clients.jedis.exceptions.JedisAskDataException;
+import redis.clients.jedis.exceptions.JedisClusterMaxRedirectionsException;
 import redis.clients.jedis.exceptions.JedisMovedDataException;
 import redis.clients.util.JedisClusterCRC16;
 
@@ -466,7 +468,7 @@ public class JedisClusterTest {
   @Test
   public void testRecalculateSlotsWhenMoved() {
 
-    final byte[] key = RESP.toBytes("51");
+    final byte[] key = RESP.toBytes("42");
     final int slot = JedisClusterCRC16.getSlot(key);
     final int nextPoolSlot = rotateSlotNode(slot);
 
@@ -484,8 +486,8 @@ public class JedisClusterTest {
       jce.acceptAllMasters(master -> waitForClusterReady(master));
 
       jce.acceptPipeline(slot, jedis -> {
-        jedis.sadd("51", "foo");
-        final Response<Long> foo = jedis.scard("51");
+        jedis.sadd("42", "foo");
+        final Response<Long> foo = jedis.scard("42");
         jedis.sync();
         assertEquals(1L, foo.get().longValue());
       });
@@ -523,14 +525,64 @@ public class JedisClusterTest {
     }
   }
 
-  // @Test(expected = JedisClusterMaxRedirectionsException.class)
-  // public void testRedisClusterMaxRedirections() {
-  // Set<HostAndPort> jedisClusterNode = new HashSet<HostAndPort>();
-  // jedisClusterNode.add(new HostAndPort("127.0.0.1", 7379));
-  // JedisCluster jc = new JedisCluster(jedisClusterNode);
-  // int slot51 = JedisClusterCRC16.getSlot("51");
-  // // This will cause an infinite redirection loop
-  // node2.clusterSetSlotMigrating(slot51, JedisClusterTestUtil.getNodeId(node3.clusterNodes()));
-  // jc.set("51", "foo");
-  // }
+  @Test(expected = JedisClusterMaxRedirectionsException.class)
+  public void testRedisClusterMaxRedirections() {
+
+    final byte[] key = RESP.toBytes("42");
+    final int slot = JedisClusterCRC16.getSlot(key);
+    final int nextPoolSlot = rotateSlotNode(slot);
+
+    try (final JedisClusterExecutor jce =
+        JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
+
+      jce.acceptJedis(slot, exporting -> {
+
+        jce.acceptJedis(nextPoolSlot,
+            importing -> exporting.clusterSetSlotMigrating(slot, importing.getId()));
+      });
+
+      jce.acceptJedis(slot, jedis -> jedis.set(key, new byte[0]));
+    }
+  }
+
+  @Test
+  public void testClusterForgetNode() throws InterruptedException {
+
+    try (final JedisClusterExecutor jce =
+        JedisClusterExecutor.startBuilding(discoveryNodes).withReadMode(ReadMode.MIXED).create()) {
+
+      final int numNodes = jce.applyJedis(node -> node.clusterNodes().split("\n").length);
+
+      final ClusterNode newNode = slaves[0];
+      final String[] newNodeId = new String[1];
+
+      try (final IJedis client = JedisFactory.startBuilding().create(newNode)) {
+
+        client.clusterReset(Reset.HARD);
+        pendingReset.add(newNode);
+        final ClusterNode master = masters[0];
+        client.clusterMeet(master.getHost(), master.getPort());
+        newNodeId[0] = client.getId();
+        waitForClusterReady(client);
+      }
+
+      jce.acceptAll(node -> {
+
+        assertEquals(numNodes + 1, node.clusterNodes().split("\n").length);
+        node.clusterForget(newNodeId[0]);
+      });
+
+      jce.acceptAll(node -> assertEquals(numNodes, node.clusterNodes().split("\n").length));
+    }
+  }
+
+  @Test
+  public void testRedisHashtag() {
+
+    assertEquals(JedisClusterCRC16.getSlot("{bar"), JedisClusterCRC16.getSlot("foo{{bar}}zap"));
+    assertEquals(JedisClusterCRC16.getSlot("{user1000}.following"),
+        JedisClusterCRC16.getSlot("{user1000}.followers"));
+    assertNotEquals(JedisClusterCRC16.getSlot("foo{}{bar}"), JedisClusterCRC16.getSlot("bar"));
+    assertEquals(JedisClusterCRC16.getSlot("foo{bar}{zap}"), JedisClusterCRC16.getSlot("bar"));
+  }
 }

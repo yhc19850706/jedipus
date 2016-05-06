@@ -88,7 +88,7 @@ try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discove
       .map(tuple -> String.format("%s (%s)", tuple.getElement(), tuple.getScore()))
       .collect(Collectors.joining(", "));
 
-  // '{HT}:foo': [barikoviev (0.0), barinsky (0.0), barowitch (1.0)]
+  // '{HT}:foo': [barowitch (-1.0), barinsky (0.37), barikoviev (42.0)]
   System.out.format("%n'%s': [%s]%n", fooKey, values);
 
   // Read from load balanced slave.
