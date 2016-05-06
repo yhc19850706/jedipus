@@ -307,8 +307,8 @@ public class JedisClusterTest {
 
         jce.acceptJedis(nextPoolSlot, importing -> {
 
-          exporting.clusterSetSlotMigrating(slot, importing.getId());
           importing.clusterSetSlotImporting(slot, exporting.getId());
+          exporting.clusterSetSlotMigrating(slot, importing.getId());
 
           try {
             importing.set(key, new byte[0]);
@@ -395,8 +395,8 @@ public class JedisClusterTest {
 
         jce.acceptUnknownNode(newNode, importing -> {
 
-          exporting.clusterSetSlotMigrating(slot, importing.getId());
           importing.clusterSetSlotImporting(slot, exporting.getId());
+          exporting.clusterSetSlotMigrating(slot, importing.getId());
 
           try {
             importing.set(key, new byte[0]);
