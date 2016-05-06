@@ -9,7 +9,6 @@ import redis.clients.jedis.HostAndPort;
 
 public interface ClusterNode extends HostPort {
 
-
   public static ClusterNode create(final HostPort hostPort) {
 
     return new ClusterNodeImpl(hostPort, null);

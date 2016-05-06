@@ -247,12 +247,8 @@ public interface JedisClusterExecutor extends AutoCloseable {
   default <R> R applyPipeline(final ReadMode readMode, final int slot,
       final Function<JedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
-    return applyJedis(readMode, slot, jedis -> {
-      final JedisPipeline pipeline = jedis.createPipeline();
-      final R result = pipelineConsumer.apply(pipeline);
-      pipeline.sync();
-      return result;
-    }, maxRetries);
+    return applyJedis(readMode, slot, jedis -> pipelineConsumer.apply(jedis.createPipeline()),
+        maxRetries);
   }
 
   default void acceptPipeline(final Consumer<JedisPipeline> pipelineConsumer) {
@@ -326,9 +322,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
       final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries) {
 
     applyJedis(readMode, slot, jedis -> {
-      final JedisPipeline pipeline = jedis.createPipeline();
-      pipelineConsumer.accept(pipeline);
-      pipeline.sync();
+      pipelineConsumer.accept(jedis.createPipeline());
       return null;
     }, maxRetries);
   }
@@ -412,10 +406,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
     return applyJedis(readMode, slot, jedis -> {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipeline.multi();
-      final R result = pipelineConsumer.apply(pipeline);
-      pipeline.exec();
-      pipeline.sync();
-      return result;
+      return pipelineConsumer.apply(pipeline);
     }, maxRetries);
   }
 
@@ -498,8 +489,6 @@ public interface JedisClusterExecutor extends AutoCloseable {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipeline.multi();
       pipelineConsumer.accept(pipeline);
-      pipeline.exec();
-      pipeline.sync();
       return null;
     }, maxRetries);
   }
@@ -522,7 +511,6 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllMasters(jedis -> {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipelineConsumer.accept(pipeline);
-      pipeline.sync();
     }, maxRetries);
   }
 
@@ -539,8 +527,6 @@ public interface JedisClusterExecutor extends AutoCloseable {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipeline.multi();
       pipelineConsumer.accept(pipeline);
-      pipeline.exec();
-      pipeline.sync();
     }, maxRetries);
   }
 
@@ -562,7 +548,6 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllMasters(jedis -> {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipelineConsumer.accept(pipeline);
-      pipeline.sync();
     }, maxRetries);
   }
 
@@ -578,8 +563,6 @@ public interface JedisClusterExecutor extends AutoCloseable {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipeline.multi();
       pipelineConsumer.accept(pipeline);
-      pipeline.exec();
-      pipeline.sync();
     }, maxRetries);
   }
 
@@ -601,7 +584,6 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllMasters(jedis -> {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipelineConsumer.accept(pipeline);
-      pipeline.sync();
     }, maxRetries);
   }
 
@@ -617,8 +599,6 @@ public interface JedisClusterExecutor extends AutoCloseable {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipeline.multi();
       pipelineConsumer.accept(pipeline);
-      pipeline.exec();
-      pipeline.sync();
     }, maxRetries);
   }
 
@@ -648,7 +628,6 @@ public interface JedisClusterExecutor extends AutoCloseable {
     applyNodeIfPresent(node, jedis -> {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipelineConsumer.accept(pipeline);
-      pipeline.sync();
       return null;
     }, maxRetries);
   }
@@ -666,8 +645,6 @@ public interface JedisClusterExecutor extends AutoCloseable {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipeline.multi();
       pipelineConsumer.accept(pipeline);
-      pipeline.exec();
-      pipeline.sync();
       return null;
     }, maxRetries);
   }
@@ -689,9 +666,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
 
     return applyNodeIfPresent(node, jedis -> {
       final JedisPipeline pipeline = jedis.createPipeline();
-      final R result = pipelineConsumer.apply(pipeline);
-      pipeline.sync();
-      return result;
+      return pipelineConsumer.apply(pipeline);
     }, maxRetries);
   }
 
@@ -707,10 +682,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
     return applyNodeIfPresent(node, jedis -> {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipeline.multi();
-      final R result = pipelineConsumer.apply(pipeline);
-      pipeline.exec();
-      pipeline.sync();
-      return result;
+      return pipelineConsumer.apply(pipeline);
     }, maxRetries);
   }
 
@@ -743,7 +715,6 @@ public interface JedisClusterExecutor extends AutoCloseable {
     applyUnknownNode(node, jedis -> {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipelineConsumer.accept(pipeline);
-      pipeline.sync();
       return null;
     }, maxRetries);
   }
@@ -761,8 +732,6 @@ public interface JedisClusterExecutor extends AutoCloseable {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipeline.multi();
       pipelineConsumer.accept(pipeline);
-      pipeline.exec();
-      pipeline.sync();
       return null;
     }, maxRetries);
   }
@@ -783,9 +752,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
 
     return applyUnknownNode(node, jedis -> {
       final JedisPipeline pipeline = jedis.createPipeline();
-      final R result = pipelineConsumer.apply(pipeline);
-      pipeline.sync();
-      return result;
+      return pipelineConsumer.apply(pipeline);
     }, maxRetries);
   }
 
@@ -801,10 +768,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
     return applyUnknownNode(node, jedis -> {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipeline.multi();
-      final R result = pipelineConsumer.apply(pipeline);
-      pipeline.exec();
-      pipeline.sync();
-      return result;
+      return pipelineConsumer.apply(pipeline);
     }, maxRetries);
   }
 

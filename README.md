@@ -59,24 +59,31 @@ try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discove
   final String hashTaggedKey = hashTag + "key";
   final String fooKey = hashTag + "foo";
 
-  final Response<?>[] responses = new Response[2];
+  final Set<Tuple> zrangeResult =
+      jce.applyPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
 
-  jce.acceptPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
+        pipeline.set(hashTaggedKey, "value");
+        pipeline.zadd(fooKey, -1, "barowitch");
+        pipeline.zadd(fooKey, .37, "barinsky");
+        pipeline.zadd(fooKey, 42, "barikoviev");
 
-    pipeline.set(hashTaggedKey, "value");
-    pipeline.zadd(fooKey, -1, "barowitch");
-    pipeline.zadd(fooKey, .37, "barinsky");
-    pipeline.zadd(fooKey, 42, "barikoviev");
+        final Response<String> valueResponse = pipeline.get(hashTaggedKey);
+        final Response<Set<Tuple>> bars = pipeline.zrangeWithScores(fooKey, 0, -1);
 
-    responses[0] = pipeline.get(hashTaggedKey);
-    responses[1] = pipeline.zrangeWithScores(fooKey, 0, -1);
-  });
+        // Note: Pipelines and transactions are merely started by the the library.
+        // 'exec' and 'sync' must be called by the user.
+        pipeline.exec();
+        pipeline.sync();
 
-  // '{HT}:key': value
-  System.out.format("%n'%s': %s%n", hashTaggedKey, responses[0].get());
+        // Note: Responses must be captured within this lambda closure in order to properly
+        // leverage error handling.
 
-  @SuppressWarnings("unchecked")
-  final Set<Tuple> zrangeResult = (Set<Tuple>) responses[1].get();
+        // '{HT}:key': value
+        System.out.format("%n'%s': %s%n", hashTaggedKey, valueResponse.get());
+
+        return bars.get();
+      });
+
   final String values = zrangeResult.stream()
       .map(tuple -> String.format("%s (%s)", tuple.getElement(), tuple.getScore()))
       .collect(Collectors.joining(", "));

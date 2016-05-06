@@ -24,6 +24,7 @@ import com.fabahaba.jedipus.primitive.JedisFactory;
 
 import redis.clients.jedis.JedisCluster;
 import redis.clients.jedis.JedisCluster.Reset;
+import redis.clients.jedis.Response;
 import redis.clients.jedis.exceptions.JedisAskDataException;
 import redis.clients.jedis.exceptions.JedisMovedDataException;
 import redis.clients.util.JedisClusterCRC16;
@@ -473,15 +474,20 @@ public class JedisClusterTest {
         JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
       jce.acceptJedis(slot, jedis -> jedis.clusterDelSlots(slot));
-      jce.acceptJedis(nextPoolSlot, jedis -> {
+      jce.acceptPipeline(nextPoolSlot, jedis -> {
         jedis.clusterDelSlots(slot);
-        jedis.clusterAddSlots(slot);
+        final Response<String> addSlots = jedis.clusterAddSlots(slot);
+        jedis.sync();
+        assertEquals("OK", addSlots.get());
       });
 
       jce.acceptAllMasters(master -> waitForClusterReady(master));
-      jce.acceptJedis(slot, jedis -> {
+
+      jce.acceptPipeline(slot, jedis -> {
         jedis.set("51", "foo");
-        assertEquals("foo", jedis.get("51"));
+        final Response<String> foo = jedis.get("51");
+        jedis.sync();
+        assertEquals("foo", foo.get());
       });
     }
   }
@@ -505,13 +511,8 @@ public class JedisClusterTest {
         });
       });
 
-      jce.acceptJedis(slot, jedis -> {
-        jedis.set("51", "foo");
-      });
-
-      jce.acceptJedis(slot, jedis -> {
-        assertEquals("foo", jedis.get("51"));
-      });
+      jce.acceptJedis(slot, jedis -> jedis.set("51", "foo"));
+      jce.acceptJedis(slot, jedis -> assertEquals("foo", jedis.get("51")));
     }
   }
 }
