@@ -232,7 +232,6 @@ final class Jedipus implements JedisClusterExecutor {
             askPool = null;
           }
         }
-
       } catch (final JedisConnectionException jce) {
 
         if (++retries > maxRetries) {

@@ -47,4 +47,11 @@ class PrimPipeline extends Pipeline implements JedisPipeline {
     client.scriptLoad(script);
     return getResponse(BuilderFactory.STRING);
   }
+
+  @Override
+  public Response<String> asking() {
+
+    client.asking();
+    return getResponse(BuilderFactory.STRING);
+  }
 }

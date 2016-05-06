@@ -22,6 +22,8 @@ public interface JedisPipeline
 
   public void sync();
 
+  public Response<String> asking();
+
   public Response<String> auth(final String password);
 
   public Response<String> readonly();

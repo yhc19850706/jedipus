@@ -484,10 +484,10 @@ public class JedisClusterTest {
       jce.acceptAllMasters(master -> waitForClusterReady(master));
 
       jce.acceptPipeline(slot, jedis -> {
-        jedis.set("51", "foo");
-        final Response<String> foo = jedis.get("51");
+        jedis.sadd("51", "foo");
+        final Response<Long> foo = jedis.scard("51");
         jedis.sync();
-        assertEquals("foo", foo.get());
+        assertEquals(1L, foo.get().longValue());
       });
     }
   }
@@ -495,7 +495,7 @@ public class JedisClusterTest {
   @Test
   public void testAskResponse() {
 
-    final byte[] key = RESP.toBytes("51");
+    final byte[] key = RESP.toBytes("42");
     final int slot = JedisClusterCRC16.getSlot(key);
     final int nextPoolSlot = rotateSlotNode(slot);
 
@@ -511,8 +511,15 @@ public class JedisClusterTest {
         });
       });
 
-      jce.acceptJedis(slot, jedis -> jedis.set("51", "foo"));
-      jce.acceptJedis(slot, jedis -> assertEquals("foo", jedis.get("51")));
+      jce.acceptPipeline(slot, jedis -> {
+        jedis.sadd("42", "foo");
+        // Forced asking pending feedback on the following:
+        // https://github.com/antirez/redis/issues/3203
+        jedis.asking();
+        final Response<Long> foo = jedis.scard("42");
+        jedis.sync();
+        assertEquals(1L, foo.get().longValue());
+      });
     }
   }
 }
