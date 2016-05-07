@@ -196,7 +196,7 @@ public class JedisClusterTest {
   @Test
   public void testMovedExceptionParameters() {
 
-    final byte[] key = RESP.toBytes("foo");
+    final byte[] key = RESP.toBytes("42");
     final int slot = JedisClusterCRC16.getSlot(key);
     final int invalidSlot = rotateSlotNode(slot);
 
@@ -480,9 +480,9 @@ public class JedisClusterTest {
 
       jce.acceptPipeline(slot, jedis -> {
         jedis.sadd(key, new byte[0]);
-        final Response<Long> foo = jedis.scard(key);
+        final Response<Long> response = jedis.scard(key);
         jedis.sync();
-        assertEquals(1L, foo.get().longValue());
+        assertEquals(1L, response.get().longValue());
       });
     }
   }
@@ -506,13 +506,13 @@ public class JedisClusterTest {
       jce.acceptJedis(slot, jedis -> jedis.clusterSetSlotMigrating(slot, importing));
 
       jce.acceptPipeline(slot, jedis -> {
-        jedis.sadd(key, "foo");
+        jedis.sadd(key, "107.6");
         // Forced asking pending feedback on the following:
         // https://github.com/antirez/redis/issues/3203
         jedis.asking();
-        final Response<Long> foo = jedis.scard(key);
+        final Response<Long> response = jedis.scard(key);
         jedis.sync();
-        assertEquals(1L, foo.get().longValue());
+        assertEquals(1L, response.get().longValue());
       });
     }
   }
@@ -650,7 +650,7 @@ public class JedisClusterTest {
     try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes)
         .withMasterPoolFactory(poolFactory).create()) {
 
-      jce.acceptJedis(jedis -> jedis.set("42", ""));
+      jce.acceptJedis(jedis -> jedis.set("42", "107.6"));
     }
   }
 
@@ -747,11 +747,9 @@ public class JedisClusterTest {
 
     final GenericObjectPoolConfig config = new GenericObjectPoolConfig();
     config.setMaxTotal(1);
-    config.setMaxWaitMillis(0);
 
-    final Function<ClusterNode, ObjectPool<IJedis>> poolFactory = node -> new GenericObjectPool<>(
-        JedisFactory.startBuilding().withConnTimeout(100).withSoTimeout(100).createPooled(node),
-        config);
+    final Function<ClusterNode, ObjectPool<IJedis>> poolFactory =
+        node -> new GenericObjectPool<>(JedisFactory.startBuilding().createPooled(node), config);
 
     try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes)
         .withMasterPoolFactory(poolFactory).create()) {
@@ -771,8 +769,6 @@ public class JedisClusterTest {
             break;
           }
         }
-
-        jedis.close();
       });
 
       assertEquals("PONG", jce.applyJedis(slot, IJedis::ping));

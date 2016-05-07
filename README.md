@@ -31,20 +31,48 @@ repositories {
 }
 
 dependencies {
-   // Optional
+   // Needed if supplying your own pool factories.
    // compile 'org.apache.commons:commons-pool2:+'
-   compile 'redis.clients:jedis:+'
    compile 'com.fabahaba:jedipus:+'
 }
 ```
 
-#####Basic Usage Demo
+#####Basic Usage Demos
 ```java
-final Collection<ClusterNode> discoveryNodes =
-    Collections.singleton(ClusterNode.create("localhost", 7000));
+try (final JedisClusterExecutor jce =
+      JedisClusterExecutor.startBuilding(ClusterNode.create("localhost", 7000)).create()) {
 
-try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes)
-    .withReadMode(ReadMode.MIXED_SLAVES).create()) {
+   final String key = "42";
+   jce.acceptJedis(key, jedis -> jedis.set(key, "107.6"));
+
+   final String temp = jce.applyJedis(key, jedis -> jedis.get(key));
+   if (temp.equals("107.6")) {
+      System.out.println("Showers' ready, don't forget your towel.");
+   }
+}
+```
+
+```java
+try (final JedisClusterExecutor jce =
+      JedisClusterExecutor.startBuilding(ClusterNode.create("localhost", 7000)).create()) {
+
+   final String skey = "skey";
+
+   final long numMembers = jce.applyPipeline(skey, pipeline -> {
+      pipeline.sadd(skey, "member");
+      final Response<Long> response = pipeline.scard(skey);
+      pipeline.sync();
+      return response.get();
+   });
+
+   System.out.format("'%s' has %d members.%n", skey, numMembers);
+}
+```
+
+```java 
+try (final JedisClusterExecutor jce =
+      JedisClusterExecutor.startBuilding(ClusterNode.create("localhost", 7000))
+         .withReadMode(ReadMode.MIXED_SLAVES).create()) {
 
   // Ping-Pong all masters.
   jce.acceptAllMasters(master -> System.out.format("%s %s%n", master, master.ping()));
