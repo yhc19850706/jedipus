@@ -17,6 +17,8 @@ import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
 import com.fabahaba.jedipus.IJedis;
+import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
+import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 import com.fabahaba.jedipus.primitive.JedisFactory;
 
 import redis.clients.jedis.exceptions.JedisAskDataException;
@@ -70,7 +72,7 @@ public final class Jedipus implements JedisClusterExecutor {
   private static final Function<ClusterNode, IJedis> DEFAULT_JEDIS_ASK_DISCOVERY_FACTORY =
       DEFAULT_JEDIS_FACTORY::create;
 
-  private static final BiFunction<ReadMode, ObjectPool<IJedis>[], LoadBalancedPools> DEFAULT_LB_FACTORIES =
+  private static final BiFunction<ReadMode, ObjectPool<IJedis>[], LoadBalancedPools<IJedis, ReadMode>> DEFAULT_LB_FACTORIES =
       (defaultReadMode, slavePools) -> {
 
         if (slavePools.length == 0) {
@@ -91,7 +93,7 @@ public final class Jedipus implements JedisClusterExecutor {
               return rm -> pool;
             }
 
-            return new RoundRobinPools(slavePools);
+            return new RoundRobinPools<>(slavePools);
           case MIXED_SLAVES:
 
             if (slavePools.length == 1) {
@@ -113,10 +115,10 @@ public final class Jedipus implements JedisClusterExecutor {
               };
             }
 
-            return new RoundRobinPools(slavePools);
+            return new RoundRobinPools<>(slavePools);
           case MIXED:
           default:
-            return new RoundRobinPools(slavePools);
+            return new RoundRobinPools<>(slavePools);
         }
       };
 
@@ -133,7 +135,7 @@ public final class Jedipus implements JedisClusterExecutor {
       final Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory,
       final Function<ClusterNode, ObjectPool<IJedis>> slavePoolFactory,
       final Function<ClusterNode, IJedis> nodeUnknownFactory,
-      final Function<ObjectPool<IJedis>[], LoadBalancedPools> lbFactory) {
+      final Function<ObjectPool<IJedis>[], LoadBalancedPools<IJedis, ReadMode>> lbFactory) {
 
     this.connHandler = new JedisClusterConnHandler(defaultReadMode, optimisticReads,
         durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes, masterPoolFactory,
@@ -407,7 +409,7 @@ public final class Jedipus implements JedisClusterExecutor {
     private Function<ClusterNode, ObjectPool<IJedis>> slavePoolFactory = DEFAULT_SLAVE_POOL_FACTORY;
     // Used for ASK requests if no pool exists and random cluster discovery.
     private Function<ClusterNode, IJedis> nodeUnknownFactory = DEFAULT_JEDIS_ASK_DISCOVERY_FACTORY;
-    private BiFunction<ReadMode, ObjectPool<IJedis>[], LoadBalancedPools> lbFactory =
+    private BiFunction<ReadMode, ObjectPool<IJedis>[], LoadBalancedPools<IJedis, ReadMode>> lbFactory =
         DEFAULT_LB_FACTORIES;
     // If true, access to slot pool cache will not lock when retreiving a pool/client during a slot
     // re-configuration.
@@ -549,12 +551,12 @@ public final class Jedipus implements JedisClusterExecutor {
       return this;
     }
 
-    public BiFunction<ReadMode, ObjectPool<IJedis>[], LoadBalancedPools> getLbFactory() {
+    public BiFunction<ReadMode, ObjectPool<IJedis>[], LoadBalancedPools<IJedis, ReadMode>> getLbFactory() {
       return lbFactory;
     }
 
     public Builder withLbFactory(
-        final BiFunction<ReadMode, ObjectPool<IJedis>[], LoadBalancedPools> lbFactory) {
+        final BiFunction<ReadMode, ObjectPool<IJedis>[], LoadBalancedPools<IJedis, ReadMode>> lbFactory) {
       this.lbFactory = lbFactory;
       return this;
     }

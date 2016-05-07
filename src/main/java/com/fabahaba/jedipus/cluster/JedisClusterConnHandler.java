@@ -9,6 +9,8 @@ import org.apache.commons.pool2.ObjectPool;
 
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
+import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
+import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 
 import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisException;
@@ -23,7 +25,7 @@ class JedisClusterConnHandler implements AutoCloseable {
       final Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory,
       final Function<ClusterNode, ObjectPool<IJedis>> slavePoolFactory,
       final Function<ClusterNode, IJedis> nodeUnknownFactory,
-      final Function<ObjectPool<IJedis>[], LoadBalancedPools> lbFactory,
+      final Function<ObjectPool<IJedis>[], LoadBalancedPools<IJedis, ReadMode>> lbFactory,
       final ElementRetryDelay<ClusterNode> clusterNodeRetryDelay) {
 
     this.slotPoolCache = JedisClusterSlotCache.create(defaultReadMode, optimisticReads,

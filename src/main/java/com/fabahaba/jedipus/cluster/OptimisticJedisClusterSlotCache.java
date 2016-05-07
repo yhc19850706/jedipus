@@ -9,6 +9,8 @@ import org.apache.commons.pool2.ObjectPool;
 import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
+import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
+import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 
 class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
 
@@ -17,11 +19,11 @@ class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
       final Map<HostPort, ClusterNode> discoveryNodes,
       final Map<ClusterNode, ObjectPool<IJedis>> masterPools,
       final ObjectPool<IJedis>[] masterSlots, final Map<ClusterNode, ObjectPool<IJedis>> slavePools,
-      final LoadBalancedPools[] slaveSlots,
+      final LoadBalancedPools<IJedis, ReadMode>[] slaveSlots,
       final Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory,
       final Function<ClusterNode, ObjectPool<IJedis>> slavePoolFactory,
       final Function<ClusterNode, IJedis> nodeUnknownFactory,
-      final Function<ObjectPool<IJedis>[], LoadBalancedPools> lbFactory,
+      final Function<ObjectPool<IJedis>[], LoadBalancedPools<IJedis, ReadMode>> lbFactory,
       final ElementRetryDelay<ClusterNode> clusterNodeRetryDelay) {
 
     super(defaultReadMode, true, durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes,

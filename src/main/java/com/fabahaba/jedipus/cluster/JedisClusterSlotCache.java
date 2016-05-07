@@ -21,6 +21,8 @@ import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
+import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
+import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 
 import redis.clients.jedis.BinaryJedisCluster;
 import redis.clients.jedis.exceptions.JedisConnectionException;
@@ -34,9 +36,9 @@ class JedisClusterSlotCache implements AutoCloseable {
   protected final Map<ClusterNode, ObjectPool<IJedis>> masterPools;
   private final ObjectPool<IJedis>[] masterSlots;
 
-  private final Function<ObjectPool<IJedis>[], LoadBalancedPools> lbFactory;
+  private final Function<ObjectPool<IJedis>[], LoadBalancedPools<IJedis, ReadMode>> lbFactory;
   protected final Map<ClusterNode, ObjectPool<IJedis>> slavePools;
-  private final LoadBalancedPools[] slaveSlots;
+  private final LoadBalancedPools<IJedis, ReadMode>[] slaveSlots;
 
   private final boolean optimisticReads;
   private final long maxAwaitCacheRefreshNanos;
@@ -55,11 +57,11 @@ class JedisClusterSlotCache implements AutoCloseable {
       final Map<HostPort, ClusterNode> discoveryNodes,
       final Map<ClusterNode, ObjectPool<IJedis>> masterPools,
       final ObjectPool<IJedis>[] masterSlots, final Map<ClusterNode, ObjectPool<IJedis>> slavePools,
-      final LoadBalancedPools[] slaveSlots,
+      final LoadBalancedPools<IJedis, ReadMode>[] slaveSlots,
       final Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory,
       final Function<ClusterNode, ObjectPool<IJedis>> slavePoolFactory,
       final Function<ClusterNode, IJedis> nodeUnknownFactory,
-      final Function<ObjectPool<IJedis>[], LoadBalancedPools> lbFactory,
+      final Function<ObjectPool<IJedis>[], LoadBalancedPools<IJedis, ReadMode>> lbFactory,
       final ElementRetryDelay<ClusterNode> clusterNodeRetryDelay) {
 
     this.refreshStamp = System.currentTimeMillis();
@@ -108,7 +110,7 @@ class JedisClusterSlotCache implements AutoCloseable {
       final Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory,
       final Function<ClusterNode, ObjectPool<IJedis>> slavePoolFactory,
       final Function<ClusterNode, IJedis> nodeUnknownFactory,
-      final Function<ObjectPool<IJedis>[], LoadBalancedPools> lbFactory,
+      final Function<ObjectPool<IJedis>[], LoadBalancedPools<IJedis, ReadMode>> lbFactory,
       final ElementRetryDelay<ClusterNode> clusterNodeRetryDelay) {
 
     final Map<ClusterNode, ObjectPool<IJedis>> masterPools =
@@ -118,7 +120,7 @@ class JedisClusterSlotCache implements AutoCloseable {
 
     final Map<ClusterNode, ObjectPool<IJedis>> slavePools =
         defaultReadMode == ReadMode.MASTER ? Collections.emptyMap() : new ConcurrentHashMap<>();
-    final LoadBalancedPools[] slaveSlots = defaultReadMode == ReadMode.MASTER
+    final LoadBalancedPools<IJedis, ReadMode>[] slaveSlots = defaultReadMode == ReadMode.MASTER
         ? new LoadBalancedPools[0] : new LoadBalancedPools[BinaryJedisCluster.HASHSLOTS];
 
     return create(defaultReadMode, optimisticReads, durationBetweenCacheRefresh,
@@ -134,10 +136,10 @@ class JedisClusterSlotCache implements AutoCloseable {
       final Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory,
       final Function<ClusterNode, ObjectPool<IJedis>> slavePoolFactory,
       final Function<ClusterNode, IJedis> nodeUnknownFactory,
-      final Function<ObjectPool<IJedis>[], LoadBalancedPools> lbFactory,
+      final Function<ObjectPool<IJedis>[], LoadBalancedPools<IJedis, ReadMode>> lbFactory,
       final Map<ClusterNode, ObjectPool<IJedis>> masterPools,
       final ObjectPool<IJedis>[] masterSlots, final Map<ClusterNode, ObjectPool<IJedis>> slavePools,
-      final LoadBalancedPools[] slaveSlots,
+      final LoadBalancedPools<IJedis, ReadMode>[] slaveSlots,
       final ElementRetryDelay<ClusterNode> clusterNodeRetryDelay) {
 
     final Map<HostPort, ClusterNode> allDiscoveryNodes =
@@ -215,7 +217,7 @@ class JedisClusterSlotCache implements AutoCloseable {
 
           if (defaultReadMode != ReadMode.MASTER) {
 
-            final LoadBalancedPools lbPools = lbFactory.apply(slotSlavePools);
+            final LoadBalancedPools<IJedis, ReadMode> lbPools = lbFactory.apply(slotSlavePools);
 
             Arrays.fill(slaveSlots, slotBegin, slotEnd, lbPools);
           }
@@ -377,7 +379,7 @@ class JedisClusterSlotCache implements AutoCloseable {
 
         if (defaultReadMode != ReadMode.MASTER) {
 
-          final LoadBalancedPools lbPools = lbFactory.apply(slotSlavePools);
+          final LoadBalancedPools<IJedis, ReadMode> lbPools = lbFactory.apply(slotSlavePools);
           Arrays.fill(slaveSlots, slotBegin, slotEnd, lbPools);
         }
       }
@@ -505,7 +507,7 @@ class JedisClusterSlotCache implements AutoCloseable {
         return masterSlots[slot];
       case MIXED:
       case MIXED_SLAVES:
-        LoadBalancedPools lbSlaves = slaveSlots[slot];
+        LoadBalancedPools<IJedis, ReadMode> lbSlaves = slaveSlots[slot];
         if (lbSlaves == null) {
           return masterSlots[slot];
         }

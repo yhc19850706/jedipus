@@ -1,12 +1,14 @@
-package com.fabahaba.jedipus.cluster;
+package com.fabahaba.jedipus.concurrent;
 
 import java.time.Duration;
 import java.util.function.Function;
 
+import com.fabahaba.jedipus.cluster.ClusterNode;
+
 public interface ElementRetryDelay<E> {
 
   /**
-   * This method may block until the next request to this node should be applied.
+   * This method may block until the next request to this element should be applied.
    * 
    * Note: Internal to this implementation subclass, a global retry count should be tracked as
    * concurrent requests can be made against a node.

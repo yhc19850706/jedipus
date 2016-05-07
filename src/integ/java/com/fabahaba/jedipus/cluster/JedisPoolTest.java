@@ -18,7 +18,6 @@ import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.JedisTransaction;
@@ -43,13 +42,14 @@ public class JedisPoolTest {
 
     defaultJedisFactory = JedisFactory.startBuilding().withAuth("42").createPooled(defaultNode);
     config = new GenericObjectPoolConfig();
+    config.setMaxWaitMillis(200);
     pool = new GenericObjectPool<>(defaultJedisFactory, config);
   }
 
   @After
   public void after() {}
 
-  @Test
+  @Test(timeout = 1000)
   public void checkCloseableConnections() {
 
     final IJedis jedis = JedisPool.borrowObject(pool);
@@ -63,7 +63,7 @@ public class JedisPoolTest {
     assertTrue(pool.isClosed());
   }
 
-  @Test
+  @Test(timeout = 1000)
   public void checkJedisIsReusedWhenReturned() {
 
     IJedis jedis = JedisPool.borrowObject(pool);
@@ -79,7 +79,7 @@ public class JedisPoolTest {
     assertTrue(pool.isClosed());
   }
 
-  @Test
+  @Test(timeout = 1000)
   public void checkPoolRepairedWhenJedisIsBroken() {
 
     IJedis jedis = JedisPool.borrowObject(pool);
@@ -94,7 +94,7 @@ public class JedisPoolTest {
     assertTrue(pool.isClosed());
   }
 
-  @Test(expected = NoSuchElementException.class)
+  @Test(timeout = 1000, expected = NoSuchElementException.class)
   public void checkPoolOverflow() {
 
     config.setMaxTotal(1);
@@ -109,7 +109,7 @@ public class JedisPoolTest {
     newJedis.incr("foo");
   }
 
-  @Test
+  @Test(timeout = 1000)
   public void securePool() {
 
     config.setTestOnBorrow(true);
@@ -123,7 +123,7 @@ public class JedisPoolTest {
     assertTrue(pool.isClosed());
   }
 
-  @Test
+  @Test(timeout = 1000)
   public void nonDefaultDatabase() {
 
     final IJedis jedis0 = JedisPool.borrowObject(pool);
@@ -141,7 +141,7 @@ public class JedisPoolTest {
     assertTrue(pool.isClosed());
   }
 
-  @Test
+  @Test(timeout = 1000)
   public void customClientName() {
 
     final GenericObjectPool<IJedis> pool = new GenericObjectPool<>(JedisFactory.startBuilding()
@@ -153,6 +153,14 @@ public class JedisPoolTest {
 
     pool.close();
     assertTrue(pool.isClosed());
+  }
+
+  private static class CrashingJedis extends MockJedis {
+
+    @Override
+    public void resetState() {
+      throw new JedisException("crashed");
+    }
   }
 
   private static class CrashingPool extends BasePooledObjectFactory<IJedis> {
@@ -172,9 +180,7 @@ public class JedisPoolTest {
     @Override
     public IJedis create() throws Exception {
 
-      final IJedis crashingJedis = Mockito.mock(IJedis.class);
-      Mockito.doThrow(new JedisException("crashed")).when(crashingJedis).resetState();
-      return crashingJedis;
+      return new CrashingJedis();
     }
 
     @Override
@@ -184,7 +190,7 @@ public class JedisPoolTest {
     }
   }
 
-  @Test
+  @Test(timeout = 1000)
   public void returnResourceDestroysResourceOnException() {
 
     final AtomicInteger destroyed = new AtomicInteger(0);
@@ -202,7 +208,7 @@ public class JedisPoolTest {
     }
   }
 
-  @Test
+  @Test(timeout = 1000)
   public void returnResourceShouldResetState() {
 
     config.setMaxTotal(1);
@@ -230,7 +236,7 @@ public class JedisPoolTest {
     assertTrue(pool.isClosed());
   }
 
-  @Test
+  @Test(timeout = 1000)
   public void checkResourceIsCloseable() {
 
     config.setMaxTotal(1);
@@ -254,7 +260,7 @@ public class JedisPoolTest {
     pool.close();
   }
 
-  @Test
+  @Test(timeout = 1000)
   public void getNumActiveIdleIsZeroWhenPoolIsClosed() {
 
     pool.close();
@@ -263,7 +269,7 @@ public class JedisPoolTest {
     assertTrue(pool.getNumIdle() == 0);
   }
 
-  @Test
+  @Test(timeout = 1000)
   public void getNumActiveReturnsTheCorrectNumber() {
 
     final IJedis jedis = JedisPool.borrowObject(pool);
@@ -287,7 +293,7 @@ public class JedisPoolTest {
     pool.close();
   }
 
-  @Test(expected = JedisDataException.class)
+  @Test(timeout = 1000, expected = JedisDataException.class)
   public void testCloseConnectionOnMakeObject() {
 
     final GenericObjectPool<IJedis> pool = new GenericObjectPool<>(

@@ -1,4 +1,4 @@
-package com.fabahaba.jedipus.cluster;
+package com.fabahaba.jedipus.concurrent;
 
 import java.time.Duration;
 import java.util.Map;
