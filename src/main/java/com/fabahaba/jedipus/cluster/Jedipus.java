@@ -193,6 +193,7 @@ final class Jedipus implements JedisClusterExecutor {
       } finally {
         jedis = null;
       }
+
       askPool = connHandler.getAskPool(ClusterNode.create(askEx.getTargetNode()));
     } catch (final JedisRedirectionException moveEx) {
 
@@ -249,10 +250,6 @@ final class Jedipus implements JedisClusterExecutor {
         retries++;
         continue;
       } catch (final JedisAskDataException askEx) {
-
-        if (redirections > maxRedirections) {
-          throw new JedisClusterMaxRedirectionsException(askEx);
-        }
 
         try {
           JedisPool.returnJedis(clientPool, client);

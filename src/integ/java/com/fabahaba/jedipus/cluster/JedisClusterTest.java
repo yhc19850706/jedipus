@@ -2,6 +2,7 @@ package com.fabahaba.jedipus.cluster;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -771,6 +772,53 @@ public class JedisClusterTest {
       });
 
       assertEquals("PONG", jce.applyJedis(slot, IJedis::ping));
+    }
+  }
+
+  @Test(expected = JedisClusterMaxRedirectionsException.class)
+  public void testReturnConnectionOnRedirection() {
+
+    final byte[] key = RESP.toBytes("42");
+    final int slot = JedisClusterCRC16.getSlot(key);
+    final int importingNodeSlot = rotateSlotNode(slot);
+
+    try (final JedisClusterExecutor jce =
+        JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
+
+      final String importing = jce.applyJedis(importingNodeSlot, IJedis::getId);
+      jce.acceptJedis(slot, jedis -> jedis.clusterSetSlotMigrating(slot, importing));
+      jce.acceptJedis(slot, jedis -> jedis.get(key));
+    }
+  }
+
+  @Test
+  public void testLocalhostNodeNotAddedWhen127Present() {
+
+    try (final JedisClusterExecutor jce = JedisClusterExecutor
+        .startBuilding(ClusterNode.create("localhost", STARTING_PORT)).create()) {
+
+      final int[] count = new int[1];
+      jce.acceptAll(jedis -> {
+        assertNotEquals("localhost", jedis.getHost());
+        count[0]++;
+      });
+      assertEquals(NUM_MASTERS, count[0]);
+    }
+  }
+
+  @Test
+  public void testInvalidStartNodeNotAdded() {
+
+    try (final JedisClusterExecutor jce =
+        JedisClusterExecutor.startBuilding(ClusterNode.create("not-a-real-host", STARTING_PORT),
+            ClusterNode.create("127.0.0.1", STARTING_PORT)).create()) {
+
+      final int[] count = new int[1];
+      jce.acceptAll(jedis -> {
+        assertNotEquals("not-a-real-host", jedis.getHost());
+        count[0]++;
+      });
+      assertEquals(NUM_MASTERS, count[0]);
     }
   }
 }
