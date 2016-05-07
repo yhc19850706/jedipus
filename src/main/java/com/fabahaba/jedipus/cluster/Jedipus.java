@@ -23,7 +23,7 @@ import redis.clients.jedis.exceptions.JedisClusterMaxRedirectionsException;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisRedirectionException;
 
-final class Jedipus implements JedisClusterExecutor {
+public final class Jedipus implements JedisClusterExecutor {
 
   private static final int DEFAULT_MAX_REDIRECTIONS = 2;
   private static final int DEFAULT_MAX_RETRIES = 2;

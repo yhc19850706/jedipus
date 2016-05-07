@@ -17,7 +17,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
@@ -77,8 +76,6 @@ public class JedisClusterTest {
 
   private static Set<ClusterNode> discoveryNodes;
   private static final Queue<ClusterNode> pendingReset = new ArrayDeque<>(NUM_SLAVES);
-
-  private static final ExecutorService executor = ForkJoinPool.commonPool();
 
   @BeforeClass
   public static void beforeClass() {
@@ -482,7 +479,7 @@ public class JedisClusterTest {
         assertEquals("OK", addSlots.get());
       });
 
-      jce.acceptAllMasters(master -> waitForClusterReady(master), executor)
+      jce.acceptAllMasters(master -> waitForClusterReady(master), ForkJoinPool.commonPool())
           .forEach(CompletableFuture::join);
 
       jce.acceptPipeline(slot, jedis -> {
@@ -548,12 +545,12 @@ public class JedisClusterTest {
 
       try (final IJedis client = JedisFactory.startBuilding().create(slaves[0])) {
 
-        jce.acceptAll(node -> assertTrue(node.clusterNodes().contains(client.getId())), executor)
+        jce.acceptAll(node -> assertTrue(node.clusterNodes().contains(client.getId())),
+            ForkJoinPool.commonPool()).forEach(CompletableFuture::join);
+        jce.acceptAll(node -> node.clusterForget(client.getId()), ForkJoinPool.commonPool())
             .forEach(CompletableFuture::join);
-        jce.acceptAll(node -> node.clusterForget(client.getId()), executor)
-            .forEach(CompletableFuture::join);
-        jce.acceptAll(node -> assertFalse(node.clusterNodes().contains(client.getId())), executor)
-            .forEach(CompletableFuture::join);
+        jce.acceptAll(node -> assertFalse(node.clusterNodes().contains(client.getId())),
+            ForkJoinPool.commonPool()).forEach(CompletableFuture::join);
       }
     }
   }
@@ -669,7 +666,7 @@ public class JedisClusterTest {
 
     final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes).create();
     try {
-      jce.acceptAll(jedis -> assertEquals("PONG", jedis.ping()), executor)
+      jce.acceptAll(jedis -> assertEquals("PONG", jedis.ping()), ForkJoinPool.commonPool())
           .forEach(CompletableFuture::join);
     } finally {
       jce.close();
