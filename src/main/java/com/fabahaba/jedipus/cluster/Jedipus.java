@@ -16,6 +16,7 @@ import org.apache.commons.pool2.impl.DefaultEvictionPolicy;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
+import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
@@ -129,7 +130,8 @@ public final class Jedipus implements JedisClusterExecutor {
   private final JedisClusterConnHandler connHandler;
 
   private Jedipus(final ReadMode defaultReadMode, final Collection<ClusterNode> discoveryNodes,
-      final int maxRedirections, final int maxRetries, final int tryRandomAfter,
+      final BiFunction<HostPort, String, HostPort> hostPortMapper, final int maxRedirections,
+      final int maxRetries, final int tryRandomAfter,
       final ElementRetryDelay<ClusterNode> clusterNodeRetryDelay, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
       final Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory,
@@ -138,8 +140,8 @@ public final class Jedipus implements JedisClusterExecutor {
       final Function<ObjectPool<IJedis>[], LoadBalancedPools<IJedis, ReadMode>> lbFactory) {
 
     this.connHandler = new JedisClusterConnHandler(defaultReadMode, optimisticReads,
-        durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes, masterPoolFactory,
-        slavePoolFactory, nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
+        durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes, hostPortMapper,
+        masterPoolFactory, slavePoolFactory, nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
 
     this.maxRedirections = maxRedirections;
     this.maxRetries = maxRetries;
@@ -194,7 +196,8 @@ public final class Jedipus implements JedisClusterExecutor {
         jedis = null;
       }
 
-      askNode = ClusterNode.create(askEx.getTargetNode());
+      askNode = ClusterNode.create(
+          connHandler.getHostPortMapper().apply(HostPort.create(askEx.getTargetNode()), null));
     } catch (final JedisRedirectionException moveEx) {
 
       if (jedis == null) {
@@ -243,7 +246,8 @@ public final class Jedipus implements JedisClusterExecutor {
           client = null;
         }
 
-        askNode = ClusterNode.create(askEx.getTargetNode());
+        askNode = ClusterNode.create(
+            connHandler.getHostPortMapper().apply(HostPort.create(askEx.getTargetNode()), null));
         continue;
       } catch (final JedisRedirectionException moveEx) {
 
@@ -399,6 +403,8 @@ public final class Jedipus implements JedisClusterExecutor {
 
     private ReadMode defaultReadMode = ReadMode.MASTER;
     private Collection<ClusterNode> discoveryNodes;
+    private BiFunction<HostPort, String, HostPort> hostPortMapper =
+        ClusterNode.DEFAULT_HOSTPORT_MAPPER;
     private int maxRedirections = DEFAULT_MAX_REDIRECTIONS;
     private int maxRetries = DEFAULT_MAX_RETRIES;
     private ElementRetryDelay<ClusterNode> clusterNodeRetryDelay = DEFAULT_RETRY_DELAY;
@@ -426,10 +432,10 @@ public final class Jedipus implements JedisClusterExecutor {
 
     public JedisClusterExecutor create() {
 
-      return new Jedipus(defaultReadMode, discoveryNodes, maxRedirections, maxRetries,
-          tryRandomAfter, clusterNodeRetryDelay, optimisticReads, durationBetweenCacheRefresh,
-          maxAwaitCacheRefresh, masterPoolFactory, slavePoolFactory, nodeUnknownFactory,
-          slavePools -> lbFactory.apply(defaultReadMode, slavePools));
+      return new Jedipus(defaultReadMode, discoveryNodes, hostPortMapper, maxRedirections,
+          maxRetries, tryRandomAfter, clusterNodeRetryDelay, optimisticReads,
+          durationBetweenCacheRefresh, maxAwaitCacheRefresh, masterPoolFactory, slavePoolFactory,
+          nodeUnknownFactory, slavePools -> lbFactory.apply(defaultReadMode, slavePools));
     }
 
     public ReadMode getReadMode() {
@@ -447,6 +453,15 @@ public final class Jedipus implements JedisClusterExecutor {
 
     public Builder withDiscoveryNodes(final Collection<ClusterNode> discoveryNodes) {
       this.discoveryNodes = discoveryNodes;
+      return this;
+    }
+
+    public BiFunction<HostPort, String, HostPort> getHostPortMapper() {
+      return hostPortMapper;
+    }
+
+    public Builder withHostPortMapper(final BiFunction<HostPort, String, HostPort> hostPortMapper) {
+      this.hostPortMapper = hostPortMapper;
       return this;
     }
 

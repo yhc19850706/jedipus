@@ -1,6 +1,7 @@
 package com.fabahaba.jedipus.cluster;
 
 import java.util.List;
+import java.util.function.BiFunction;
 
 import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.RESP;
@@ -34,16 +35,26 @@ public interface ClusterNode extends HostPort {
     return create(HostPort.create(host, port), nodeId);
   }
 
+  static final BiFunction<HostPort, String, HostPort> DEFAULT_HOSTPORT_MAPPER =
+      (hostPort, clusterId) -> hostPort;
+
   static ClusterNode create(final List<Object> hostInfos) {
+
+    return create(DEFAULT_HOSTPORT_MAPPER, hostInfos);
+  }
+
+  static ClusterNode create(final BiFunction<HostPort, String, HostPort> hostPortMapper,
+      final List<Object> hostInfos) {
 
     final HostPort hostPort =
         HostPort.create(RESP.toString(hostInfos.get(0)), RESP.longToInt(hostInfos.get(1)));
 
     if (hostInfos.size() > 2) {
-      return new ClusterNodeImpl(hostPort, RESP.toString(hostInfos.get(2)));
+      final String clusterId = RESP.toString(hostInfos.get(2));
+      return new ClusterNodeImpl(hostPortMapper.apply(hostPort, clusterId), clusterId);
     }
 
-    return ClusterNode.create(hostPort);
+    return ClusterNode.create(hostPortMapper.apply(hostPort, null));
   }
 
   public HostPort getHostPort();

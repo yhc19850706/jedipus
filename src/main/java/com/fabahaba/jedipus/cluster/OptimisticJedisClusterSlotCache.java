@@ -2,6 +2,7 @@ package com.fabahaba.jedipus.cluster;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.apache.commons.pool2.ObjectPool;
@@ -17,6 +18,7 @@ class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
   OptimisticJedisClusterSlotCache(final ReadMode defaultReadMode,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
       final Map<HostPort, ClusterNode> discoveryNodes,
+      final BiFunction<HostPort, String, HostPort> hostPortMapper,
       final Map<ClusterNode, ObjectPool<IJedis>> masterPools,
       final ObjectPool<IJedis>[] masterSlots, final Map<ClusterNode, ObjectPool<IJedis>> slavePools,
       final LoadBalancedPools<IJedis, ReadMode>[] slaveSlots,
@@ -27,8 +29,8 @@ class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
       final ElementRetryDelay<ClusterNode> clusterNodeRetryDelay) {
 
     super(defaultReadMode, true, durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes,
-        masterPools, masterSlots, slavePools, slaveSlots, masterPoolFactory, slavePoolFactory,
-        nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
+        hostPortMapper, masterPools, masterSlots, slavePools, slaveSlots, masterPoolFactory,
+        slavePoolFactory, nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
   }
 
   @Override

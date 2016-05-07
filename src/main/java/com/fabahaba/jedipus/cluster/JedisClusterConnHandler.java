@@ -3,10 +3,12 @@ package com.fabahaba.jedipus.cluster;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.apache.commons.pool2.ObjectPool;
 
+import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
@@ -22,6 +24,7 @@ class JedisClusterConnHandler implements AutoCloseable {
   JedisClusterConnHandler(final ReadMode defaultReadMode, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
       final Collection<ClusterNode> discoveryNodes,
+      final BiFunction<HostPort, String, HostPort> hostPortMapper,
       final Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory,
       final Function<ClusterNode, ObjectPool<IJedis>> slavePoolFactory,
       final Function<ClusterNode, IJedis> nodeUnknownFactory,
@@ -29,8 +32,8 @@ class JedisClusterConnHandler implements AutoCloseable {
       final ElementRetryDelay<ClusterNode> clusterNodeRetryDelay) {
 
     this.slotPoolCache = JedisClusterSlotCache.create(defaultReadMode, optimisticReads,
-        durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes, masterPoolFactory,
-        slavePoolFactory, nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
+        durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes, hostPortMapper,
+        masterPoolFactory, slavePoolFactory, nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
   }
 
   ReadMode getDefaultReadMode() {
@@ -46,6 +49,11 @@ class JedisClusterConnHandler implements AutoCloseable {
   IJedis createUnknownNode(final ClusterNode unknown) {
 
     return slotPoolCache.getNodeUnknownFactory().apply(unknown);
+  }
+
+  BiFunction<HostPort, String, HostPort> getHostPortMapper() {
+
+    return slotPoolCache.getHostPortMapper();
   }
 
   ObjectPool<IJedis> getRandomPool(final ReadMode readMode) {
