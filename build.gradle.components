@@ -71,6 +71,8 @@ model {
          testing $.components.main
 
          dependencies {
+            module 'org.apache.commons:commons-pool2:+'
+            module 'redis.clients:jedis:+'
             module 'org.mockito:mockito-core:+'
          }
 

@@ -654,7 +654,6 @@ public class JedisClusterTest {
     }
   }
 
-
   @Test
   public void testCloseable() {
 

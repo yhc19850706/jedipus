@@ -149,7 +149,13 @@ class JedisClusterSlotCache implements AutoCloseable {
             case MIXED:
             case MASTER:
               final ClusterNode masterNode = ClusterNode.create((List<Object>) slotInfo.get(2));
-              allDiscoveryNodes.put(masterNode.getHostPort(), masterNode);
+              allDiscoveryNodes.compute(masterNode.getHostPort(), (hostPort, known) -> {
+                if (known == null) {
+                  return masterNode;
+                }
+                known.updateId(masterNode.getId());
+                return known;
+              });
 
               final ObjectPool<IJedis> masterPool = masterPoolFactory.apply(masterNode);
               masterPools.put(masterNode, masterPool);
@@ -172,7 +178,13 @@ class JedisClusterSlotCache implements AutoCloseable {
           for (int i = 3, poolIndex = 0; i < slotInfoSize; i++) {
 
             final ClusterNode slaveNode = ClusterNode.create((List<Object>) slotInfo.get(i));
-            allDiscoveryNodes.put(slaveNode.getHostPort(), slaveNode);
+            allDiscoveryNodes.compute(slaveNode.getHostPort(), (hostPort, known) -> {
+              if (known == null) {
+                return slaveNode;
+              }
+              known.updateId(slaveNode.getId());
+              return known;
+            });
 
             switch (defaultReadMode) {
               case SLAVES:
@@ -297,11 +309,13 @@ class JedisClusterSlotCache implements AutoCloseable {
           case MIXED:
           case MASTER:
             final ClusterNode masterNode = ClusterNode.create((List<Object>) slotInfo.get(2));
-            final ClusterNode known =
-                discoveryNodes.putIfAbsent(masterNode.getHostPort(), masterNode);
-            if (known != null) {
+            discoveryNodes.compute(masterNode.getHostPort(), (hostPort, known) -> {
+              if (known == null) {
+                return masterNode;
+              }
               known.updateId(masterNode.getId());
-            }
+              return known;
+            });
 
             final ObjectPool<IJedis> masterPool = masterPoolFactory.apply(masterNode);
             masterPools.put(masterNode, masterPool);
@@ -325,10 +339,13 @@ class JedisClusterSlotCache implements AutoCloseable {
         for (int i = 3, poolIndex = 0; i < slotInfoSize; i++) {
 
           final ClusterNode slaveNode = ClusterNode.create((List<Object>) slotInfo.get(i));
-          final ClusterNode known = discoveryNodes.putIfAbsent(slaveNode.getHostPort(), slaveNode);
-          if (known != null) {
+          discoveryNodes.compute(slaveNode.getHostPort(), (hostPort, known) -> {
+            if (known == null) {
+              return slaveNode;
+            }
             known.updateId(slaveNode.getId());
-          }
+            return known;
+          });
 
           switch (defaultReadMode) {
             case SLAVES:

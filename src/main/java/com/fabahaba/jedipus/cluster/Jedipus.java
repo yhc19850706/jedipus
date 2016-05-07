@@ -181,13 +181,18 @@ final class Jedipus implements JedisClusterExecutor {
         throw jce;
       }
 
-      retries = 1;
-
       if (clusterNodeRetryDelay != null && jedis != null) {
-        clusterNodeRetryDelay.markFailure(jedis.getClusterNode());
+        clusterNodeRetryDelay.markFailure(jedis.getClusterNode(), 0);
       }
+
+      retries = 1;
     } catch (final JedisAskDataException askEx) {
 
+      try {
+        JedisPool.returnJedis(pool, jedis);
+      } finally {
+        jedis = null;
+      }
       askPool = connHandler.getAskPool(ClusterNode.create(askEx.getTargetNode()));
     } catch (final JedisRedirectionException moveEx) {
 
@@ -234,18 +239,25 @@ final class Jedipus implements JedisClusterExecutor {
         }
       } catch (final JedisConnectionException jce) {
 
-        if (++retries > maxRetries) {
+        if (retries >= maxRetries) {
           throw jce;
         }
 
         if (clusterNodeRetryDelay != null && client != null) {
-          clusterNodeRetryDelay.markFailure(client.getClusterNode());
+          clusterNodeRetryDelay.markFailure(client.getClusterNode(), retries);
         }
+        retries++;
         continue;
       } catch (final JedisAskDataException askEx) {
 
         if (redirections > maxRedirections) {
           throw new JedisClusterMaxRedirectionsException(askEx);
+        }
+
+        try {
+          JedisPool.returnJedis(clientPool, client);
+        } finally {
+          client = null;
         }
 
         askPool = connHandler.getAskPool(ClusterNode.create(askEx.getTargetNode()));
@@ -289,21 +301,20 @@ final class Jedipus implements JedisClusterExecutor {
         jedis = JedisPool.borrowObject(pool);
 
         final R result = jedisConsumer.apply(jedis);
-        if (clusterNodeRetryDelay != null) {
+        if (clusterNodeRetryDelay != null && retries > 0) {
           clusterNodeRetryDelay.markSuccess(jedis.getClusterNode());
         }
-
         return result;
       } catch (final JedisConnectionException jce) {
 
-        if (++retries > maxRetries) {
+        if (retries >= maxRetries) {
           throw jce;
         }
 
         if (clusterNodeRetryDelay != null && jedis != null) {
-          clusterNodeRetryDelay.markFailure(jedis.getClusterNode());
+          clusterNodeRetryDelay.markFailure(jedis.getClusterNode(), retries);
         }
-
+        retries++;
         continue;
       } finally {
         JedisPool.returnJedis(pool, jedis);
@@ -319,11 +330,19 @@ final class Jedipus implements JedisClusterExecutor {
 
       try (IJedis jedis = connHandler.createUnknownNode(node)) {
 
-        return jedisConsumer.apply(jedis);
+        final R result = jedisConsumer.apply(jedis);
+        if (clusterNodeRetryDelay != null && retries > 0) {
+          clusterNodeRetryDelay.markSuccess(node);
+        }
+        return result;
       } catch (final JedisConnectionException jce) {
 
         if (++retries > maxRetries) {
           throw jce;
+        }
+
+        if (clusterNodeRetryDelay != null) {
+          clusterNodeRetryDelay.markFailure(node, retries);
         }
 
         continue;
@@ -368,14 +387,14 @@ final class Jedipus implements JedisClusterExecutor {
           break;
         } catch (final JedisConnectionException jce) {
 
-          if (++retries > maxRetries) {
+          if (retries >= maxRetries) {
             throw jce;
           }
 
           if (clusterNodeRetryDelay != null && jedis != null) {
-            clusterNodeRetryDelay.markFailure(jedis.getClusterNode());
+            clusterNodeRetryDelay.markFailure(jedis.getClusterNode(), retries);
           }
-
+          retries++;
           continue;
         } finally {
           JedisPool.returnJedis(pool, jedis);
