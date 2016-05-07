@@ -3,8 +3,8 @@ package com.fabahaba.jedipus.cluster;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -667,7 +667,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllMasters(jedisConsumer, getMaxRetries(), null);
   }
 
-  default List<Future<Void>> acceptAllMasters(final Consumer<IJedis> jedisConsumer,
+  default List<CompletableFuture<Void>> acceptAllMasters(final Consumer<IJedis> jedisConsumer,
       final ExecutorService executor) {
 
     return acceptAllMasters(jedisConsumer, getMaxRetries(), executor);
@@ -678,7 +678,16 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllMasters(jedisConsumer, maxRetries, null);
   }
 
-  public List<Future<Void>> acceptAllMasters(final Consumer<IJedis> jedisConsumer,
+  default List<CompletableFuture<Void>> acceptAllMasters(final Consumer<IJedis> jedisConsumer,
+      final int maxRetries, final ExecutorService executor) {
+
+    return applyAllMasters(jedis -> {
+      jedisConsumer.accept(jedis);
+      return null;
+    }, maxRetries, executor);
+  }
+
+  public <R> List<CompletableFuture<R>> applyAllMasters(final Function<IJedis, R> jedisConsumer,
       final int maxRetries, final ExecutorService executor);
 
   default void acceptAllPipelinedMasters(final Consumer<JedisPipeline> pipelineConsumer) {
@@ -686,7 +695,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllPipelinedMasters(pipelineConsumer, getMaxRetries(), null);
   }
 
-  default List<Future<Void>> acceptAllPipelinedMasters(
+  default List<CompletableFuture<Void>> acceptAllPipelinedMasters(
       final Consumer<JedisPipeline> pipelineConsumer, final ExecutorService executor) {
 
     return acceptAllPipelinedMasters(pipelineConsumer, getMaxRetries(), executor);
@@ -698,7 +707,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllPipelinedMasters(pipelineConsumer, maxRetries, null);
   }
 
-  default List<Future<Void>> acceptAllPipelinedMasters(
+  default List<CompletableFuture<Void>> acceptAllPipelinedMasters(
       final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries,
       final ExecutorService executor) {
 
@@ -714,7 +723,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllPipelinedTransactionMasters(pipelineConsumer, getMaxRetries(), null);
   }
 
-  default List<Future<Void>> acceptAllPipelinedTransactionMasters(
+  default List<CompletableFuture<Void>> acceptAllPipelinedTransactionMasters(
       final Consumer<JedisPipeline> pipelineConsumer, final ExecutorService executor) {
 
     return acceptAllPipelinedTransactionMasters(pipelineConsumer, getMaxRetries(), executor);
@@ -726,7 +735,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllPipelinedTransactionMasters(pipelineConsumer, maxRetries, null);
   }
 
-  default List<Future<Void>> acceptAllPipelinedTransactionMasters(
+  default List<CompletableFuture<Void>> acceptAllPipelinedTransactionMasters(
       final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries,
       final ExecutorService executor) {
 
@@ -742,7 +751,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllSlaves(jedisConsumer, getMaxRetries(), null);
   }
 
-  default List<Future<Void>> acceptAllSlaves(final Consumer<IJedis> jedisConsumer,
+  default List<CompletableFuture<Void>> acceptAllSlaves(final Consumer<IJedis> jedisConsumer,
       final ExecutorService executor) {
 
     return acceptAllSlaves(jedisConsumer, getMaxRetries(), executor);
@@ -753,7 +762,16 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllSlaves(jedisConsumer, maxRetries, null);
   }
 
-  public List<Future<Void>> acceptAllSlaves(final Consumer<IJedis> jedisConsumer,
+  default List<CompletableFuture<Void>> acceptAllSlaves(final Consumer<IJedis> jedisConsumer,
+      final int maxRetries, final ExecutorService executor) {
+
+    return applyAllSlaves(jedis -> {
+      jedisConsumer.accept(jedis);
+      return null;
+    }, maxRetries, executor);
+  }
+
+  public <R> List<CompletableFuture<R>> applyAllSlaves(final Function<IJedis, R> jedisConsumer,
       final int maxRetries, final ExecutorService executor);
 
   default void acceptAllPipelinedSlaves(final Consumer<JedisPipeline> pipelineConsumer) {
@@ -761,7 +779,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllPipelinedSlaves(pipelineConsumer, getMaxRetries(), null);
   }
 
-  default List<Future<Void>> acceptAllPipelinedSlaves(
+  default List<CompletableFuture<Void>> acceptAllPipelinedSlaves(
       final Consumer<JedisPipeline> pipelineConsumer, final ExecutorService executor) {
 
     return acceptAllPipelinedSlaves(pipelineConsumer, getMaxRetries(), executor);
@@ -773,7 +791,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllPipelinedSlaves(pipelineConsumer, maxRetries, null);
   }
 
-  default List<Future<Void>> acceptAllPipelinedSlaves(
+  default List<CompletableFuture<Void>> acceptAllPipelinedSlaves(
       final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries,
       final ExecutorService executor) {
 
@@ -788,7 +806,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllPipelinedTransactionSlaves(pipelineConsumer, getMaxRetries(), null);
   }
 
-  default List<Future<Void>> acceptAllPipelinedTransactionSlaves(
+  default List<CompletableFuture<Void>> acceptAllPipelinedTransactionSlaves(
       final Consumer<JedisPipeline> pipelineConsumer, final ExecutorService executor) {
 
     return acceptAllPipelinedTransactionSlaves(pipelineConsumer, getMaxRetries(), executor);
@@ -800,7 +818,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllPipelinedTransactionSlaves(pipelineConsumer, maxRetries, null);
   }
 
-  default List<Future<Void>> acceptAllPipelinedTransactionSlaves(
+  default List<CompletableFuture<Void>> acceptAllPipelinedTransactionSlaves(
       final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries,
       final ExecutorService executor) {
 
@@ -816,7 +834,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAll(jedisConsumer, getMaxRetries(), null);
   }
 
-  default List<Future<Void>> acceptAll(final Consumer<IJedis> jedisConsumer,
+  default List<CompletableFuture<Void>> acceptAll(final Consumer<IJedis> jedisConsumer,
       final ExecutorService executor) {
 
     return acceptAll(jedisConsumer, getMaxRetries(), executor);
@@ -827,16 +845,25 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAll(jedisConsumer, maxRetries, null);
   }
 
-  public List<Future<Void>> acceptAll(final Consumer<IJedis> jedisConsumer, final int maxRetries,
-      final ExecutorService executor);
+  default List<CompletableFuture<Void>> acceptAll(final Consumer<IJedis> jedisConsumer,
+      final int maxRetries, final ExecutorService executor) {
+
+    return applyAll(jedis -> {
+      jedisConsumer.accept(jedis);
+      return null;
+    }, maxRetries, executor);
+  }
+
+  public <R> List<CompletableFuture<R>> applyAll(final Function<IJedis, R> jedisConsumer,
+      final int maxRetries, final ExecutorService executor);
 
   default void acceptAllPipelined(final Consumer<JedisPipeline> pipelineConsumer) {
 
     acceptAllPipelined(pipelineConsumer, getMaxRetries(), null);
   }
 
-  default List<Future<Void>> acceptAllPipelined(final Consumer<JedisPipeline> pipelineConsumer,
-      final ExecutorService executor) {
+  default List<CompletableFuture<Void>> acceptAllPipelined(
+      final Consumer<JedisPipeline> pipelineConsumer, final ExecutorService executor) {
 
     return acceptAllPipelined(pipelineConsumer, getMaxRetries(), executor);
   }
@@ -847,8 +874,9 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllPipelined(pipelineConsumer, maxRetries, null);
   }
 
-  default List<Future<Void>> acceptAllPipelined(final Consumer<JedisPipeline> pipelineConsumer,
-      final int maxRetries, final ExecutorService executor) {
+  default List<CompletableFuture<Void>> acceptAllPipelined(
+      final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries,
+      final ExecutorService executor) {
 
     return acceptAll(jedis -> {
       final JedisPipeline pipeline = jedis.createPipeline();
@@ -861,7 +889,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllPipelinedTransaction(pipelineConsumer, getMaxRetries(), null);
   }
 
-  default List<Future<Void>> acceptAllPipelinedTransaction(
+  default List<CompletableFuture<Void>> acceptAllPipelinedTransaction(
       final Consumer<JedisPipeline> pipelineConsumer, final ExecutorService executor) {
 
     return acceptAllPipelinedTransaction(pipelineConsumer, getMaxRetries(), executor);
@@ -873,7 +901,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
     acceptAllPipelinedTransaction(pipelineConsumer, maxRetries, null);
   }
 
-  default List<Future<Void>> acceptAllPipelinedTransaction(
+  default List<CompletableFuture<Void>> acceptAllPipelinedTransaction(
       final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries,
       final ExecutorService executor) {
 

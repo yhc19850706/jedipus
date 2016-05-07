@@ -5,10 +5,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.commons.pool2.ObjectPool;
@@ -352,38 +351,27 @@ final class Jedipus implements JedisClusterExecutor {
   }
 
   @Override
-  public List<Future<Void>> acceptAllMasters(final Consumer<IJedis> jedisConsumer,
+  public <R> List<CompletableFuture<R>> applyAllMasters(final Function<IJedis, R> jedisConsumer,
       final int maxRetries, final ExecutorService executor) {
 
-    return acceptAll(connHandler.getMasterPools(), jedisConsumer, maxRetries, executor);
+    return applyAll(connHandler.getMasterPools(), jedisConsumer, maxRetries, executor);
   }
 
   @Override
-  public List<Future<Void>> acceptAllSlaves(final Consumer<IJedis> jedisConsumer,
+  public <R> List<CompletableFuture<R>> applyAllSlaves(final Function<IJedis, R> jedisConsumer,
       final int maxRetries, final ExecutorService executor) {
 
-    return acceptAll(connHandler.getSlavePools(), jedisConsumer, maxRetries, executor);
+    return applyAll(connHandler.getSlavePools(), jedisConsumer, maxRetries, executor);
   }
 
   @Override
-  public List<Future<Void>> acceptAll(final Consumer<IJedis> jedisConsumer, final int maxRetries,
-      final ExecutorService executor) {
+  public <R> List<CompletableFuture<R>> applyAll(final Function<IJedis, R> jedisConsumer,
+      final int maxRetries, final ExecutorService executor) {
 
-    return acceptAll(connHandler.getAllPools(), jedisConsumer, maxRetries, executor);
+    return applyAll(connHandler.getAllPools(), jedisConsumer, maxRetries, executor);
   }
 
-  private List<Future<Void>> acceptAll(final List<ObjectPool<IJedis>> pools,
-      final Consumer<IJedis> jedisConsumer, final int maxRetries, final ExecutorService executor) {
-
-    final Function<IJedis, Void> jedisFunction = jedis -> {
-      jedisConsumer.accept(jedis);
-      return null;
-    };
-
-    return applyAll(pools, jedisFunction, maxRetries, executor);
-  }
-
-  private <R> List<Future<R>> applyAll(final List<ObjectPool<IJedis>> pools,
+  private <R> List<CompletableFuture<R>> applyAll(final List<ObjectPool<IJedis>> pools,
       final Function<IJedis, R> jedisConsumer, final int maxRetries,
       final ExecutorService executor) {
 
@@ -395,11 +383,13 @@ final class Jedipus implements JedisClusterExecutor {
       return Collections.emptyList();
     }
 
-    final List<Future<R>> futures = new ArrayList<>(pools.size());
+    final List<CompletableFuture<R>> futures = new ArrayList<>(pools.size());
 
     for (final ObjectPool<IJedis> pool : pools) {
 
-      futures.add(executor.submit(() -> acceptPool(pool, jedisConsumer, maxRetries)));
+
+      futures.add(CompletableFuture.supplyAsync(() -> acceptPool(pool, jedisConsumer, maxRetries),
+          executor));
     }
 
     return futures;

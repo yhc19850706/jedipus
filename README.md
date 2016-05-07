@@ -77,9 +77,10 @@ try (final JedisClusterExecutor jce =
    // Ping-Pong all masters.
    jce.acceptAllMasters(master -> System.out.format("%s %s%n", master, master.ping()));
 
-   // Ping-Pong all slaves.
-   jce.acceptAllSlaves(slave -> System.out.format("%s %s%n", slave, slave.ping()),
-      ForkJoinPool.commonPool());
+   // Ping-Pong all slaves concurrently.
+   jce.applyAllSlaves(slave -> String.format("%s %s%n", slave, slave.ping()), 1,
+      ForkJoinPool.commonPool()).stream().map(CompletableFuture::join)
+      .forEach(System.out::println);
 
    // Hash tagged pipelined transaction.
    final String hashTag = RCUtils.createNameSpacedHashTag("HT");

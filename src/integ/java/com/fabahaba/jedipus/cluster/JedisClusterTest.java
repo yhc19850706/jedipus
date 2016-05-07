@@ -15,6 +15,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
@@ -190,18 +191,6 @@ public class JedisClusterTest {
         Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
-    }
-  }
-
-  private static void getFuture(final Future<?> future) {
-
-    try {
-      future.get();
-    } catch (final ExecutionException e) {
-      throw new RuntimeException(e.getCause());
-    } catch (final InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
     }
   }
 
@@ -494,7 +483,7 @@ public class JedisClusterTest {
       });
 
       jce.acceptAllMasters(master -> waitForClusterReady(master), executor)
-          .forEach(JedisClusterTest::getFuture);
+          .forEach(CompletableFuture::join);
 
       jce.acceptPipeline(slot, jedis -> {
         jedis.sadd(key, new byte[0]);
@@ -560,11 +549,11 @@ public class JedisClusterTest {
       try (final IJedis client = JedisFactory.startBuilding().create(slaves[0])) {
 
         jce.acceptAll(node -> assertTrue(node.clusterNodes().contains(client.getId())), executor)
-            .forEach(JedisClusterTest::getFuture);
+            .forEach(CompletableFuture::join);
         jce.acceptAll(node -> node.clusterForget(client.getId()), executor)
-            .forEach(JedisClusterTest::getFuture);
+            .forEach(CompletableFuture::join);
         jce.acceptAll(node -> assertFalse(node.clusterNodes().contains(client.getId())), executor)
-            .forEach(JedisClusterTest::getFuture);
+            .forEach(CompletableFuture::join);
       }
     }
   }
@@ -681,7 +670,7 @@ public class JedisClusterTest {
     final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes).create();
     try {
       jce.acceptAll(jedis -> assertEquals("PONG", jedis.ping()), executor)
-          .forEach(JedisClusterTest::getFuture);
+          .forEach(CompletableFuture::join);
     } finally {
       jce.close();
     }
