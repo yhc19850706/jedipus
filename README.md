@@ -12,7 +12,7 @@
 * Optional user supplied [`ClusterNode`](src/main/java/com/fabahaba/jedipus/cluster/ClusterNode.java) -> `ObjectPool<IJedis>` factories.
 * Load balance read-only requests across pools.  Optional user supplied `ObjectPool<IJedis>[]` -> [`LoadBalancedPools`](src/main/java/com/fabahaba/jedipus/concurrent/LoadBalancedPools.java) factories.  By default, a [round robin strategy](src/main/java/com/fabahaba/jedipus/cluster/RoundRobinPools.java) is used.
 * [Client side HostPort mapping to internally networked clusters](https://gist.github.com/jamespedwards42/5037cf03768280ab1d81a88e7929c608).
-* Configurable [retry delays](](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java) per cluster node for `JedisConnectionException's`.
+* Configurable [retry delays](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java) per cluster node for `JedisConnectionException's`.  By default, an [exponential backoff delay](src/main/java/com/fabahaba/jedipus/concurrent/SemaphoredRetryDelay.java) is used.
 * Execute against known or random nodes.
 * Utilities to manage and execute Lua scripts.
 
