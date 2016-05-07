@@ -199,7 +199,7 @@ public class JedisClusterTest {
     return (slot + MAX_SLOT_RANGE) % JedisCluster.HASHSLOTS;
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testMovedExceptionParameters() {
 
     final byte[] key = RESP.toBytes("42");
@@ -228,7 +228,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testThrowAskException() {
 
     final byte[] key = RESP.toBytes("test");
@@ -256,7 +256,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testDiscoverNodesAutomatically() {
 
     try (final IJedis jedis = JedisFactory.startBuilding().create(masters[0])) {
@@ -277,7 +277,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testReadonly() {
 
     try (final IJedis jedis = JedisFactory.startBuilding().create(masters[0])) {
@@ -302,7 +302,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testMigrate() {
 
     final String keyString = "MIGRATE";
@@ -378,7 +378,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testMigrateToNewNode() {
 
     final String keyString = "MIGRATE";
@@ -464,7 +464,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testRecalculateSlotsWhenMoved() {
 
     final byte[] key = RESP.toBytes("42");
@@ -494,7 +494,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testAskResponse() {
 
     final String key = "42";
@@ -524,7 +524,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test(expected = JedisClusterMaxRedirectionsException.class)
+  @Test(timeout = 3000, expected = JedisClusterMaxRedirectionsException.class)
   public void testRedisClusterMaxRedirections() {
 
     final byte[] key = RESP.toBytes("42");
@@ -540,7 +540,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testClusterForgetNode() throws InterruptedException {
 
     try (final JedisClusterExecutor jce =
@@ -558,7 +558,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testClusterFlushSlots() {
 
     final byte[] key = RESP.toBytes("42");
@@ -585,7 +585,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testClusterKeySlot() {
 
     try (final JedisClusterExecutor jce =
@@ -600,7 +600,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testClusterCountKeysInSlot() {
 
     final int slot = JedisClusterCRC16.getSlot("foo{bar}");
@@ -615,7 +615,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testStableSlotWhenMigratingNodeOrImportingNodeIsNotSpecified() {
 
     final String keyString = "42";
@@ -647,7 +647,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test(expected = NoSuchElementException.class)
+  @Test(timeout = 3000, expected = NoSuchElementException.class)
   public void testIfPoolConfigAppliesToClusterPools() {
 
     final GenericObjectPoolConfig config = new GenericObjectPoolConfig();
@@ -664,7 +664,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testCloseable() {
 
     final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes).create();
@@ -685,7 +685,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testJedisClusterTimeout() {
 
     final Function<ClusterNode, ObjectPool<IJedis>> poolFactory = node -> new GenericObjectPool<>(
@@ -702,7 +702,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testJedisClusterRunsWithMultithreaded()
       throws InterruptedException, ExecutionException {
 
@@ -785,7 +785,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test(expected = JedisClusterMaxRedirectionsException.class)
+  @Test(timeout = 3000, expected = JedisClusterMaxRedirectionsException.class)
   public void testReturnConnectionOnRedirection() {
 
     final byte[] key = RESP.toBytes("42");
@@ -801,7 +801,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testLocalhostNodeNotAddedWhen127Present() {
 
     try (final JedisClusterExecutor jce = JedisClusterExecutor
@@ -816,7 +816,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test
+  @Test(timeout = 3000)
   public void testInvalidStartNodeNotAdded() {
 
     try (final JedisClusterExecutor jce =

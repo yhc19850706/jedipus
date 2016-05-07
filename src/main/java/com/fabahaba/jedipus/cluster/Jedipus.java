@@ -387,7 +387,6 @@ final class Jedipus implements JedisClusterExecutor {
 
     for (final ObjectPool<IJedis> pool : pools) {
 
-
       futures.add(CompletableFuture.supplyAsync(() -> acceptPool(pool, jedisConsumer, maxRetries),
           executor));
     }
