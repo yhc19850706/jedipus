@@ -69,65 +69,66 @@ try (final JedisClusterExecutor jce =
 }
 ```
 
-```java 
+```java
 try (final JedisClusterExecutor jce =
       JedisClusterExecutor.startBuilding(ClusterNode.create("localhost", 7000))
          .withReadMode(ReadMode.MIXED_SLAVES).create()) {
 
-  // Ping-Pong all masters.
-  jce.acceptAllMasters(master -> System.out.format("%s %s%n", master, master.ping()));
+   // Ping-Pong all masters.
+   jce.acceptAllMasters(master -> System.out.format("%s %s%n", master, master.ping()));
 
-  // Ping-Pong all slaves.
-  jce.acceptAllSlaves(slave -> System.out.format("%s %s%n", slave, slave.ping()));
+   // Ping-Pong all slaves.
+   jce.acceptAllSlaves(slave -> System.out.format("%s %s%n", slave, slave.ping()),
+      ForkJoinPool.commonPool());
 
-  // Hash tagged pipelined transaction.
-  final String hashTag = RCUtils.createNameSpacedHashTag("HT");
-  final int slot = JedisClusterCRC16.getSlot(hashTag);
+   // Hash tagged pipelined transaction.
+   final String hashTag = RCUtils.createNameSpacedHashTag("HT");
+   final int slot = JedisClusterCRC16.getSlot(hashTag);
 
-  final String hashTaggedKey = hashTag + "key";
-  final String fooKey = hashTag + "foo";
+   final String hashTaggedKey = hashTag + "key";
+   final String fooKey = hashTag + "foo";
 
-  final Set<Tuple> zrangeResult =
-      jce.applyPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
+   final Set<Tuple> zrangeResult =
+   jce.applyPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
 
-        pipeline.set(hashTaggedKey, "value");
-        pipeline.zadd(fooKey, -1, "barowitch");
-        pipeline.zadd(fooKey, .37, "barinsky");
-        pipeline.zadd(fooKey, 42, "barikoviev");
+      pipeline.set(hashTaggedKey, "value");
+      pipeline.zadd(fooKey, -1, "barowitch");
+      pipeline.zadd(fooKey, .37, "barinsky");
+      pipeline.zadd(fooKey, 42, "barikoviev");
 
-        final Response<String> valueResponse = pipeline.get(hashTaggedKey);
-        final Response<Set<Tuple>> bars = pipeline.zrangeWithScores(fooKey, 0, -1);
+      final Response<String> valueResponse = pipeline.get(hashTaggedKey);
+      final Response<Set<Tuple>> bars = pipeline.zrangeWithScores(fooKey, 0, -1);
 
-        // Note: Pipelines and transactions are merely started by the the library.
-        // 'exec' and 'sync' must be called by the user.
-        pipeline.exec();
-        pipeline.sync();
+      // Note: Pipelines and transactions are merely started by the the library.
+      // 'exec' and 'sync' must be called by the user.
+      pipeline.exec();
+      pipeline.sync();
 
-        // Note: Responses must be captured within this lambda closure in order to properly
-        // leverage error handling.
+      // Note: Responses must be captured within this lambda closure in order to properly
+      // leverage error handling.
 
-        // '{HT}:key': value
-        System.out.format("%n'%s': %s%n", hashTaggedKey, valueResponse.get());
+      // '{HT}:key': value
+      System.out.format("%n'%s': %s%n", hashTaggedKey, valueResponse.get());
 
-        return bars.get();
-      });
+      return bars.get();
+   });
 
-  final String values = zrangeResult.stream()
+   final String values = zrangeResult.stream()
       .map(tuple -> String.format("%s (%s)", tuple.getElement(), tuple.getScore()))
       .collect(Collectors.joining(", "));
 
-  // '{HT}:foo': [barowitch (-1.0), barinsky (0.37), barikoviev (42.0)]
-  System.out.format("%n'%s': [%s]%n", fooKey, values);
+   // '{HT}:foo': [barowitch (-1.0), barinsky (0.37), barikoviev (42.0)]
+   System.out.format("%n'%s': [%s]%n", fooKey, values);
 
-  // Read from load balanced slave.
-  final String roResult =
-      jce.applyJedis(ReadMode.SLAVES, slot, jedis -> jedis.get(hashTaggedKey));
-  System.out.format("%n'%s': %s%n", hashTaggedKey, roResult);
+   // Read from load balanced slave.
+   final String roResult =
+   jce.applyJedis(ReadMode.SLAVES, slot, jedis -> jedis.get(hashTaggedKey));
+   System.out.format("%n'%s': %s%n", hashTaggedKey, roResult);
 
-  // cleanup
-  final long numRemoved =
-      jce.applyJedis(ReadMode.MASTER, slot, jedis -> jedis.del(hashTaggedKey, fooKey));
-  System.out.format("%nRemoved %d keys.%n", numRemoved);
+   // cleanup
+   final long numRemoved =
+   jce.applyJedis(ReadMode.MASTER, slot, jedis -> jedis.del(hashTaggedKey, fooKey));
+   System.out.format("%nRemoved %d keys.%n", numRemoved);
 }
 ```
 

@@ -1,8 +1,12 @@
 package com.fabahaba.jedipus.cluster;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -348,54 +352,88 @@ final class Jedipus implements JedisClusterExecutor {
   }
 
   @Override
-  public void acceptAllMasters(final Consumer<IJedis> jedisConsumer, final int maxRetries) {
+  public List<Future<Void>> acceptAllMasters(final Consumer<IJedis> jedisConsumer,
+      final int maxRetries, final ExecutorService executor) {
 
-    acceptAll(connHandler.getMasterPools(), jedisConsumer, maxRetries);
+    return acceptAll(connHandler.getMasterPools(), jedisConsumer, maxRetries, executor);
   }
 
   @Override
-  public void acceptAllSlaves(final Consumer<IJedis> jedisConsumer, final int maxRetries) {
+  public List<Future<Void>> acceptAllSlaves(final Consumer<IJedis> jedisConsumer,
+      final int maxRetries, final ExecutorService executor) {
 
-    acceptAll(connHandler.getSlavePools(), jedisConsumer, maxRetries);
+    return acceptAll(connHandler.getSlavePools(), jedisConsumer, maxRetries, executor);
   }
 
   @Override
-  public void acceptAll(final Consumer<IJedis> jedisConsumer, final int maxRetries) {
+  public List<Future<Void>> acceptAll(final Consumer<IJedis> jedisConsumer, final int maxRetries,
+      final ExecutorService executor) {
 
-    acceptAll(connHandler.getAllPools(), jedisConsumer, maxRetries);
+    return acceptAll(connHandler.getAllPools(), jedisConsumer, maxRetries, executor);
   }
 
-  private void acceptAll(final List<ObjectPool<IJedis>> pools, final Consumer<IJedis> jedisConsumer,
-      final int maxRetries) {
+  private List<Future<Void>> acceptAll(final List<ObjectPool<IJedis>> pools,
+      final Consumer<IJedis> jedisConsumer, final int maxRetries, final ExecutorService executor) {
+
+    final Function<IJedis, Void> jedisFunction = jedis -> {
+      jedisConsumer.accept(jedis);
+      return null;
+    };
+
+    return applyAll(pools, jedisFunction, maxRetries, executor);
+  }
+
+  private <R> List<Future<R>> applyAll(final List<ObjectPool<IJedis>> pools,
+      final Function<IJedis, R> jedisConsumer, final int maxRetries,
+      final ExecutorService executor) {
+
+    if (executor == null) {
+      for (final ObjectPool<IJedis> pool : pools) {
+        acceptPool(pool, jedisConsumer, maxRetries);
+      }
+
+      return Collections.emptyList();
+    }
+
+    final List<Future<R>> futures = new ArrayList<>(pools.size());
 
     for (final ObjectPool<IJedis> pool : pools) {
 
-      for (int retries = 0;;) {
+      futures.add(executor.submit(() -> acceptPool(pool, jedisConsumer, maxRetries)));
+    }
 
-        IJedis jedis = null;
-        try {
-          jedis = JedisPool.borrowObject(pool);
+    return futures;
+  }
 
-          jedisConsumer.accept(jedis);
+  private <R> R acceptPool(final ObjectPool<IJedis> pool, final Function<IJedis, R> jedisConsumer,
+      final int maxRetries) {
 
-          if (clusterNodeRetryDelay != null) {
-            clusterNodeRetryDelay.markSuccess(jedis.getClusterNode());
-          }
-          break;
-        } catch (final JedisConnectionException jce) {
+    for (int retries = 0;;) {
 
-          if (retries >= maxRetries) {
-            throw jce;
-          }
+      IJedis jedis = null;
+      try {
+        jedis = JedisPool.borrowObject(pool);
 
-          if (clusterNodeRetryDelay != null && jedis != null) {
-            clusterNodeRetryDelay.markFailure(jedis.getClusterNode(), retries);
-          }
-          retries++;
-          continue;
-        } finally {
-          JedisPool.returnJedis(pool, jedis);
+        final R result = jedisConsumer.apply(jedis);
+
+        if (clusterNodeRetryDelay != null) {
+          clusterNodeRetryDelay.markSuccess(jedis.getClusterNode());
         }
+
+        return result;
+      } catch (final JedisConnectionException jce) {
+
+        if (retries >= maxRetries) {
+          throw jce;
+        }
+
+        if (clusterNodeRetryDelay != null && jedis != null) {
+          clusterNodeRetryDelay.markFailure(jedis.getClusterNode(), retries);
+        }
+        retries++;
+        continue;
+      } finally {
+        JedisPool.returnJedis(pool, jedis);
       }
     }
   }

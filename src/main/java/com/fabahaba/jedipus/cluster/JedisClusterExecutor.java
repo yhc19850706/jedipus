@@ -2,6 +2,9 @@ package com.fabahaba.jedipus.cluster;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -661,111 +664,224 @@ public interface JedisClusterExecutor extends AutoCloseable {
 
   default void acceptAllMasters(final Consumer<IJedis> jedisConsumer) {
 
-    acceptAllMasters(jedisConsumer, getMaxRetries());
+    acceptAllMasters(jedisConsumer, getMaxRetries(), null);
   }
 
-  public void acceptAllMasters(final Consumer<IJedis> jedisConsumer, final int maxRetries);
+  default List<Future<Void>> acceptAllMasters(final Consumer<IJedis> jedisConsumer,
+      final ExecutorService executor) {
+
+    return acceptAllMasters(jedisConsumer, getMaxRetries(), executor);
+  }
+
+  default void acceptAllMasters(final Consumer<IJedis> jedisConsumer, final int maxRetries) {
+
+    acceptAllMasters(jedisConsumer, maxRetries, null);
+  }
+
+  public List<Future<Void>> acceptAllMasters(final Consumer<IJedis> jedisConsumer,
+      final int maxRetries, final ExecutorService executor);
 
   default void acceptAllPipelinedMasters(final Consumer<JedisPipeline> pipelineConsumer) {
 
-    acceptAllPipelinedMasters(pipelineConsumer, getMaxRetries());
+    acceptAllPipelinedMasters(pipelineConsumer, getMaxRetries(), null);
+  }
+
+  default List<Future<Void>> acceptAllPipelinedMasters(
+      final Consumer<JedisPipeline> pipelineConsumer, final ExecutorService executor) {
+
+    return acceptAllPipelinedMasters(pipelineConsumer, getMaxRetries(), executor);
   }
 
   default void acceptAllPipelinedMasters(final Consumer<JedisPipeline> pipelineConsumer,
       final int maxRetries) {
 
-    acceptAllMasters(jedis -> {
+    acceptAllPipelinedMasters(pipelineConsumer, maxRetries, null);
+  }
+
+  default List<Future<Void>> acceptAllPipelinedMasters(
+      final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries,
+      final ExecutorService executor) {
+
+    return acceptAllMasters(jedis -> {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipelineConsumer.accept(pipeline);
-    }, maxRetries);
+    }, maxRetries, executor);
   }
 
   default void acceptAllPipelinedTransactionMasters(
       final Consumer<JedisPipeline> pipelineConsumer) {
 
-    acceptAllPipelinedTransactionMasters(pipelineConsumer, getMaxRetries());
+    acceptAllPipelinedTransactionMasters(pipelineConsumer, getMaxRetries(), null);
+  }
+
+  default List<Future<Void>> acceptAllPipelinedTransactionMasters(
+      final Consumer<JedisPipeline> pipelineConsumer, final ExecutorService executor) {
+
+    return acceptAllPipelinedTransactionMasters(pipelineConsumer, getMaxRetries(), executor);
   }
 
   default void acceptAllPipelinedTransactionMasters(final Consumer<JedisPipeline> pipelineConsumer,
       final int maxRetries) {
 
-    acceptAllMasters(jedis -> {
+    acceptAllPipelinedTransactionMasters(pipelineConsumer, maxRetries, null);
+  }
+
+  default List<Future<Void>> acceptAllPipelinedTransactionMasters(
+      final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries,
+      final ExecutorService executor) {
+
+    return acceptAllMasters(jedis -> {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipeline.multi();
       pipelineConsumer.accept(pipeline);
-    }, maxRetries);
+    }, maxRetries, executor);
   }
 
   default void acceptAllSlaves(final Consumer<IJedis> jedisConsumer) {
 
-    acceptAllSlaves(jedisConsumer, getMaxRetries());
+    acceptAllSlaves(jedisConsumer, getMaxRetries(), null);
   }
 
-  public void acceptAllSlaves(final Consumer<IJedis> jedisConsumer, final int maxRetries);
+  default List<Future<Void>> acceptAllSlaves(final Consumer<IJedis> jedisConsumer,
+      final ExecutorService executor) {
+
+    return acceptAllSlaves(jedisConsumer, getMaxRetries(), executor);
+  }
+
+  default void acceptAllSlaves(final Consumer<IJedis> jedisConsumer, final int maxRetries) {
+
+    acceptAllSlaves(jedisConsumer, maxRetries, null);
+  }
+
+  public List<Future<Void>> acceptAllSlaves(final Consumer<IJedis> jedisConsumer,
+      final int maxRetries, final ExecutorService executor);
 
   default void acceptAllPipelinedSlaves(final Consumer<JedisPipeline> pipelineConsumer) {
 
-    acceptAllPipelinedSlaves(pipelineConsumer, getMaxRetries());
+    acceptAllPipelinedSlaves(pipelineConsumer, getMaxRetries(), null);
+  }
+
+  default List<Future<Void>> acceptAllPipelinedSlaves(
+      final Consumer<JedisPipeline> pipelineConsumer, final ExecutorService executor) {
+
+    return acceptAllPipelinedSlaves(pipelineConsumer, getMaxRetries(), executor);
   }
 
   default void acceptAllPipelinedSlaves(final Consumer<JedisPipeline> pipelineConsumer,
       final int maxRetries) {
 
-    acceptAllMasters(jedis -> {
+    acceptAllPipelinedSlaves(pipelineConsumer, maxRetries, null);
+  }
+
+  default List<Future<Void>> acceptAllPipelinedSlaves(
+      final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries,
+      final ExecutorService executor) {
+
+    return acceptAllSlaves(jedis -> {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipelineConsumer.accept(pipeline);
-    }, maxRetries);
+    }, maxRetries, executor);
   }
 
   default void acceptAllPipelinedTransactionSlaves(final Consumer<JedisPipeline> pipelineConsumer) {
 
-    acceptAllPipelinedTransactionSlaves(pipelineConsumer, getMaxRetries());
+    acceptAllPipelinedTransactionSlaves(pipelineConsumer, getMaxRetries(), null);
+  }
+
+  default List<Future<Void>> acceptAllPipelinedTransactionSlaves(
+      final Consumer<JedisPipeline> pipelineConsumer, final ExecutorService executor) {
+
+    return acceptAllPipelinedTransactionSlaves(pipelineConsumer, getMaxRetries(), executor);
   }
 
   default void acceptAllPipelinedTransactionSlaves(final Consumer<JedisPipeline> pipelineConsumer,
       final int maxRetries) {
 
-    acceptAllMasters(jedis -> {
+    acceptAllPipelinedTransactionSlaves(pipelineConsumer, maxRetries, null);
+  }
+
+  default List<Future<Void>> acceptAllPipelinedTransactionSlaves(
+      final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries,
+      final ExecutorService executor) {
+
+    return acceptAllSlaves(jedis -> {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipeline.multi();
       pipelineConsumer.accept(pipeline);
-    }, maxRetries);
+    }, maxRetries, executor);
   }
 
   default void acceptAll(final Consumer<IJedis> jedisConsumer) {
 
-    acceptAll(jedisConsumer, getMaxRetries());
+    acceptAll(jedisConsumer, getMaxRetries(), null);
   }
 
-  public void acceptAll(final Consumer<IJedis> jedisConsumer, final int maxRetries);
+  default List<Future<Void>> acceptAll(final Consumer<IJedis> jedisConsumer,
+      final ExecutorService executor) {
+
+    return acceptAll(jedisConsumer, getMaxRetries(), executor);
+  }
+
+  default void acceptAll(final Consumer<IJedis> jedisConsumer, final int maxRetries) {
+
+    acceptAll(jedisConsumer, maxRetries, null);
+  }
+
+  public List<Future<Void>> acceptAll(final Consumer<IJedis> jedisConsumer, final int maxRetries,
+      final ExecutorService executor);
 
   default void acceptAllPipelined(final Consumer<JedisPipeline> pipelineConsumer) {
 
-    acceptAllPipelined(pipelineConsumer, getMaxRetries());
+    acceptAllPipelined(pipelineConsumer, getMaxRetries(), null);
+  }
+
+  default List<Future<Void>> acceptAllPipelined(final Consumer<JedisPipeline> pipelineConsumer,
+      final ExecutorService executor) {
+
+    return acceptAllPipelined(pipelineConsumer, getMaxRetries(), executor);
   }
 
   default void acceptAllPipelined(final Consumer<JedisPipeline> pipelineConsumer,
       final int maxRetries) {
 
-    acceptAllMasters(jedis -> {
+    acceptAllPipelined(pipelineConsumer, maxRetries, null);
+  }
+
+  default List<Future<Void>> acceptAllPipelined(final Consumer<JedisPipeline> pipelineConsumer,
+      final int maxRetries, final ExecutorService executor) {
+
+    return acceptAll(jedis -> {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipelineConsumer.accept(pipeline);
-    }, maxRetries);
+    }, maxRetries, executor);
   }
 
   default void acceptAllPipelinedTransaction(final Consumer<JedisPipeline> pipelineConsumer) {
 
-    acceptAllPipelinedTransaction(pipelineConsumer, getMaxRetries());
+    acceptAllPipelinedTransaction(pipelineConsumer, getMaxRetries(), null);
+  }
+
+  default List<Future<Void>> acceptAllPipelinedTransaction(
+      final Consumer<JedisPipeline> pipelineConsumer, final ExecutorService executor) {
+
+    return acceptAllPipelinedTransaction(pipelineConsumer, getMaxRetries(), executor);
   }
 
   default void acceptAllPipelinedTransaction(final Consumer<JedisPipeline> pipelineConsumer,
       final int maxRetries) {
 
-    acceptAllMasters(jedis -> {
+    acceptAllPipelinedTransaction(pipelineConsumer, maxRetries, null);
+  }
+
+  default List<Future<Void>> acceptAllPipelinedTransaction(
+      final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries,
+      final ExecutorService executor) {
+
+    return acceptAll(jedis -> {
       final JedisPipeline pipeline = jedis.createPipeline();
       pipeline.multi();
       pipelineConsumer.accept(pipeline);
-    }, maxRetries);
+    }, maxRetries, executor);
   }
 
   default void acceptNodeIfPresent(final ClusterNode node, final Consumer<IJedis> jedisConsumer) {
