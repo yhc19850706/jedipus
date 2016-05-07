@@ -21,11 +21,12 @@ class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
       final Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory,
       final Function<ClusterNode, ObjectPool<IJedis>> slavePoolFactory,
       final Function<ClusterNode, IJedis> nodeUnknownFactory,
-      final Function<ObjectPool<IJedis>[], LoadBalancedPools> lbFactory) {
+      final Function<ObjectPool<IJedis>[], LoadBalancedPools> lbFactory,
+      final ElementRetryDelay<ClusterNode> clusterNodeRetryDelay) {
 
     super(defaultReadMode, true, durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes,
         masterPools, masterSlots, slavePools, slaveSlots, masterPoolFactory, slavePoolFactory,
-        nodeUnknownFactory, lbFactory);
+        nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
   }
 
   @Override

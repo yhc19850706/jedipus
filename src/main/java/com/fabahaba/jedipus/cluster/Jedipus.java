@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiFunction;
@@ -27,6 +28,9 @@ public final class Jedipus implements JedisClusterExecutor {
 
   private static final int DEFAULT_MAX_REDIRECTIONS = 2;
   private static final int DEFAULT_MAX_RETRIES = 2;
+  private static final ElementRetryDelay<ClusterNode> DEFAULT_RETRY_DELAY =
+      ElementRetryDelay.startBuilding().create();
+
   private static final int DEFAULT_TRY_RANDOM_AFTER = 1;
 
   private static final Duration DEFAULT_DURATION_BETWEEN_CACHE_REFRESH = Duration.ofMillis(20);
@@ -120,13 +124,11 @@ public final class Jedipus implements JedisClusterExecutor {
   private final int maxRetries;
   private final int tryRandomAfter;
 
-  private final ClusterNodeRetryDelay clusterNodeRetryDelay;
-
   private final JedisClusterConnHandler connHandler;
 
   private Jedipus(final ReadMode defaultReadMode, final Collection<ClusterNode> discoveryNodes,
       final int maxRedirections, final int maxRetries, final int tryRandomAfter,
-      final ClusterNodeRetryDelay clusterNodeRetryDelay, final boolean optimisticReads,
+      final ElementRetryDelay<ClusterNode> clusterNodeRetryDelay, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
       final Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory,
       final Function<ClusterNode, ObjectPool<IJedis>> slavePoolFactory,
@@ -135,13 +137,11 @@ public final class Jedipus implements JedisClusterExecutor {
 
     this.connHandler = new JedisClusterConnHandler(defaultReadMode, optimisticReads,
         durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes, masterPoolFactory,
-        slavePoolFactory, nodeUnknownFactory, lbFactory);
+        slavePoolFactory, nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
 
     this.maxRedirections = maxRedirections;
     this.maxRetries = maxRetries;
     this.tryRandomAfter = tryRandomAfter;
-
-    this.clusterNodeRetryDelay = clusterNodeRetryDelay;
   }
 
   @Override
@@ -166,9 +166,9 @@ public final class Jedipus implements JedisClusterExecutor {
   public <R> R applyJedis(final ReadMode readMode, final int slot,
       final Function<IJedis, R> jedisConsumer, final int maxRetries) {
 
-    ObjectPool<IJedis> askPool = null;
+    ClusterNode askNode = null;
 
-    int retries = 0;
+    long retries = 0;
 
     // Optimistic first try
     ObjectPool<IJedis> pool = null;
@@ -177,18 +177,13 @@ public final class Jedipus implements JedisClusterExecutor {
 
       pool = connHandler.getSlotPool(readMode, slot);
       jedis = JedisPool.borrowObject(pool);
-      return jedisConsumer.apply(jedis);
+      final R result = jedisConsumer.apply(jedis);
+      connHandler.getClusterNodeRetryDelay().markSuccess(jedis.getClusterNode(), retries);
+      return result;
     } catch (final JedisConnectionException jce) {
 
-      if (maxRetries == 0) {
-        throw jce;
-      }
-
-      if (clusterNodeRetryDelay != null && jedis != null) {
-        clusterNodeRetryDelay.markFailure(jedis.getClusterNode(), 0);
-      }
-
-      retries = 1;
+      retries = connHandler.getClusterNodeRetryDelay()
+          .markFailure(jedis == null ? null : jedis.getClusterNode(), maxRetries, jce, 0);
     } catch (final JedisAskDataException askEx) {
 
       try {
@@ -197,7 +192,7 @@ public final class Jedipus implements JedisClusterExecutor {
         jedis = null;
       }
 
-      askPool = connHandler.getAskPool(ClusterNode.create(askEx.getTargetNode()));
+      askNode = ClusterNode.create(askEx.getTargetNode());
     } catch (final JedisRedirectionException moveEx) {
 
       if (jedis == null) {
@@ -207,50 +202,36 @@ public final class Jedipus implements JedisClusterExecutor {
       }
     } finally {
       JedisPool.returnJedis(pool, jedis);
+      pool = null;
     }
 
-    for (int redirections = retries == 0 && askPool == null ? 1 : 0;;) {
+    for (int redirections = retries == 0 && askNode == null ? 1 : 0;;) {
 
       ObjectPool<IJedis> clientPool = null;
       IJedis client = null;
       try {
 
-        if (askPool == null) {
+        if (askNode == null) {
 
           clientPool = retries > tryRandomAfter ? connHandler.getRandomPool(readMode)
               : connHandler.getSlotPool(readMode, slot);
           client = JedisPool.borrowObject(clientPool);
 
           final R result = jedisConsumer.apply(client);
-          if (clusterNodeRetryDelay != null) {
-            clusterNodeRetryDelay.markSuccess(client.getClusterNode());
-          }
-
+          connHandler.getClusterNodeRetryDelay().markSuccess(client.getClusterNode(), retries);
           return result;
         }
 
-        IJedis askNode = null;
-        try {
-          askNode = JedisPool.borrowObject(askPool);
-          askNode.asking();
-          return jedisConsumer.apply(askNode);
-        } finally {
-          try {
-            JedisPool.returnJedis(askPool, askNode);
-          } finally {
-            askPool = null;
-          }
-        }
+        clientPool = connHandler.getAskPool(askNode);
+        client = JedisPool.borrowObject(clientPool);
+        client.asking();
+        final R result = jedisConsumer.apply(client);
+        connHandler.getClusterNodeRetryDelay().markSuccess(client.getClusterNode(), 0);
+        return result;
       } catch (final JedisConnectionException jce) {
 
-        if (retries >= maxRetries) {
-          throw jce;
-        }
-
-        if (clusterNodeRetryDelay != null && client != null) {
-          clusterNodeRetryDelay.markFailure(client.getClusterNode(), retries);
-        }
-        retries++;
+        retries = connHandler.getClusterNodeRetryDelay()
+            .markFailure(client == null ? null : client.getClusterNode(), maxRetries, jce, retries);
         continue;
       } catch (final JedisAskDataException askEx) {
 
@@ -260,13 +241,15 @@ public final class Jedipus implements JedisClusterExecutor {
           client = null;
         }
 
-        askPool = connHandler.getAskPool(ClusterNode.create(askEx.getTargetNode()));
+        askNode = ClusterNode.create(askEx.getTargetNode());
         continue;
       } catch (final JedisRedirectionException moveEx) {
 
         if (++redirections > maxRedirections) {
           throw new JedisClusterMaxRedirectionsException(moveEx);
         }
+
+        askNode = null;
 
         if (client == null) {
           connHandler.renewSlotCache(readMode);
@@ -284,7 +267,7 @@ public final class Jedipus implements JedisClusterExecutor {
   public <R> R applyNodeIfPresent(final ClusterNode node, final Function<IJedis, R> jedisConsumer,
       final int maxRetries) {
 
-    for (int retries = 0;;) {
+    for (long retries = 0;;) {
 
       ObjectPool<IJedis> pool = connHandler.getPoolIfPresent(node);
       if (pool == null) {
@@ -301,20 +284,12 @@ public final class Jedipus implements JedisClusterExecutor {
         jedis = JedisPool.borrowObject(pool);
 
         final R result = jedisConsumer.apply(jedis);
-        if (clusterNodeRetryDelay != null && retries > 0) {
-          clusterNodeRetryDelay.markSuccess(jedis.getClusterNode());
-        }
+        connHandler.getClusterNodeRetryDelay().markSuccess(jedis.getClusterNode(), retries);
         return result;
       } catch (final JedisConnectionException jce) {
 
-        if (retries >= maxRetries) {
-          throw jce;
-        }
-
-        if (clusterNodeRetryDelay != null && jedis != null) {
-          clusterNodeRetryDelay.markFailure(jedis.getClusterNode(), retries);
-        }
-        retries++;
+        retries = connHandler.getClusterNodeRetryDelay()
+            .markFailure(jedis == null ? node : jedis.getClusterNode(), maxRetries, jce, retries);
         continue;
       } finally {
         JedisPool.returnJedis(pool, jedis);
@@ -326,25 +301,17 @@ public final class Jedipus implements JedisClusterExecutor {
   public <R> R applyUnknownNode(final ClusterNode node, final Function<IJedis, R> jedisConsumer,
       final int maxRetries) {
 
-    for (int retries = 0;;) {
+    for (long retries = 0;;) {
 
       try (IJedis jedis = connHandler.createUnknownNode(node)) {
 
         final R result = jedisConsumer.apply(jedis);
-        if (clusterNodeRetryDelay != null && retries > 0) {
-          clusterNodeRetryDelay.markSuccess(node);
-        }
+        connHandler.getClusterNodeRetryDelay().markSuccess(node, retries);
         return result;
       } catch (final JedisConnectionException jce) {
 
-        if (++retries > maxRetries) {
-          throw jce;
-        }
-
-        if (clusterNodeRetryDelay != null) {
-          clusterNodeRetryDelay.markFailure(node, retries);
-        }
-
+        retries =
+            connHandler.getClusterNodeRetryDelay().markFailure(node, maxRetries, jce, retries);
         continue;
       }
     }
@@ -371,55 +338,42 @@ public final class Jedipus implements JedisClusterExecutor {
     return applyAll(connHandler.getAllPools(), jedisConsumer, maxRetries, executor);
   }
 
-  private <R> List<CompletableFuture<R>> applyAll(final List<ObjectPool<IJedis>> pools,
+  private <R> List<CompletableFuture<R>> applyAll(final Map<ClusterNode, ObjectPool<IJedis>> pools,
       final Function<IJedis, R> jedisConsumer, final int maxRetries,
       final ExecutorService executor) {
 
     if (executor == null) {
-      for (final ObjectPool<IJedis> pool : pools) {
-        acceptPool(pool, jedisConsumer, maxRetries);
-      }
+      pools.forEach((node, pool) -> acceptPool(node, pool, jedisConsumer, maxRetries));
 
       return Collections.emptyList();
     }
 
     final List<CompletableFuture<R>> futures = new ArrayList<>(pools.size());
 
-    for (final ObjectPool<IJedis> pool : pools) {
-
-      futures.add(CompletableFuture.supplyAsync(() -> acceptPool(pool, jedisConsumer, maxRetries),
-          executor));
-    }
+    pools.forEach((node, pool) -> {
+      futures.add(CompletableFuture
+          .supplyAsync(() -> acceptPool(node, pool, jedisConsumer, maxRetries), executor));
+    });
 
     return futures;
   }
 
-  private <R> R acceptPool(final ObjectPool<IJedis> pool, final Function<IJedis, R> jedisConsumer,
-      final int maxRetries) {
+  private <R> R acceptPool(final ClusterNode node, final ObjectPool<IJedis> pool,
+      final Function<IJedis, R> jedisConsumer, final int maxRetries) {
 
-    for (int retries = 0;;) {
+    for (long retries = 0;;) {
 
       IJedis jedis = null;
       try {
         jedis = JedisPool.borrowObject(pool);
 
         final R result = jedisConsumer.apply(jedis);
-
-        if (clusterNodeRetryDelay != null) {
-          clusterNodeRetryDelay.markSuccess(jedis.getClusterNode());
-        }
-
+        connHandler.getClusterNodeRetryDelay().markSuccess(jedis.getClusterNode(), retries);
         return result;
       } catch (final JedisConnectionException jce) {
 
-        if (retries >= maxRetries) {
-          throw jce;
-        }
-
-        if (clusterNodeRetryDelay != null && jedis != null) {
-          clusterNodeRetryDelay.markFailure(jedis.getClusterNode(), retries);
-        }
-        retries++;
+        retries = connHandler.getClusterNodeRetryDelay()
+            .markFailure(jedis == null ? node : jedis.getClusterNode(), maxRetries, jce, retries);
         continue;
       } finally {
         JedisPool.returnJedis(pool, jedis);
@@ -445,8 +399,8 @@ public final class Jedipus implements JedisClusterExecutor {
     private Collection<ClusterNode> discoveryNodes;
     private int maxRedirections = DEFAULT_MAX_REDIRECTIONS;
     private int maxRetries = DEFAULT_MAX_RETRIES;
+    private ElementRetryDelay<ClusterNode> clusterNodeRetryDelay = DEFAULT_RETRY_DELAY;
     private int tryRandomAfter = DEFAULT_TRY_RANDOM_AFTER;
-    private ClusterNodeRetryDelay clusterNodeRetryDelay;
     private GenericObjectPoolConfig poolConfig = DEFAULT_POOL_CONFIG;
     private Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory =
         DEFAULT_MASTER_POOL_FACTORY;
@@ -521,11 +475,11 @@ public final class Jedipus implements JedisClusterExecutor {
       return this;
     }
 
-    public ClusterNodeRetryDelay getHostPortRetryDelay() {
+    public ElementRetryDelay<ClusterNode> getHostPortRetryDelay() {
       return clusterNodeRetryDelay;
     }
 
-    public Builder withHostPortRetryDelay(final ClusterNodeRetryDelay hostPortRetryDelay) {
+    public Builder withHostPortRetryDelay(final ElementRetryDelay<ClusterNode> hostPortRetryDelay) {
       this.clusterNodeRetryDelay = hostPortRetryDelay;
       return this;
     }
