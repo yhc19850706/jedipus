@@ -7,7 +7,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 
-class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
+public class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
 
   private final Map<E, RetrySemaphore> retrySemaphores;
   private final Function<Long, Duration> delayFunction;
@@ -100,8 +100,16 @@ class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
     @Override
     public String toString() {
 
-      return new StringBuilder("RetryMutex [failureAdder=").append(failureAdder).append(", mutex=")
-          .append(semaphore).append("]").toString();
+      return new StringBuilder("RetryMutex [failureAdder=").append(failureAdder)
+          .append(", semaphore=").append(semaphore).append("]").toString();
     }
+  }
+
+  @Override
+  public String toString() {
+
+    return new StringBuilder("SemaphoredRetryDelay [retrySemaphores=").append(retrySemaphores)
+        .append(", maxDelayMillis=").append(maxDelayMillis).append(", numConurrentRetries=")
+        .append(numConurrentRetries).append("]").toString();
   }
 }

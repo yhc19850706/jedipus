@@ -56,12 +56,6 @@ model {
             module 'org.apache.commons:commons-pool2:+'
             module 'redis.clients:jedis:+'
          }
-
-         api {
-            dependencies {
-               module 'org.apache.commons:commons-pool2:+'
-            }
-         }
       }
    }
 
@@ -73,7 +67,6 @@ model {
          dependencies {
             module 'org.apache.commons:commons-pool2:+'
             module 'redis.clients:jedis:+'
-            module 'org.mockito:mockito-core:+'
          }
 
          /*test {
