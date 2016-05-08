@@ -83,4 +83,32 @@ class PrimPipeline extends Pipeline implements JedisPipeline {
       return DirectBuilder.class.getSimpleName();
     }
   }
+
+  @Override
+  public Response<Object> sendCmd(final Command cmd, final byte[]... args) {
+
+    return sendCmd(cmd, DIRECT_BUILDER, args);
+  }
+
+  @Override
+  public <T> Response<T> sendCmd(final Command cmd, final Builder<T> responseBuilder,
+      final byte[]... args) {
+
+    client.sendCmd(cmd, args);
+    return getResponse(responseBuilder);
+  }
+
+  @Override
+  public Response<Object> sendCmd(final Command cmd, final String... args) {
+
+    return sendCmd(cmd, DIRECT_BUILDER, args);
+  }
+
+  @Override
+  public <T> Response<T> sendCmd(final Command cmd, final Builder<T> responseBuilder,
+      final String... args) {
+
+    client.sendCmd(cmd, args);
+    return getResponse(responseBuilder);
+  }
 }

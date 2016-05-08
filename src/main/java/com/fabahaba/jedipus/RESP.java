@@ -34,7 +34,7 @@ public final class RESP {
 
   public static String toString(final byte[] bytes) {
 
-    return new String(bytes, StandardCharsets.UTF_8);
+    return bytes == null ? null : new String(bytes, StandardCharsets.UTF_8);
   }
 
   public static int toInt(final Object bytes) {

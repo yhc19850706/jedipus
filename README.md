@@ -14,7 +14,7 @@
 * [Client side HostPort mapping to internally networked clusters](https://gist.github.com/jamespedwards42/5037cf03768280ab1d81a88e7929c608).
 * Configurable [retry delays](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java) per cluster node for `JedisConnectionException's`.  By default, an [exponential backoff delay](src/main/java/com/fabahaba/jedipus/concurrent/SemaphoredRetryDelay.java) is used.
 * Execute against known or random nodes.
-* Utilities to manage and execute Lua scripts.
+* Utilities to manage and execute Lua scripts, see [RedisLock Gist](https://gist.github.com/jamespedwards42/46bc6fcd6e2c81315d2d63a4e80b527f).
 
 ######Read Modes
 >Read modes control how pools to master and slave nodes are managed.
@@ -93,7 +93,9 @@ try (final JedisClusterExecutor jce =
    final Set<Tuple> zrangeResult =
    jce.applyPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
 
-      pipeline.set(hashTaggedKey, "value");
+      // Direct command execution.
+      pipeline.sendCmd(Command.SET, hashTaggedKey, "value");
+
       pipeline.zadd(fooKey, -1, "barowitch");
       pipeline.zadd(fooKey, .37, "barinsky");
       pipeline.zadd(fooKey, 42, "barikoviev");
@@ -132,95 +134,4 @@ try (final JedisClusterExecutor jce =
    jce.applyJedis(ReadMode.MASTER, slot, jedis -> jedis.del(hashTaggedKey, fooKey));
    System.out.format("%nRemoved %d keys.%n", numRemoved);
 }
-```
-
-#####Lua Redis Lock
-
-```java
-public final class RedisLock {
-
-  private RedisLock() {}
-
-   private static final LuaScript<List<Object>> TRY_ACQUIRE_LOCK =
-     LuaScript.fromResourcePath("/TRY_ACQUIRE_LOCK.lua");
-
-   private static final LuaScript<byte[]> TRY_RELEASE_LOCK =
-     LuaScript.fromResourcePath("/TRY_RELEASE_LOCK.lua");
-
-   public static void main(final String[] args) {
-
-      final Collection<ClusterNode> discoveryNodes =
-         Collections.singleton(ClusterNode.create("localhost", 7000));
-
-      try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
-
-         LuaScript.loadMissingScripts(jce, TRY_ACQUIRE_LOCK, TRY_RELEASE_LOCK);
-
-         final byte[] lockName = RESP.toBytes("mylock");
-         final byte[] ownerId = RESP.toBytes("myOwnerId");
-         final byte[] pexpire = RESP.toBytes(1000);
-
-         final List<Object> lockOwners = TRY_ACQUIRE_LOCK.eval(jce, 1, lockName, ownerId, pexpire);
-
-         // final byte[] previousOwner = (byte[]) lockOwners.get(0);
-         final byte[] currentOwner = (byte[]) lockOwners.get(1);
-         final long pttl = (long) lockOwners.get(2);
-
-         // 'myOwnerId' has lock 'mylock' for 1000ms.
-         System.out.format("'%s' has lock '%s' for %dms.%n", RESP.toString(currentOwner),
-             RESP.toString(lockName), pttl);
-
-         final byte[] tryReleaseOwner = TRY_RELEASE_LOCK.eval(jce, 1, lockName, ownerId);
-
-         if (tryReleaseOwner != null && Arrays.equals(tryReleaseOwner, ownerId)) {
-           // Lock was released by 'myOwnerId'.
-           System.out.format("Lock was released by '%s'.%n", RESP.toString(ownerId));
-         } else {
-           System.out.format("Lock was no longer owned by '%s'.%n", RESP.toString(ownerId));
-         }
-      }
-   }
-}
-```
-
-**src/main/resoures/TRY_ACQUIRE_LOCK.lua**
-```lua
--- Returns the previous owner, the current owner and the pttl for the lock.
--- Returns either {null, lockOwner, pexpire}, {owner, owner, pexpire} or {owner, owner, pttl}.
--- The previous owner is null if 'lockOwner' newly acquired the lock. Otherwise, the previous
---   owner will be same value as the current owner. If the current owner is equal to the supplied
---   'lockOwner' argument then the ownership claim will remain active for 'pexpire' milliseconds.
-
-local lockName = KEYS[1];
-local lockOwner = ARGV[1];
-
-local owner = redis.call('get', lockName);
-
-if not owner or owner == lockOwner then
-
-   local px = tonumber(ARGV[2]);
-
-   redis.call('set', lockName, lockOwner, 'PX', px);
-
-   return {owner, lockOwner, px};
-end
-
-return {owner, owner, redis.call('pttl', lockName)};
-```
-
-**src/main/resoures/TRY_RELEASE_LOCK.lua**
-```lua
--- Returns the current owner at the time of this call.
--- The 'lockName' key is deleted if the requesting owner matches the current.
-
-local lockName = KEYS[1];
-local lockOwner = ARGV[1];
-
-local currentOwner = redis.call('get', lockName);
-
-if lockOwner == currentOwner then
-   redis.call('del', lockName);
-end
-
-return currentOwner;
 ```
