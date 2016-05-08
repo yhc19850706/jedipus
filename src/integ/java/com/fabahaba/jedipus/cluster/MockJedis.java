@@ -44,6 +44,12 @@ public abstract class MockJedis extends Jedis implements IJedis {
   }
 
   @Override
+  public JedisPipeline createOrUseExistingPipeline() {
+
+    return null;
+  }
+
+  @Override
   public JedisTransaction createMulti() {
 
     return null;

@@ -17,6 +17,11 @@ public final class RESP {
     return toBytes(String.valueOf(num));
   }
 
+  public static byte[] toBytes(final double num) {
+
+    return toBytes(String.valueOf(num));
+  }
+
   public static byte[] toBytes(final String string) {
 
     return string.getBytes(StandardCharsets.UTF_8);

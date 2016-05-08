@@ -11,9 +11,9 @@ import redis.clients.jedis.MultiKeyBinaryCommands;
 import redis.clients.jedis.MultiKeyCommands;
 import redis.clients.jedis.ScriptingCommands;
 
-public interface IJedis extends JedisClient, JedisCommands, MultiKeyCommands, AdvancedJedisCommands,
-    ScriptingCommands, BasicCommands, ClusterCommands, BinaryJedisCommands, MultiKeyBinaryCommands,
-    AdvancedBinaryJedisCommands, BinaryScriptingCommands {
+public interface IJedis extends JedisClient, BasicCommands, ClusterCommands, JedisCommands,
+    MultiKeyCommands, BinaryJedisCommands, MultiKeyBinaryCommands, AdvancedJedisCommands,
+    AdvancedBinaryJedisCommands, ScriptingCommands, BinaryScriptingCommands {
 
   public String clientSetname(final String name);
 
@@ -22,6 +22,8 @@ public interface IJedis extends JedisClient, JedisCommands, MultiKeyCommands, Ad
   public String clientGetname();
 
   public JedisPipeline createPipeline();
+
+  public JedisPipeline createOrUseExistingPipeline();
 
   public JedisTransaction createMulti();
 

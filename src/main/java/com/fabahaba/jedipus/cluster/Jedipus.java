@@ -168,7 +168,7 @@ public final class Jedipus implements JedisClusterExecutor {
 
   @Override
   public <R> R applyJedis(final ReadMode readMode, final int slot,
-      final Function<IJedis, R> jedisConsumer, final int maxRetries) {
+      final Function<IJedis, R> jedisConsumer, final int maxRetries, final boolean wantsPipeline) {
 
     ClusterNode askNode = null;
 
@@ -233,7 +233,11 @@ public final class Jedipus implements JedisClusterExecutor {
 
         clientPool = connHandler.getAskPool(askNode);
         client = JedisPool.borrowObject(clientPool);
-        client.asking();
+        if (wantsPipeline) {
+          client.createPipeline().asking();
+        } else {
+          client.asking();
+        }
         final R result = jedisConsumer.apply(client);
         connHandler.getClusterNodeRetryDelay().markSuccess(client.getClusterNode(), 0);
         return result;

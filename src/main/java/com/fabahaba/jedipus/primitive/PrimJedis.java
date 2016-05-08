@@ -1,5 +1,7 @@
 package com.fabahaba.jedipus.primitive;
 
+import java.util.List;
+
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocketFactory;
@@ -11,11 +13,12 @@ import com.fabahaba.jedipus.cluster.ClusterNode;
 import com.fabahaba.jedipus.cluster.RCUtils;
 
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Protocol.Command;
 import redis.clients.util.Pool;
 
 class PrimJedis extends Jedis implements IJedis {
 
-  private final ClusterNode node;
+  private final PrimClient primClient;
 
   PrimJedis(final ClusterNode node, final int connTimeout, final int soTimeout) {
 
@@ -26,9 +29,11 @@ class PrimJedis extends Jedis implements IJedis {
       final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
       final HostnameVerifier hostnameVerifier) {
 
-    super(node.getHost(), node.getPort(), connTimeout, soTimeout);
+    super();
 
-    this.node = node;
+    this.primClient = new PrimClient(node, connTimeout, soTimeout, ssl, sslSocketFactory,
+        sslParameters, hostnameVerifier);
+    this.client = primClient;
   }
 
   @Override
@@ -62,11 +67,25 @@ class PrimJedis extends Jedis implements IJedis {
   @Override
   public ClusterNode getClusterNode() {
 
-    return node;
+    return primClient.getClusterNode();
   }
 
   @Override
   public JedisPipeline createPipeline() {
+
+    final PrimPipeline pipeline = new PrimPipeline();
+    pipeline.setClient(client);
+    this.pipeline = pipeline;
+
+    return pipeline;
+  }
+
+  @Override
+  public JedisPipeline createOrUseExistingPipeline() {
+
+    if (pipeline != null && pipeline instanceof PrimPipeline) {
+      return (PrimPipeline) pipeline;
+    }
 
     final PrimPipeline pipeline = new PrimPipeline();
     pipeline.setClient(client);
@@ -84,18 +103,58 @@ class PrimJedis extends Jedis implements IJedis {
     return transaction;
   }
 
-  @Override
-  public void setDataSource(final Pool<Jedis> jedisPool) {}
+  public String cmdWithStatusCodeReply(final Command cmd, final byte[]... args) {
+    checkIsInMultiOrPipeline();
+    primClient.sendCmd(cmd, args);
+    return primClient.getStatusCodeReply();
+  }
 
-  @Override
-  public String toString() {
+  public byte[] cmdWithBinaryBulkReply(final Command cmd, final byte[]... args) {
+    checkIsInMultiOrPipeline();
+    primClient.sendCmd(cmd, args);
+    return primClient.getBinaryBulkReply();
+  }
 
-    return node.toString();
+  public List<byte[]> cmdWithBinaryMultiBulkReply(final Command cmd, final byte[]... args) {
+    checkIsInMultiOrPipeline();
+    primClient.sendCmd(cmd, args);
+    return primClient.getBinaryMultiBulkReply();
+  }
+
+  public String cmdWithBulkReply(final Command cmd, final byte[]... args) {
+    checkIsInMultiOrPipeline();
+    primClient.sendCmd(cmd, args);
+    return primClient.getBulkReply();
+  }
+
+  public Long cmdWithIntegerReply(final Command cmd, final byte[]... args) {
+    checkIsInMultiOrPipeline();
+    primClient.sendCmd(cmd, args);
+    return primClient.getIntegerReply();
+  }
+
+  public List<Long> cmdWithIntegerMultiBulkReply(final Command cmd, final byte[]... args) {
+    checkIsInMultiOrPipeline();
+    primClient.sendCmd(cmd, args);
+    return primClient.getIntegerMultiBulkReply();
+  }
+
+  public List<String> cmdWithMultiBulkReply(final Command cmd, final byte[]... args) {
+    checkIsInMultiOrPipeline();
+    primClient.sendCmd(cmd, args);
+    return primClient.getMultiBulkReply();
+  }
+
+  public List<Object> cmdWithObjectMultiBulkReply(final Command cmd, final byte[]... args) {
+    checkIsInMultiOrPipeline();
+    primClient.sendCmd(cmd, args);
+    return primClient.getObjectMultiBulkReply();
   }
 
   @Override
   public String getId() {
 
+    final ClusterNode node = getClusterNode();
     String id = node.getId();
 
     if (id == null) {
@@ -108,5 +167,14 @@ class PrimJedis extends Jedis implements IJedis {
     }
 
     return id;
+  }
+
+  @Override
+  public void setDataSource(final Pool<Jedis> jedisPool) {}
+
+  @Override
+  public String toString() {
+
+    return primClient.toString();
   }
 }

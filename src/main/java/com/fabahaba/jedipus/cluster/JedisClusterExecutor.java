@@ -44,8 +44,14 @@ public interface JedisClusterExecutor extends AutoCloseable {
   @Override
   public void close();
 
+  default <R> R applyJedis(final ReadMode readMode, final int slot,
+      final Function<IJedis, R> jedisConsumer, final int maxRetries) {
+
+    return applyJedis(readMode, slot, jedisConsumer, maxRetries, false);
+  }
+
   public <R> R applyJedis(final ReadMode readMode, final int slot,
-      final Function<IJedis, R> jedisConsumer, final int maxRetries);
+      final Function<IJedis, R> jedisConsumer, final int maxRetries, final boolean wantsPipeline);
 
   default void acceptJedis(final Consumer<IJedis> jedisConsumer) {
 
@@ -435,9 +441,9 @@ public interface JedisClusterExecutor extends AutoCloseable {
       final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries) {
 
     applyJedis(readMode, slot, jedis -> {
-      pipelineConsumer.accept(jedis.createPipeline());
+      pipelineConsumer.accept(jedis.createOrUseExistingPipeline());
       return null;
-    }, maxRetries);
+    }, maxRetries, true);
   }
 
   default <R> R applyPipelinedTransaction(final Function<JedisPipeline, R> pipelineConsumer) {
@@ -545,10 +551,10 @@ public interface JedisClusterExecutor extends AutoCloseable {
       final Function<JedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
     return applyJedis(readMode, slot, jedis -> {
-      final JedisPipeline pipeline = jedis.createPipeline();
+      final JedisPipeline pipeline = jedis.createOrUseExistingPipeline();
       pipeline.multi();
       return pipelineConsumer.apply(pipeline);
-    }, maxRetries);
+    }, maxRetries, true);
   }
 
   default void acceptPipelinedTransaction(final Consumer<JedisPipeline> pipelineConsumer) {
@@ -655,11 +661,11 @@ public interface JedisClusterExecutor extends AutoCloseable {
       final Consumer<JedisPipeline> pipelineConsumer, final int maxRetries) {
 
     applyJedis(readMode, slot, jedis -> {
-      final JedisPipeline pipeline = jedis.createPipeline();
+      final JedisPipeline pipeline = jedis.createOrUseExistingPipeline();
       pipeline.multi();
       pipelineConsumer.accept(pipeline);
       return null;
-    }, maxRetries);
+    }, maxRetries, true);
   }
 
   default void acceptAllMasters(final Consumer<IJedis> jedisConsumer) {
