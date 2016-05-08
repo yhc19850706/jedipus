@@ -1,5 +1,7 @@
 package com.fabahaba.jedipus;
 
+import java.util.List;
+
 import redis.clients.jedis.AdvancedBinaryJedisCommands;
 import redis.clients.jedis.AdvancedJedisCommands;
 import redis.clients.jedis.BasicCommands;
@@ -9,6 +11,7 @@ import redis.clients.jedis.ClusterCommands;
 import redis.clients.jedis.JedisCommands;
 import redis.clients.jedis.MultiKeyBinaryCommands;
 import redis.clients.jedis.MultiKeyCommands;
+import redis.clients.jedis.Protocol.Command;
 import redis.clients.jedis.ScriptingCommands;
 
 public interface IJedis extends JedisClient, BasicCommands, ClusterCommands, JedisCommands,
@@ -41,4 +44,20 @@ public interface IJedis extends JedisClient, BasicCommands, ClusterCommands, Jed
   public String clientKill(final byte[] client);
 
   public String clientList();
+
+  public String cmdWithStatusCodeReply(final Command cmd, final byte[]... args);
+
+  public byte[] cmdWithBinaryBulkReply(final Command cmd, final byte[]... args);
+
+  public List<byte[]> cmdWithBinaryMultiBulkReply(final Command cmd, final byte[]... args);
+
+  public String cmdWithBulkReply(final Command cmd, final byte[]... args);
+
+  public Long cmdWithIntegerReply(final Command cmd, final byte[]... args);
+
+  public List<Long> cmdWithIntegerMultiBulkReply(final Command cmd, final byte[]... args);
+
+  public List<String> cmdWithMultiBulkReply(final Command cmd, final byte[]... args);
+
+  public List<Object> cmdWithObjectMultiBulkReply(final Command cmd, final byte[]... args);
 }

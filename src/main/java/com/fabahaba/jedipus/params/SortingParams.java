@@ -38,6 +38,11 @@ public final class SortingParams {
       return count;
     }
 
+    public byte[][] create(final String key) {
+
+      return create(RESP.toBytes(key));
+    }
+
     public byte[][] create(final byte[] key) {
 
       final byte[][] params = new byte[1 + getOpsCount(ops)][];
@@ -56,7 +61,7 @@ public final class SortingParams {
 
     public byte[][] create(final String key, final String... getPatterns) {
 
-      final byte[][] params = new byte[getOpsCount(ops) + 2 * getPatterns.length][];
+      final byte[][] params = new byte[1 + getOpsCount(ops) + 2 * getPatterns.length][];
 
       params[0] = RESP.toBytes(key);
 
@@ -77,7 +82,7 @@ public final class SortingParams {
 
     public byte[][] create(final byte[] key, final byte[]... getPatterns) {
 
-      final byte[][] params = new byte[getOpsCount(ops) + 2 * getPatterns.length][];
+      final byte[][] params = new byte[1 + getOpsCount(ops) + 2 * getPatterns.length][];
 
       params[0] = key;
 

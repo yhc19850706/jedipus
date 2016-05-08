@@ -1,10 +1,13 @@
 package com.fabahaba.jedipus.cluster;
 
+import java.util.List;
+
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.JedisPipeline;
 import com.fabahaba.jedipus.JedisTransaction;
 
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Protocol.Command;
 
 public abstract class MockJedis extends Jedis implements IJedis {
 
@@ -57,6 +60,54 @@ public abstract class MockJedis extends Jedis implements IJedis {
 
   @Override
   public String getId() {
+
+    return null;
+  }
+
+  @Override
+  public String cmdWithStatusCodeReply(final Command cmd, final byte[]... args) {
+
+    return null;
+  }
+
+  @Override
+  public byte[] cmdWithBinaryBulkReply(final Command cmd, final byte[]... args) {
+
+    return new byte[0];
+  }
+
+  @Override
+  public List<byte[]> cmdWithBinaryMultiBulkReply(final Command cmd, final byte[]... args) {
+
+    return null;
+  }
+
+  @Override
+  public String cmdWithBulkReply(final Command cmd, final byte[]... args) {
+
+    return null;
+  }
+
+  @Override
+  public Long cmdWithIntegerReply(final Command cmd, final byte[]... args) {
+
+    return null;
+  }
+
+  @Override
+  public List<Long> cmdWithIntegerMultiBulkReply(final Command cmd, final byte[]... args) {
+
+    return null;
+  }
+
+  @Override
+  public List<String> cmdWithMultiBulkReply(final Command cmd, final byte[]... args) {
+
+    return null;
+  }
+
+  @Override
+  public List<Object> cmdWithObjectMultiBulkReply(final Command cmd, final byte[]... args) {
 
     return null;
   }
