@@ -47,14 +47,19 @@ public interface ElementRetryDelay<E> {
     return exponentialBackoff(baseFactor.toMillis());
   }
 
+  static final Duration DELAY_FOREVER = Duration.ofNanos(Long.MAX_VALUE);
+
   /**
    * @param baseFactorMillis used as {@code Math.exp(x) * baseFactorMillis}.
    * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
-   *         multiplies it by the {@code baseFactor}.
+   *         multiplies it by the {@code baseFactorMillis}.
    */
-  public static LongFunction<Duration> exponentialBackoff(final long baseFactorMillis) {
+  public static LongFunction<Duration> exponentialBackoff(final double baseFactorMillis) {
 
-    return x -> Duration.ofMillis((long) (Math.exp(x) * baseFactorMillis));
+    final long maxX = (long) Math.log(Long.MAX_VALUE / baseFactorMillis);
+
+    return x -> x >= maxX ? DELAY_FOREVER
+        : Duration.ofMillis((long) (Math.exp(x) * baseFactorMillis));
   }
 
   public static Builder startBuilding() {
