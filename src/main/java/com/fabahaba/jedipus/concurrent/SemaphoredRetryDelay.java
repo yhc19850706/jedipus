@@ -1,26 +1,27 @@
 package com.fabahaba.jedipus.concurrent;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
-import java.util.function.LongUnaryOperator;
+import java.util.function.LongFunction;
 
 public class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
 
   private final Map<E, RetrySemaphore> retrySemaphores;
-  private final LongUnaryOperator delayFunction;
-  private final long maxDelayMillis;
+  private final LongFunction<Duration> delayFunction;
+  private final Duration maxDelay;
   private final Function<E, RetrySemaphore> retrySemaphoreFactory;
 
-  SemaphoredRetryDelay(final int numConurrentRetries, final LongUnaryOperator delayFunction,
-      final long maxDelayMillis) {
+  SemaphoredRetryDelay(final int numConurrentRetries, final LongFunction<Duration> delayFunction,
+      final Duration maxDelay) {
 
     this.retrySemaphores = new ConcurrentHashMap<>();
     this.retrySemaphoreFactory = e -> new RetrySemaphore(numConurrentRetries);
     this.delayFunction = delayFunction;
-    this.maxDelayMillis = maxDelayMillis;
+    this.maxDelay = maxDelay;
   }
 
   @Override
@@ -51,9 +52,9 @@ public class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
       retrySemaphore.semaphore.acquire();
 
       numFailures = retrySemaphore.failureAdder.sum();
-      final long delayMillis = delayFunction.applyAsLong(retrySemaphore.failureAdder.sum());
+      final Duration delay = delayFunction.apply(retrySemaphore.failureAdder.sum());
 
-      Thread.sleep(delayMillis < maxDelayMillis ? delayMillis : maxDelayMillis);
+      Thread.sleep(delay.compareTo(maxDelay) >= 0 ? maxDelay.toMillis() : delay.toMillis());
       return numFailures;
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
@@ -108,6 +109,6 @@ public class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
   public String toString() {
 
     return new StringBuilder("SemaphoredRetryDelay [retrySemaphores=").append(retrySemaphores)
-        .append(", maxDelayMillis=").append(maxDelayMillis).append("]").toString();
+        .append(", maxDelay=").append(maxDelay).append("]").toString();
   }
 }

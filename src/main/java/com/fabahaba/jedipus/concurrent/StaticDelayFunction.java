@@ -1,42 +1,42 @@
 package com.fabahaba.jedipus.concurrent;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.LongUnaryOperator;
+import java.util.function.LongFunction;
 
-public class StaticDelayFunction implements LongUnaryOperator {
+public class StaticDelayFunction implements LongFunction<Duration> {
 
-  private final long[] delays;
-  private final long maxDelayMillis;
+  private final Duration[] delays;
+  private final Duration maxDelay;
 
-  private StaticDelayFunction(final long[] delays, final long maxDelayMillis) {
+  private StaticDelayFunction(final List<Duration> delayDurations, final Duration maxDelay) {
 
-    this.delays = delays;
-    this.maxDelayMillis = maxDelayMillis;
+    this.delays = delayDurations.toArray(new Duration[delayDurations.size()]);
+    this.maxDelay = maxDelay;
   }
 
-  public static StaticDelayFunction create(final LongUnaryOperator delayFunction,
-      final long maxDelayMillis) {
+  public static StaticDelayFunction create(final LongFunction<Duration> delayFunction,
+      final Duration maxDelay) {
 
-    final List<Long> delayDurations = new ArrayList<>();
+    final List<Duration> delayDurations = new ArrayList<>();
 
     for (long retry = 0;; retry++) {
 
-      final long delayMillis = delayFunction.applyAsLong(retry);
-      if (delayMillis >= maxDelayMillis) {
+      final Duration delay = delayFunction.apply(retry);
+      if (delay.compareTo(maxDelay) >= 0) {
         break;
       }
 
-      delayDurations.add(delayMillis);
+      delayDurations.add(delay);
     }
 
-    return new StaticDelayFunction(delayDurations.stream().mapToLong(Long::longValue).toArray(),
-        maxDelayMillis);
+    return new StaticDelayFunction(delayDurations, maxDelay);
   }
 
   @Override
-  public long applyAsLong(final long retry) {
+  public Duration apply(final long retry) {
 
-    return retry >= maxDelayMillis ? maxDelayMillis : delays[(int) retry];
+    return retry >= delays.length ? maxDelay : delays[(int) retry];
   }
 }

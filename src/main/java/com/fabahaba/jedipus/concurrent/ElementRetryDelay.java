@@ -1,7 +1,7 @@
 package com.fabahaba.jedipus.concurrent;
 
 import java.time.Duration;
-import java.util.function.LongUnaryOperator;
+import java.util.function.LongFunction;
 
 import com.fabahaba.jedipus.cluster.ClusterNode;
 
@@ -39,22 +39,22 @@ public interface ElementRetryDelay<E> {
 
   /**
    * @param baseFactor used as {@code Math.exp(x) * baseFactor}.
-   * @return A {@code Function<Long, Duration>} that applies an exponential function to the input
-   *         and multiplies it by the {@code baseFactor}.
+   * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
+   *         multiplies it by the {@code baseFactor}.
    */
-  public static LongUnaryOperator exponentialBackoff(final Duration baseFactor) {
+  public static LongFunction<Duration> exponentialBackoff(final Duration baseFactor) {
 
     return exponentialBackoff(baseFactor.toMillis());
   }
 
   /**
    * @param baseFactorMillis used as {@code Math.exp(x) * baseFactorMillis}.
-   * @return A {@code Function<Long, Duration>} that applies an exponential function to the input
-   *         and multiplies it by the {@code baseFactor}.
+   * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
+   *         multiplies it by the {@code baseFactor}.
    */
-  public static LongUnaryOperator exponentialBackoff(final long baseFactorMillis) {
+  public static LongFunction<Duration> exponentialBackoff(final long baseFactorMillis) {
 
-    return x -> (long) (Math.exp(x) * baseFactorMillis);
+    return x -> Duration.ofMillis((long) (Math.exp(x) * baseFactorMillis));
   }
 
   public static Builder startBuilding() {
@@ -64,7 +64,7 @@ public interface ElementRetryDelay<E> {
 
   public static class Builder {
 
-    private LongUnaryOperator delayFunction;
+    private LongFunction<Duration> delayFunction;
     private Duration maxDelay;
     private int numConurrentRetries = 1;
 
@@ -73,20 +73,22 @@ public interface ElementRetryDelay<E> {
     public ElementRetryDelay<ClusterNode> create() {
 
 
-      final long maxDelayMillis = maxDelay == null ? 2000 : maxDelay.toMillis();
-
-      if (delayFunction == null) {
-        delayFunction = StaticDelayFunction.create(exponentialBackoff(10), maxDelayMillis);
+      if (maxDelay == null) {
+        maxDelay = Duration.ofMillis(2000);
       }
 
-      return new SemaphoredRetryDelay<>(numConurrentRetries, delayFunction, maxDelayMillis);
+      if (delayFunction == null) {
+        delayFunction = StaticDelayFunction.create(exponentialBackoff(10), maxDelay);
+      }
+
+      return new SemaphoredRetryDelay<>(numConurrentRetries, delayFunction, maxDelay);
     }
 
-    public LongUnaryOperator getDelayFunction() {
+    public LongFunction<Duration> getDelayFunction() {
       return delayFunction;
     }
 
-    public Builder withDelayFunction(final LongUnaryOperator delayFunction) {
+    public Builder withDelayFunction(final LongFunction<Duration> delayFunction) {
       this.delayFunction = delayFunction;
       return this;
     }
