@@ -1,26 +1,26 @@
 package com.fabahaba.jedipus.concurrent;
 
-import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
+import java.util.function.LongUnaryOperator;
 
 public class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
 
   private final Map<E, RetrySemaphore> retrySemaphores;
-  private final Function<Long, Duration> delayFunction;
+  private final LongUnaryOperator delayFunction;
   private final long maxDelayMillis;
-  private final int numConurrentRetries;
+  private final Function<E, RetrySemaphore> retrySemaphoreFactory;
 
-  SemaphoredRetryDelay(final int numConurrentRetries, final Function<Long, Duration> delayFunction,
-      final Duration maxDelay) {
+  SemaphoredRetryDelay(final int numConurrentRetries, final LongUnaryOperator delayFunction,
+      final long maxDelayMillis) {
 
     this.retrySemaphores = new ConcurrentHashMap<>();
-    this.numConurrentRetries = numConurrentRetries;
+    this.retrySemaphoreFactory = e -> new RetrySemaphore(numConurrentRetries);
     this.delayFunction = delayFunction;
-    this.maxDelayMillis = maxDelay.toMillis();
+    this.maxDelayMillis = maxDelayMillis;
   }
 
   @Override
@@ -36,7 +36,7 @@ public class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
     }
 
     final RetrySemaphore retrySemaphore =
-        retrySemaphores.computeIfAbsent(element, key -> new RetrySemaphore(numConurrentRetries));
+        retrySemaphores.computeIfAbsent(element, retrySemaphoreFactory);
 
     long numFailures = retrySemaphore.incrAndGet();
     if (numFailures == 1) {
@@ -51,10 +51,9 @@ public class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
       retrySemaphore.semaphore.acquire();
 
       numFailures = retrySemaphore.failureAdder.sum();
-      final long delay = delayFunction.apply(retrySemaphore.failureAdder.sum()).toMillis();
-      final long delayMillis = delay < maxDelayMillis ? delay : maxDelayMillis;
+      final long delayMillis = delayFunction.applyAsLong(retrySemaphore.failureAdder.sum());
 
-      Thread.sleep(delayMillis);
+      Thread.sleep(delayMillis < maxDelayMillis ? delayMillis : maxDelayMillis);
       return numFailures;
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();
@@ -109,7 +108,6 @@ public class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
   public String toString() {
 
     return new StringBuilder("SemaphoredRetryDelay [retrySemaphores=").append(retrySemaphores)
-        .append(", maxDelayMillis=").append(maxDelayMillis).append(", numConurrentRetries=")
-        .append(numConurrentRetries).append("]").toString();
+        .append(", maxDelayMillis=").append(maxDelayMillis).append("]").toString();
   }
 }

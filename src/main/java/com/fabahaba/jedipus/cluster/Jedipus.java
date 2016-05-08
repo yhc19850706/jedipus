@@ -184,10 +184,14 @@ public final class Jedipus implements JedisClusterExecutor {
       final R result = jedisConsumer.apply(jedis);
       connHandler.getClusterNodeRetryDelay().markSuccess(jedis.getClusterNode(), retries);
       return result;
-    } catch (final JedisConnectionException jce) {
+    } catch (final JedisNodeConnectionException jncex) {
+
+      retries = connHandler.getClusterNodeRetryDelay().markFailure(
+          jedis == null ? jncex.getClusterNode() : jedis.getClusterNode(), maxRetries, jncex, 0);
+    } catch (final JedisConnectionException jcex) {
 
       retries = connHandler.getClusterNodeRetryDelay()
-          .markFailure(jedis == null ? null : jedis.getClusterNode(), maxRetries, jce, 0);
+          .markFailure(jedis == null ? null : jedis.getClusterNode(), maxRetries, jcex, 0);
     } catch (final JedisAskDataException askEx) {
 
       try {
@@ -233,10 +237,16 @@ public final class Jedipus implements JedisClusterExecutor {
         final R result = jedisConsumer.apply(client);
         connHandler.getClusterNodeRetryDelay().markSuccess(client.getClusterNode(), 0);
         return result;
-      } catch (final JedisConnectionException jce) {
+      } catch (final JedisNodeConnectionException jncex) {
 
-        retries = connHandler.getClusterNodeRetryDelay()
-            .markFailure(client == null ? null : client.getClusterNode(), maxRetries, jce, retries);
+        retries = connHandler.getClusterNodeRetryDelay().markFailure(
+            client == null ? jncex.getClusterNode() : client.getClusterNode(), maxRetries, jncex,
+            retries);
+        continue;
+      } catch (final JedisConnectionException jcex) {
+
+        retries = connHandler.getClusterNodeRetryDelay().markFailure(
+            client == null ? null : client.getClusterNode(), maxRetries, jcex, retries);
         continue;
       } catch (final JedisAskDataException askEx) {
 
@@ -292,10 +302,10 @@ public final class Jedipus implements JedisClusterExecutor {
         final R result = jedisConsumer.apply(jedis);
         connHandler.getClusterNodeRetryDelay().markSuccess(jedis.getClusterNode(), retries);
         return result;
-      } catch (final JedisConnectionException jce) {
+      } catch (final JedisConnectionException jcex) {
 
         retries = connHandler.getClusterNodeRetryDelay()
-            .markFailure(jedis == null ? node : jedis.getClusterNode(), maxRetries, jce, retries);
+            .markFailure(jedis == null ? node : jedis.getClusterNode(), maxRetries, jcex, retries);
         continue;
       } finally {
         JedisPool.returnJedis(pool, jedis);

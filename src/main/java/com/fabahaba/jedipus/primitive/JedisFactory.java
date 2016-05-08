@@ -11,8 +11,10 @@ import org.apache.commons.pool2.impl.DefaultPooledObject;
 
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.cluster.ClusterNode;
+import com.fabahaba.jedipus.cluster.JedisNodeConnectionException;
 
 import redis.clients.jedis.Protocol;
+import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisException;
 
 public class JedisFactory extends BasePooledObjectFactory<IJedis> {
@@ -64,6 +66,9 @@ public class JedisFactory extends BasePooledObjectFactory<IJedis> {
     try {
       jedis.connect();
       initJedis(jedis);
+    } catch (final JedisConnectionException jcex) {
+
+      throw new JedisNodeConnectionException(node, jcex);
     } catch (final JedisException je) {
       jedis.close();
       throw je;
