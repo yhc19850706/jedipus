@@ -38,14 +38,7 @@ public final class SortingParams {
       return count;
     }
 
-    public byte[][] create(final String key) {
-
-      return create(RESP.toBytes(key));
-    }
-
-    public byte[][] create(final byte[] key) {
-
-      final byte[][] params = new byte[1 + getOpsCount(ops)][];
+    private static int fillOps(final byte[][] ops, final byte[] key, final byte[][] params) {
 
       params[0] = key;
 
@@ -55,6 +48,19 @@ public final class SortingParams {
           params[index++] = op;
         }
       }
+      return index;
+    }
+
+    public byte[][] create(final String key) {
+
+      return create(RESP.toBytes(key));
+    }
+
+    public byte[][] create(final byte[] key) {
+
+      final byte[][] params = new byte[1 + getOpsCount(ops)][];
+
+      fillOps(ops, key, params);
 
       return params;
     }
@@ -63,14 +69,7 @@ public final class SortingParams {
 
       final byte[][] params = new byte[1 + getOpsCount(ops) + 2 * getPatterns.length][];
 
-      params[0] = RESP.toBytes(key);
-
-      int index = 1;
-      for (final byte[] op : ops) {
-        if (op != null && op.length > 0) {
-          params[index++] = op;
-        }
-      }
+      int index = fillOps(ops, RESP.toBytes(key), params);
 
       for (final String pattern : getPatterns) {
         params[index++] = GET.raw;
@@ -84,14 +83,7 @@ public final class SortingParams {
 
       final byte[][] params = new byte[1 + getOpsCount(ops) + 2 * getPatterns.length][];
 
-      params[0] = key;
-
-      int index = 1;
-      for (final byte[] op : ops) {
-        if (op != null && op.length > 0) {
-          params[index++] = op;
-        }
-      }
+      int index = fillOps(ops, key, params);
 
       for (final byte[] pattern : getPatterns) {
         params[index++] = GET.raw;
@@ -99,6 +91,21 @@ public final class SortingParams {
       }
 
       return params;
+    }
+
+    public byte[][] fill(final byte[] key, final byte[][] args) {
+
+      for (int index = fillOps(ops, key, args); index < args.length; index += 2) {
+        args[index] = GET.raw;
+      }
+
+      return args;
+    }
+
+    public byte[][] fillOps(final byte[] key, final byte[][] args) {
+
+      fillOps(ops, key, args);
+      return args;
     }
 
     public Builder by(final String by) {

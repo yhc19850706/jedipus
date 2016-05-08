@@ -2,15 +2,22 @@ package com.fabahaba.jedipus.primitive;
 
 import com.fabahaba.jedipus.JedisPipeline;
 
+import redis.clients.jedis.Builder;
 import redis.clients.jedis.BuilderFactory;
 import redis.clients.jedis.Pipeline;
+import redis.clients.jedis.Protocol.Command;
 import redis.clients.jedis.Response;
 
 class PrimPipeline extends Pipeline implements JedisPipeline {
 
-  PrimPipeline() {
+  private final PrimClient client;
+
+  PrimPipeline(final PrimClient client) {
 
     super();
+
+    this.setClient(client);
+    this.client = client;
   }
 
   @Override
@@ -53,5 +60,27 @@ class PrimPipeline extends Pipeline implements JedisPipeline {
 
     client.asking();
     return getResponse(BuilderFactory.STRING);
+  }
+
+  @Override
+  public Response<Object> evalSha1Hex(final byte[][] allArgs) {
+
+    client.sendCmd(Command.EVALSHA, allArgs);
+    return getResponse(DIRECT_BUILDER);
+  }
+
+  private static final Builder<Object> DIRECT_BUILDER = new DirectBuilder();
+
+  private static final class DirectBuilder extends Builder<Object> {
+
+    @Override
+    public Object build(final Object data) {
+      return data;
+    }
+
+    @Override
+    public String toString() {
+      return DirectBuilder.class.getSimpleName();
+    }
   }
 }

@@ -365,7 +365,7 @@ public class JedisClusterTest {
       });
 
       assertEquals("val", jce.applyJedis(slot, jedis -> jedis.get(keyString)));
-      jce.acceptJedis(importingNodeSlot, jedis -> jedis.clusterSetSlotNode(slot, jedis.getId()));
+      jce.acceptJedis(importingNodeSlot, jedis -> jedis.clusterSetSlotNode(slot, jedis.getNodeId()));
       assertEquals("val", jce.applyJedis(importingNodeSlot, jedis -> jedis.get(keyString)));
 
       jce.acceptJedis(slot, migrated -> {
@@ -398,7 +398,7 @@ public class JedisClusterTest {
       final ClusterNode exporting = jce.applyJedis(slot, IJedis::getClusterNode);
       final ClusterNode importing = jce.applyUnknownNode(newNode, jedis -> {
         jedis.clusterSetSlotImporting(slot, exporting.getId());
-        jedis.getId();
+        jedis.getNodeId();
         return jedis.getClusterNode();
       });
 
@@ -451,7 +451,7 @@ public class JedisClusterTest {
       });
 
       assertEquals("val", jce.applyJedis(slot, jedis -> jedis.get(keyString)));
-      jce.acceptUnknownNode(newNode, jedis -> jedis.clusterSetSlotNode(slot, jedis.getId()));
+      jce.acceptUnknownNode(newNode, jedis -> jedis.clusterSetSlotNode(slot, jedis.getNodeId()));
       assertEquals("val", jce.applyUnknownNode(newNode, jedis -> jedis.get(keyString)));
 
       jce.acceptJedis(slot, migrated -> {
@@ -501,10 +501,10 @@ public class JedisClusterTest {
     try (final JedisClusterExecutor jce =
         JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      final String exporting = jce.applyJedis(slot, IJedis::getId);
+      final String exporting = jce.applyJedis(slot, IJedis::getNodeId);
       final String importing = jce.applyJedis(importingNodeSlot, jedis -> {
         jedis.clusterSetSlotImporting(slot, exporting);
-        return jedis.getId();
+        return jedis.getNodeId();
       });
 
       jce.acceptJedis(slot, jedis -> jedis.clusterSetSlotMigrating(slot, importing));
@@ -531,7 +531,7 @@ public class JedisClusterTest {
     try (final JedisClusterExecutor jce =
         JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      final String importing = jce.applyJedis(importingNodeSlot, IJedis::getId);
+      final String importing = jce.applyJedis(importingNodeSlot, IJedis::getNodeId);
       jce.acceptJedis(slot, exporting -> exporting.clusterSetSlotMigrating(slot, importing));
       jce.acceptJedis(slot, jedis -> jedis.set(key, new byte[0]));
     }
@@ -545,11 +545,11 @@ public class JedisClusterTest {
 
       try (final IJedis client = JedisFactory.startBuilding().create(slaves[0])) {
 
-        jce.acceptAll(node -> assertTrue(node.clusterNodes().contains(client.getId())),
+        jce.acceptAll(node -> assertTrue(node.clusterNodes().contains(client.getNodeId())),
             ForkJoinPool.commonPool()).forEach(CompletableFuture::join);
-        jce.acceptAll(node -> node.clusterForget(client.getId()), ForkJoinPool.commonPool())
+        jce.acceptAll(node -> node.clusterForget(client.getNodeId()), ForkJoinPool.commonPool())
             .forEach(CompletableFuture::join);
-        jce.acceptAll(node -> assertFalse(node.clusterNodes().contains(client.getId())),
+        jce.acceptAll(node -> assertFalse(node.clusterNodes().contains(client.getNodeId())),
             ForkJoinPool.commonPool()).forEach(CompletableFuture::join);
       }
     }
@@ -625,12 +625,12 @@ public class JedisClusterTest {
 
       final String exporting = jce.applyJedis(slot, jedis -> {
         jedis.set(keyString, "107.6");
-        return jedis.getId();
+        return jedis.getNodeId();
       });
 
       final String importing = jce.applyJedis(importingNodeSlot, jedis -> {
         jedis.clusterSetSlotImporting(slot, exporting);
-        return jedis.getId();
+        return jedis.getNodeId();
       });
 
       assertEquals("107.6", jce.applyJedis(slot, jedis -> jedis.get(keyString)));
@@ -792,7 +792,7 @@ public class JedisClusterTest {
     try (final JedisClusterExecutor jce =
         JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      final String importing = jce.applyJedis(importingNodeSlot, IJedis::getId);
+      final String importing = jce.applyJedis(importingNodeSlot, IJedis::getNodeId);
       jce.acceptJedis(slot, jedis -> jedis.clusterSetSlotMigrating(slot, importing));
       jce.acceptJedis(slot, jedis -> jedis.get(key));
     }

@@ -2,6 +2,7 @@ package com.fabahaba.jedipus.cluster;
 
 import java.util.List;
 
+import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.JedisPipeline;
 import com.fabahaba.jedipus.JedisTransaction;
@@ -9,7 +10,7 @@ import com.fabahaba.jedipus.JedisTransaction;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Protocol.Command;
 
-public abstract class MockJedis extends Jedis implements IJedis {
+public class MockJedis extends Jedis implements IJedis {
 
   @Override
   public int getConnectionTimeout() {
@@ -21,6 +22,13 @@ public abstract class MockJedis extends Jedis implements IJedis {
   public int getSoTimeout() {
 
     return 0;
+  }
+
+
+  @Override
+  public HostPort getHostPort() {
+
+    return null;
   }
 
   @Override
@@ -59,7 +67,13 @@ public abstract class MockJedis extends Jedis implements IJedis {
   }
 
   @Override
-  public String getId() {
+  public String getNodeId() {
+
+    return null;
+  }
+
+  @Override
+  public Object evalSha1Hex(final byte[][] allArgs) {
 
     return null;
   }

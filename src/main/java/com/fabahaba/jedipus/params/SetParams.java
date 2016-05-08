@@ -22,6 +22,26 @@ public final class SetParams {
     return new byte[][] {key, value, PX, millis};
   }
 
+  public static byte[][] createXX(final String key, final String value) {
+
+    return createXX(RESP.toBytes(key), RESP.toBytes(value));
+  }
+
+  public static byte[][] createXX(final byte[] key, final byte[] value) {
+
+    return new byte[][] {key, value, XX};
+  }
+
+  public static byte[][] createNX(final String key, final String value) {
+
+    return createNX(RESP.toBytes(key), RESP.toBytes(value));
+  }
+
+  public static byte[][] createNX(final byte[] key, final byte[] value) {
+
+    return new byte[][] {key, value, NX};
+  }
+
   public static byte[][] createPXXX(final String key, final String value, final long millis) {
 
     return createPXXX(RESP.toBytes(key), RESP.toBytes(value), RESP.toBytes(millis));
@@ -96,5 +116,81 @@ public final class SetParams {
       final byte[] nxxx) {
 
     return new byte[][] {key, value, EX, seconds, nxxx};
+  }
+
+  public static byte[][] fillPX(final byte[][] args, final byte[] millis) {
+
+    args[2] = PX;
+    args[3] = millis;
+    return args;
+  }
+
+  public static byte[][] fillXX(final byte[][] args, final byte[] millis) {
+
+    args[2] = XX;
+    args[3] = millis;
+    return args;
+  }
+
+  public static byte[][] fillNX(final byte[][] args, final byte[] millis) {
+
+    args[2] = NX;
+    args[3] = millis;
+    return args;
+  }
+
+  public static byte[][] fillPXXX(final byte[][] args, final byte[] millis) {
+
+    args[2] = PX;
+    args[3] = millis;
+    args[4] = XX;
+    return args;
+  }
+
+  public static byte[][] fillPXNX(final byte[][] args, final byte[] millis) {
+
+    args[2] = PX;
+    args[3] = millis;
+    args[4] = NX;
+    return args;
+  }
+
+  public static byte[][] fillPX(final byte[][] args, final byte[] millis, final byte[] nxxx) {
+
+    args[2] = PX;
+    args[3] = millis;
+    args[4] = nxxx;
+    return args;
+  }
+
+  public static byte[][] fillEX(final byte[][] args, final byte[] seconds) {
+
+    args[2] = EX;
+    args[3] = seconds;
+    return args;
+  }
+
+  public static byte[][] fillEXXX(final byte[][] args, final byte[] seconds) {
+
+    args[2] = EX;
+    args[3] = seconds;
+    args[4] = XX;
+    return args;
+  }
+
+  public static byte[][] fillEXNX(final byte[][] args, final byte[] seconds) {
+
+    args[2] = EX;
+    args[3] = seconds;
+    args[4] = NX;
+    return args;
+  }
+
+  public static byte[][] fillEX(final byte[][] args, final byte[] seconds, final byte[] nxxx) {
+
+    args[2] = EX;
+    args[3] = seconds;
+    args[4] = nxxx;
+    return args;
   }
 }

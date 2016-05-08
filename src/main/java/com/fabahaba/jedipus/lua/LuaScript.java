@@ -17,9 +17,11 @@ import javax.xml.bind.DatatypeConverter;
 
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.JedisPipeline;
+import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.cluster.RCUtils;
+import com.fabahaba.jedipus.cmds.ScriptingCmds;
 
 import redis.clients.jedis.Response;
 import redis.clients.jedis.exceptions.JedisDataException;
@@ -83,40 +85,38 @@ public interface LuaScript<R> {
     jce.acceptAllMasters(jedis -> loadIfNotExists(jedis, scriptSha1Bytes, luaScripts));
   }
 
-  @SuppressWarnings("unchecked")
   default R eval(final IJedis jedis, final int keyCount, final byte[]... params) {
 
-    try {
+    final byte[][] args =
+        ScriptingCmds.createEvalArgs(getSha1HexBytes(), RESP.toBytes(keyCount), params);
 
-      return (R) jedis.evalsha(getSha1HexBytes(), keyCount, params);
-    } catch (final JedisDataException jde) {
-
-      if (jde.getMessage().startsWith("NOSCRIPT")) {
-
-        final JedisPipeline pipeline = jedis.createPipeline();
-        pipeline.scriptLoad(getLuaScript());
-        final Response<Object> response = pipeline.evalsha(getSha1HexBytes(), keyCount, params);
-        pipeline.sync();
-        return (R) response.get();
-      }
-
-      throw jde;
-    }
+    return eval(jedis, args);
   }
 
-  @SuppressWarnings("unchecked")
+  default R evalFill(final IJedis jedis, final byte[][] params) {
+
+    params[0] = getSha1HexBytes();
+
+    return eval(jedis, params);
+  }
+
   default R eval(final IJedis jedis, final List<byte[]> keys, final List<byte[]> args) {
 
-    try {
+    return eval(jedis, ScriptingCmds.createEvalArgs(getSha1HexBytes(), keys, args));
+  }
 
-      return (R) jedis.evalsha(getSha1HexBytes(), keys, args);
+  @SuppressWarnings("unchecked")
+  default R eval(final IJedis jedis, final byte[][] args) {
+
+    try {
+      return (R) jedis.evalSha1Hex(args);
     } catch (final JedisDataException jde) {
 
       if (jde.getMessage().startsWith("NOSCRIPT")) {
 
         final JedisPipeline pipeline = jedis.createPipeline();
         pipeline.scriptLoad(getLuaScript());
-        final Response<Object> response = pipeline.evalsha(getSha1HexBytes(), keys, args);
+        final Response<Object> response = pipeline.evalSha1Hex(args);
         pipeline.sync();
         return (R) response.get();
       }
@@ -125,18 +125,32 @@ public interface LuaScript<R> {
     }
   }
 
-  @SuppressWarnings("unchecked")
   default Response<R> eval(final JedisPipeline pipeline, final int keyCount,
       final byte[]... params) {
 
-    return (Response<R>) pipeline.evalsha(getSha1HexBytes(), keyCount, params);
+    final byte[][] args =
+        ScriptingCmds.createEvalArgs(getSha1HexBytes(), RESP.toBytes(keyCount), params);
+
+    return eval(pipeline, args);
   }
 
-  @SuppressWarnings("unchecked")
+  default Response<R> evalFill(final JedisPipeline pipeline, final byte[][] params) {
+
+    params[0] = getSha1HexBytes();
+
+    return eval(pipeline, params);
+  }
+
   default Response<R> eval(final JedisPipeline pipeline, final List<byte[]> keys,
       final List<byte[]> args) {
 
-    return (Response<R>) pipeline.evalsha(getSha1HexBytes(), keys, args);
+    return eval(pipeline, ScriptingCmds.createEvalArgs(getSha1HexBytes(), keys, args));
+  }
+
+  @SuppressWarnings("unchecked")
+  default Response<R> eval(final JedisPipeline pipeline, final byte[][] args) {
+
+    return (Response<R>) pipeline.evalSha1Hex(args);
   }
 
   default R eval(final JedisClusterExecutor jce, final int keyCount, final byte[]... params) {
@@ -339,5 +353,51 @@ public interface LuaScript<R> {
 
       throw new UncheckedIOException(e);
     }
+  }
+
+  default R evalFill(final JedisClusterExecutor jce, final byte[][] params) {
+
+    return evalFill(jce.getDefaultReadMode(), RCUtils.getSlot(params), jce, jce.getMaxRetries(),
+        params);
+  }
+
+  default R evalFill(final ReadMode readMode, final JedisClusterExecutor jce,
+      final byte[][] params) {
+
+    return evalFill(readMode, RCUtils.getSlot(params), jce, jce.getMaxRetries(), params);
+  }
+
+  default R evalFill(final JedisClusterExecutor jce, final int numRetries, final byte[][] params) {
+
+    return evalFill(jce.getDefaultReadMode(), RCUtils.getSlot(params), jce, numRetries, params);
+  }
+
+  default R evalFill(final ReadMode readMode, final JedisClusterExecutor jce, final int numRetries,
+      final byte[][] params) {
+
+    return evalFill(readMode, RCUtils.getSlot(params), jce, numRetries, params);
+  }
+
+  default R evalFill(final int slot, final JedisClusterExecutor jce, final byte[][] params) {
+
+    return evalFill(jce.getDefaultReadMode(), slot, jce, jce.getMaxRetries(), params);
+  }
+
+  default R evalFill(final int slot, final JedisClusterExecutor jce, final int numRetries,
+      final byte[][] params) {
+
+    return evalFill(jce.getDefaultReadMode(), slot, jce, numRetries, params);
+  }
+
+  default R evalFill(final ReadMode readMode, final int slot, final JedisClusterExecutor jce,
+      final byte[][] params) {
+
+    return evalFill(readMode, slot, jce, jce.getMaxRetries(), params);
+  }
+
+  default R evalFill(final ReadMode readMode, final int slot, final JedisClusterExecutor jce,
+      final int numRetries, final byte[][] params) {
+
+    return jce.applyJedis(readMode, slot, jedis -> evalFill(jedis, params), numRetries);
   }
 }

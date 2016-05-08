@@ -150,4 +150,93 @@ public final class ScanParams {
 
     return new byte[][] {key, SCAN_SENTINEL_BYTES};
   }
+
+  public static byte[][] fillPatternCount(final byte[][] args) {
+
+    args[1] = MATCH.raw;
+    args[3] = COUNT.raw;
+    return args;
+  }
+
+  public static byte[][] fillPattern(final byte[][] args) {
+
+    args[1] = MATCH.raw;
+    return args;
+  }
+
+  public static byte[][] fillCount(final byte[][] args) {
+
+    args[1] = COUNT.raw;
+    return args;
+  }
+
+  public static byte[][] fillScanPatternCount(final byte[][] args) {
+
+    args[0] = SCAN_SENTINEL_BYTES;
+    args[1] = MATCH.raw;
+    args[3] = COUNT.raw;
+    return args;
+  }
+
+  public static byte[][] fillScanPattern(final byte[][] args) {
+
+    args[0] = SCAN_SENTINEL_BYTES;
+    args[1] = MATCH.raw;
+    return args;
+  }
+
+  public static byte[][] fillScanCount(final byte[][] args) {
+
+    args[0] = SCAN_SENTINEL_BYTES;
+    args[1] = MATCH.raw;
+    args[3] = COUNT.raw;
+    return args;
+  }
+
+  public static byte[][] fillKeyedPatternCount(final byte[][] args) {
+
+    args[2] = MATCH.raw;
+    args[4] = COUNT.raw;
+    return args;
+  }
+
+  public static byte[][] fillKeyedPattern(final byte[][] args) {
+
+    args[2] = MATCH.raw;
+    return args;
+  }
+
+  public static byte[][] fillKeyedCount(final byte[][] args) {
+
+    args[2] = COUNT.raw;
+    return args;
+  }
+
+  public static byte[][] fillKeyedScanPatternCount(final byte[][] args) {
+
+    args[1] = SCAN_SENTINEL_BYTES;
+    args[2] = MATCH.raw;
+    args[4] = COUNT.raw;
+    return args;
+  }
+
+  public static byte[][] fillKeyedScanPattern(final byte[][] args) {
+
+    args[1] = SCAN_SENTINEL_BYTES;
+    args[2] = MATCH.raw;
+    return args;
+  }
+
+  public static byte[][] fillKeyedScanCount(final byte[][] args) {
+
+    args[1] = SCAN_SENTINEL_BYTES;
+    args[2] = COUNT.raw;
+    return args;
+  }
+
+  public static byte[][] fillKeyedScan(final byte[][] args) {
+
+    args[1] = SCAN_SENTINEL_BYTES;
+    return args;
+  }
 }

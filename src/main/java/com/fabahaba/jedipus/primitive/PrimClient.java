@@ -4,6 +4,7 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocketFactory;
 
+import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.JedisClient;
 import com.fabahaba.jedipus.cluster.ClusterNode;
 
@@ -12,7 +13,7 @@ import redis.clients.jedis.Protocol.Command;
 
 class PrimClient extends Client implements JedisClient {
 
-  private final ClusterNode node;
+  private final HostPort hostPort;
 
   PrimClient(final ClusterNode node, final int connTimeout, final int soTimeout) {
 
@@ -26,14 +27,7 @@ class PrimClient extends Client implements JedisClient {
     super(node.getHost(), node.getPort());
     this.setConnectionTimeout(connTimeout);
     this.setSoTimeout(soTimeout);
-
-    this.node = node;
-  }
-
-  @Override
-  public ClusterNode getClusterNode() {
-
-    return node;
+    this.hostPort = node.getHostPort();
   }
 
   void sendCmd(final Command cmd) {
@@ -54,6 +48,12 @@ class PrimClient extends Client implements JedisClient {
   @Override
   public String toString() {
 
-    return node.toString();
+    return hostPort.toString();
+  }
+
+  @Override
+  public HostPort getHostPort() {
+
+    return hostPort;
   }
 }

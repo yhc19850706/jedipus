@@ -1,7 +1,5 @@
 package com.fabahaba.jedipus;
 
-import com.fabahaba.jedipus.cluster.ClusterNode;
-
 public interface JedisClient extends AutoCloseable {
 
   public int getConnectionTimeout();
@@ -16,15 +14,18 @@ public interface JedisClient extends AutoCloseable {
 
   public void disconnect();
 
+  public HostPort getHostPort();
+
   default String getHost() {
 
-    return getClusterNode().getHost();
+    return getHostPort().getHost();
   }
 
   default int getPort() {
 
-    return getClusterNode().getPort();
+    return getHostPort().getPort();
   }
 
-  public ClusterNode getClusterNode();
+  @Override
+  public void close();
 }

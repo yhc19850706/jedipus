@@ -6,11 +6,11 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocketFactory;
 
+import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.JedisPipeline;
 import com.fabahaba.jedipus.JedisTransaction;
 import com.fabahaba.jedipus.cluster.ClusterNode;
-import com.fabahaba.jedipus.cluster.RCUtils;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Protocol.Command;
@@ -19,6 +19,7 @@ import redis.clients.util.Pool;
 class PrimJedis extends Jedis implements IJedis {
 
   private final PrimClient primClient;
+  private final ClusterNode node;
 
   PrimJedis(final ClusterNode node, final int connTimeout, final int soTimeout) {
 
@@ -34,6 +35,13 @@ class PrimJedis extends Jedis implements IJedis {
     this.primClient = new PrimClient(node, connTimeout, soTimeout, ssl, sslSocketFactory,
         sslParameters, hostnameVerifier);
     this.client = primClient;
+    this.node = node;
+  }
+
+  @Override
+  public HostPort getHostPort() {
+
+    return node.getHostPort();
   }
 
   @Override
@@ -67,14 +75,13 @@ class PrimJedis extends Jedis implements IJedis {
   @Override
   public ClusterNode getClusterNode() {
 
-    return primClient.getClusterNode();
+    return node;
   }
 
   @Override
   public JedisPipeline createPipeline() {
 
-    final PrimPipeline pipeline = new PrimPipeline();
-    pipeline.setClient(client);
+    final PrimPipeline pipeline = new PrimPipeline(primClient);
     this.pipeline = pipeline;
 
     return pipeline;
@@ -87,11 +94,19 @@ class PrimJedis extends Jedis implements IJedis {
       return (PrimPipeline) pipeline;
     }
 
-    final PrimPipeline pipeline = new PrimPipeline();
-    pipeline.setClient(client);
-    this.pipeline = pipeline;
+    return createPipeline();
+  }
 
-    return pipeline;
+  @Override
+  public Object evalSha1Hex(final byte[][] allArgs) {
+
+    client.setTimeoutInfinite();
+    try {
+      primClient.sendCmd(Command.EVALSHA, allArgs);
+      return client.getOne();
+    } finally {
+      client.rollbackTimeout();
+    }
   }
 
   @Override
@@ -103,70 +118,60 @@ class PrimJedis extends Jedis implements IJedis {
     return transaction;
   }
 
+  @Override
   public String cmdWithStatusCodeReply(final Command cmd, final byte[]... args) {
     checkIsInMultiOrPipeline();
     primClient.sendCmd(cmd, args);
     return primClient.getStatusCodeReply();
   }
 
+  @Override
   public byte[] cmdWithBinaryBulkReply(final Command cmd, final byte[]... args) {
     checkIsInMultiOrPipeline();
     primClient.sendCmd(cmd, args);
     return primClient.getBinaryBulkReply();
   }
 
+  @Override
   public List<byte[]> cmdWithBinaryMultiBulkReply(final Command cmd, final byte[]... args) {
     checkIsInMultiOrPipeline();
     primClient.sendCmd(cmd, args);
     return primClient.getBinaryMultiBulkReply();
   }
 
+  @Override
   public String cmdWithBulkReply(final Command cmd, final byte[]... args) {
     checkIsInMultiOrPipeline();
     primClient.sendCmd(cmd, args);
     return primClient.getBulkReply();
   }
 
+  @Override
   public Long cmdWithIntegerReply(final Command cmd, final byte[]... args) {
     checkIsInMultiOrPipeline();
     primClient.sendCmd(cmd, args);
     return primClient.getIntegerReply();
   }
 
+  @Override
   public List<Long> cmdWithIntegerMultiBulkReply(final Command cmd, final byte[]... args) {
     checkIsInMultiOrPipeline();
     primClient.sendCmd(cmd, args);
     return primClient.getIntegerMultiBulkReply();
   }
 
+  @Override
   public List<String> cmdWithMultiBulkReply(final Command cmd, final byte[]... args) {
     checkIsInMultiOrPipeline();
     primClient.sendCmd(cmd, args);
     return primClient.getMultiBulkReply();
   }
 
+  @Override
   public List<Object> cmdWithObjectMultiBulkReply(final Command cmd, final byte[]... args) {
     checkIsInMultiOrPipeline();
     primClient.sendCmd(cmd, args);
     return primClient.getObjectMultiBulkReply();
-  }
-
-  @Override
-  public String getId() {
-
-    final ClusterNode node = getClusterNode();
-    String id = node.getId();
-
-    if (id == null) {
-      synchronized (node) {
-        id = node.getId();
-        if (id == null) {
-          return node.updateId(RCUtils.getId(node.getHostPort(), clusterNodes()));
-        }
-      }
-    }
-
-    return id;
   }
 
   @Override
@@ -175,6 +180,6 @@ class PrimJedis extends Jedis implements IJedis {
   @Override
   public String toString() {
 
-    return primClient.toString();
+    return node.toString();
   }
 }
