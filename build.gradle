@@ -34,7 +34,7 @@ dependencies {
    compile 'org.apache.commons:commons-pool2:+'
    compile 'redis.clients:jedis:+'
 
-   testCompile 'junit:junit:+' 
+   testCompile 'junit:junit:+'
 }
 
 sourceSets {
@@ -58,6 +58,8 @@ project.ext.set('numMasters', '3')
 project.ext.set('numSlavesEach', '1')
 
 test {
+   // outputs.upToDateWhen { false }
+
    systemProperty 'jedipus.redis.port', project.redisServerPort
 
    systemProperty 'jedipus.redis.cluster.announceip', project.clusterAnnounceIp
