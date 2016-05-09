@@ -16,7 +16,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Protocol.Command;
 import redis.clients.util.Pool;
 
-class PrimJedis extends Jedis implements IJedis {
+final class PrimJedis extends Jedis implements IJedis {
 
   private final PrimClient primClient;
   private final ClusterNode node;
@@ -113,16 +113,9 @@ class PrimJedis extends Jedis implements IJedis {
   public JedisTransaction createMulti() {
 
     client.multi();
-    final PrimTransaction transaction = new PrimTransaction(client);
+    final PrimTransaction transaction = new PrimTransaction(primClient);
     this.transaction = transaction;
     return transaction;
-  }
-
-  @Override
-  public String cmdWithStatusCodeReply(final Command cmd, final byte[]... args) {
-    checkIsInMultiOrPipeline();
-    primClient.sendCmd(cmd, args);
-    return primClient.getStatusCodeReply();
   }
 
   @Override
@@ -140,13 +133,6 @@ class PrimJedis extends Jedis implements IJedis {
   }
 
   @Override
-  public String cmdWithBulkReply(final Command cmd, final byte[]... args) {
-    checkIsInMultiOrPipeline();
-    primClient.sendCmd(cmd, args);
-    return primClient.getBulkReply();
-  }
-
-  @Override
   public Long cmdWithIntegerReply(final Command cmd, final byte[]... args) {
     checkIsInMultiOrPipeline();
     primClient.sendCmd(cmd, args);
@@ -158,6 +144,20 @@ class PrimJedis extends Jedis implements IJedis {
     checkIsInMultiOrPipeline();
     primClient.sendCmd(cmd, args);
     return primClient.getIntegerMultiBulkReply();
+  }
+
+  @Override
+  public String cmdWithStatusCodeReply(final Command cmd, final byte[]... args) {
+    checkIsInMultiOrPipeline();
+    primClient.sendCmd(cmd, args);
+    return primClient.getStatusCodeReply();
+  }
+
+  @Override
+  public String cmdWithBulkReply(final Command cmd, final byte[]... args) {
+    checkIsInMultiOrPipeline();
+    primClient.sendCmd(cmd, args);
+    return primClient.getBulkReply();
   }
 
   @Override

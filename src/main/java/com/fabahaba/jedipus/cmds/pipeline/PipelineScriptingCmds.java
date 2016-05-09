@@ -15,4 +15,6 @@ public interface PipelineScriptingCmds {
   public Response<Object> evalSha1Hex(final byte[][] allArgs);
 
   public Response<String> scriptLoad(final String script);
+
+  public Response<byte[]> scriptLoad(final byte[] script);
 }

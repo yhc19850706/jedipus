@@ -100,7 +100,7 @@ public class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
     @Override
     public String toString() {
 
-      return new StringBuilder("RetryMutex [failureAdder=").append(failureAdder)
+      return new StringBuilder("RetrySemaphore [failureAdder=").append(failureAdder)
           .append(", semaphore=").append(semaphore).append("]").toString();
     }
   }

@@ -8,7 +8,7 @@ import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Protocol.Command;
 import redis.clients.jedis.Response;
 
-class PrimPipeline extends Pipeline implements JedisPipeline {
+final class PrimPipeline extends Pipeline implements JedisPipeline {
 
   private final PrimClient client;
 
@@ -28,13 +28,6 @@ class PrimPipeline extends Pipeline implements JedisPipeline {
   }
 
   @Override
-  public Response<String> readonly() {
-
-    client.readonly();
-    return getResponse(BuilderFactory.STRING);
-  }
-
-  @Override
   public Response<String> clientSetname(final String name) {
 
     client.clientSetname(name);
@@ -49,6 +42,20 @@ class PrimPipeline extends Pipeline implements JedisPipeline {
   }
 
   @Override
+  public Response<String> asking() {
+
+    client.asking();
+    return getResponse(BuilderFactory.STRING);
+  }
+
+  @Override
+  public Response<String> readonly() {
+
+    client.readonly();
+    return getResponse(BuilderFactory.STRING);
+  }
+
+  @Override
   public Response<String> scriptLoad(final String script) {
 
     client.scriptLoad(script);
@@ -56,10 +63,10 @@ class PrimPipeline extends Pipeline implements JedisPipeline {
   }
 
   @Override
-  public Response<String> asking() {
+  public Response<byte[]> scriptLoad(final byte[] script) {
 
-    client.asking();
-    return getResponse(BuilderFactory.STRING);
+    client.scriptLoad(script);
+    return getResponse(BuilderFactory.BYTE_ARRAY);
   }
 
   @Override
@@ -69,7 +76,7 @@ class PrimPipeline extends Pipeline implements JedisPipeline {
     return getResponse(DIRECT_BUILDER);
   }
 
-  private static final Builder<Object> DIRECT_BUILDER = new DirectBuilder();
+  static final Builder<Object> DIRECT_BUILDER = new DirectBuilder();
 
   private static final class DirectBuilder extends Builder<Object> {
 

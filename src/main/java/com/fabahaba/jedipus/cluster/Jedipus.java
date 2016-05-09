@@ -70,7 +70,7 @@ public final class Jedipus implements JedisClusterExecutor {
       node -> new GenericObjectPool<>(DEFAULT_JEDIS_FACTORY.createPooled(node, true),
           DEFAULT_POOL_CONFIG);
 
-  private static final Function<ClusterNode, IJedis> DEFAULT_JEDIS_ASK_DISCOVERY_FACTORY =
+  private static final Function<ClusterNode, IJedis> DEFAULT_UNKOWN_NODE_FACTORY =
       DEFAULT_JEDIS_FACTORY::create;
 
   private static final BiFunction<ReadMode, ObjectPool<IJedis>[], LoadBalancedPools<IJedis, ReadMode>> DEFAULT_LB_FACTORIES =
@@ -310,7 +310,6 @@ public final class Jedipus implements JedisClusterExecutor {
 
         retries = connHandler.getClusterNodeRetryDelay()
             .markFailure(jedis == null ? node : jedis.getClusterNode(), maxRetries, jcex, retries);
-        continue;
       } finally {
         JedisPool.returnJedis(pool, jedis);
       }
@@ -323,7 +322,7 @@ public final class Jedipus implements JedisClusterExecutor {
 
     for (long retries = 0;;) {
 
-      try (IJedis jedis = connHandler.createUnknownNode(node)) {
+      try (final IJedis jedis = connHandler.createUnknownNode(node)) {
 
         final R result = jedisConsumer.apply(jedis);
         connHandler.getClusterNodeRetryDelay().markSuccess(node, retries);
@@ -332,7 +331,6 @@ public final class Jedipus implements JedisClusterExecutor {
 
         retries =
             connHandler.getClusterNodeRetryDelay().markFailure(node, maxRetries, jce, retries);
-        continue;
       }
     }
   }
@@ -370,10 +368,8 @@ public final class Jedipus implements JedisClusterExecutor {
 
     final List<CompletableFuture<R>> futures = new ArrayList<>(pools.size());
 
-    pools.forEach((node, pool) -> {
-      futures.add(CompletableFuture
-          .supplyAsync(() -> acceptPool(node, pool, jedisConsumer, maxRetries), executor));
-    });
+    pools.forEach((node, pool) -> futures.add(CompletableFuture
+        .supplyAsync(() -> acceptPool(node, pool, jedisConsumer, maxRetries), executor)));
 
     return futures;
   }
@@ -394,7 +390,6 @@ public final class Jedipus implements JedisClusterExecutor {
 
         retries = connHandler.getClusterNodeRetryDelay()
             .markFailure(jedis == null ? node : jedis.getClusterNode(), maxRetries, jce, retries);
-        continue;
       } finally {
         JedisPool.returnJedis(pool, jedis);
       }
@@ -427,15 +422,15 @@ public final class Jedipus implements JedisClusterExecutor {
     private Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory =
         DEFAULT_MASTER_POOL_FACTORY;
     private Function<ClusterNode, ObjectPool<IJedis>> slavePoolFactory = DEFAULT_SLAVE_POOL_FACTORY;
-    // Used for ASK requests if no pool exists and random cluster discovery.
-    private Function<ClusterNode, IJedis> nodeUnknownFactory = DEFAULT_JEDIS_ASK_DISCOVERY_FACTORY;
+    // Used for ASK requests if no pool exists and random node discovery.
+    private Function<ClusterNode, IJedis> nodeUnknownFactory = DEFAULT_UNKOWN_NODE_FACTORY;
     private BiFunction<ReadMode, ObjectPool<IJedis>[], LoadBalancedPools<IJedis, ReadMode>> lbFactory =
         DEFAULT_LB_FACTORIES;
     // If true, access to slot pool cache will not lock when retreiving a pool/client during a slot
-    // re-configuration.
+    // migration.
     private boolean optimisticReads = true;
     private Duration durationBetweenCacheRefresh = DEFAULT_DURATION_BETWEEN_CACHE_REFRESH;
-    // 0 blocks forever, timed out request with retry or throw a JedisConnectionException if no
+    // 0 blocks forever, timed out requests will retry or throws a JedisConnectionException if no
     // pools are available.
     private Duration maxAwaitCacheRefresh = DEFAULT_MAX_AWAIT_CACHE_REFRESH;
 

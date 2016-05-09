@@ -67,7 +67,7 @@ public interface ElementRetryDelay<E> {
     return new Builder();
   }
 
-  public static class Builder {
+  public static final class Builder {
 
     private LongFunction<Duration> delayFunction;
     private Duration maxDelay;
@@ -76,7 +76,6 @@ public interface ElementRetryDelay<E> {
     private Builder() {}
 
     public ElementRetryDelay<ClusterNode> create() {
-
 
       if (maxDelay == null) {
         maxDelay = Duration.ofMillis(2000);

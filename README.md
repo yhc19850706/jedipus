@@ -14,7 +14,7 @@
 * [Client side HostPort mapping to internally networked clusters](https://gist.github.com/jamespedwards42/5037cf03768280ab1d81a88e7929c608).
 * Configurable [retry delays](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java) per cluster node for `JedisConnectionException's`.  By default, an [exponential backoff delay](src/main/java/com/fabahaba/jedipus/concurrent/SemaphoredRetryDelay.java) is used.
 * Execute against known or random nodes.
-* Utilities to manage and execute Lua scripts, see [RedisLock Gist](https://gist.github.com/jamespedwards42/46bc6fcd6e2c81315d2d63a4e80b527f).
+* Utilities to manage and execute Lua scripts, see this [RedisLock Gist](https://gist.github.com/jamespedwards42/46bc6fcd6e2c81315d2d63a4e80b527f).
 
 ######Read Modes
 >Read modes control how pools to master and slave nodes are managed.
@@ -24,8 +24,7 @@
 * MIXED_SLAVES: Pools are managed for both masters and slave nodes.  Calls are only load balanced across slave pools. Individual calls can be overridden with `ReadMode.MASTER` or `ReadMode.MIXED`.  When no slave pools are available the master pool is used.
 * MIXED: Pools are managed for both masters and slave nodes.  Calls are load balanced across both master and slave pools. Individual calls can be overridden with `ReadMode.MASTER` or `ReadMode.SLAVES`.  When overriding with `ReadMode.SLAVES` and no slave pools are available the master pool is used.
 
-#####Dependency Management
-######Gradle
+######Dependency Management
 ```groovy
 repositories {
    jcenter()
@@ -34,6 +33,8 @@ repositories {
 dependencies {
    // Needed if supplying your own pool factories.
    // compile 'org.apache.commons:commons-pool2:+'
+   // Needed if using slot utilities.
+   // compile 'redis.clients:jedis:+'
    compile 'com.fabahaba:jedipus:+'
 }
 ```
