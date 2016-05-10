@@ -18,9 +18,9 @@ import javax.xml.bind.DatatypeConverter;
 import com.fabahaba.jedipus.IJedis;
 import com.fabahaba.jedipus.JedisPipeline;
 import com.fabahaba.jedipus.RESP;
+import com.fabahaba.jedipus.cluster.CRC16;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
-import com.fabahaba.jedipus.cluster.RCUtils;
 import com.fabahaba.jedipus.cmds.ScriptingCmds;
 
 import redis.clients.jedis.Response;
@@ -155,27 +155,26 @@ public interface LuaScript<R> {
 
   default R eval(final JedisClusterExecutor jce, final int keyCount, final byte[]... params) {
 
-    return eval(jce.getDefaultReadMode(), RCUtils.getSlot(params), jce, jce.getMaxRetries(),
-        keyCount, params);
+    return eval(jce.getDefaultReadMode(), CRC16.getSlot(params), jce, jce.getMaxRetries(), keyCount,
+        params);
   }
 
   default R eval(final ReadMode readMode, final JedisClusterExecutor jce, final int keyCount,
       final byte[]... params) {
 
-    return eval(readMode, RCUtils.getSlot(params), jce, jce.getMaxRetries(), keyCount, params);
+    return eval(readMode, CRC16.getSlot(params), jce, jce.getMaxRetries(), keyCount, params);
   }
 
   default R eval(final JedisClusterExecutor jce, final int numRetries, final int keyCount,
       final byte[]... params) {
 
-    return eval(jce.getDefaultReadMode(), RCUtils.getSlot(params), jce, numRetries, keyCount,
-        params);
+    return eval(jce.getDefaultReadMode(), CRC16.getSlot(params), jce, numRetries, keyCount, params);
   }
 
   default R eval(final ReadMode readMode, final JedisClusterExecutor jce, final int numRetries,
       final int keyCount, final byte[]... params) {
 
-    return eval(readMode, RCUtils.getSlot(params), jce, numRetries, keyCount, params);
+    return eval(readMode, CRC16.getSlot(params), jce, numRetries, keyCount, params);
   }
 
   default R eval(final int slot, final JedisClusterExecutor jce, final int keyCount,
@@ -198,12 +197,12 @@ public interface LuaScript<R> {
 
   default R eval(final JedisClusterExecutor jce) {
 
-    return eval(jce.getDefaultReadMode(), RCUtils.getRandomSlot(), jce, jce.getMaxRetries(), 0);
+    return eval(jce.getDefaultReadMode(), CRC16.getRandomSlot(), jce, jce.getMaxRetries(), 0);
   }
 
   default R eval(final JedisClusterExecutor jce, final int numRetries) {
 
-    return eval(jce.getDefaultReadMode(), RCUtils.getRandomSlot(), jce, numRetries, 0);
+    return eval(jce.getDefaultReadMode(), CRC16.getRandomSlot(), jce, numRetries, 0);
   }
 
   default R eval(final int slot, final JedisClusterExecutor jce) {
@@ -218,7 +217,7 @@ public interface LuaScript<R> {
 
   default R eval(final ReadMode readMode, final JedisClusterExecutor jce) {
 
-    return eval(readMode, RCUtils.getRandomSlot(), jce, jce.getMaxRetries(), 0);
+    return eval(readMode, CRC16.getRandomSlot(), jce, jce.getMaxRetries(), 0);
   }
 
   default R eval(final ReadMode readMode, final int slot, final JedisClusterExecutor jce) {
@@ -228,7 +227,7 @@ public interface LuaScript<R> {
 
   default R eval(final ReadMode readMode, final JedisClusterExecutor jce, final int numRetries) {
 
-    return eval(readMode, RCUtils.getRandomSlot(), jce, numRetries, 0);
+    return eval(readMode, CRC16.getRandomSlot(), jce, numRetries, 0);
   }
 
   default R eval(final ReadMode readMode, final int slot, final JedisClusterExecutor jce,
@@ -251,26 +250,26 @@ public interface LuaScript<R> {
 
   default R eval(final JedisClusterExecutor jce, final List<byte[]> keys, final List<byte[]> args) {
 
-    return eval(jce.getDefaultReadMode(), RCUtils.getSlot(keys), jce, jce.getMaxRetries(), keys,
+    return eval(jce.getDefaultReadMode(), CRC16.getSlot(keys), jce, jce.getMaxRetries(), keys,
         args);
   }
 
   default R eval(final ReadMode readMode, final JedisClusterExecutor jce, final List<byte[]> keys,
       final List<byte[]> args) {
 
-    return eval(readMode, RCUtils.getSlot(keys), jce, jce.getMaxRetries(), keys, args);
+    return eval(readMode, CRC16.getSlot(keys), jce, jce.getMaxRetries(), keys, args);
   }
 
   default R eval(final JedisClusterExecutor jce, final int numRetries, final List<byte[]> keys,
       final List<byte[]> args) {
 
-    return eval(jce.getDefaultReadMode(), RCUtils.getSlot(keys), jce, numRetries, keys, args);
+    return eval(jce.getDefaultReadMode(), CRC16.getSlot(keys), jce, numRetries, keys, args);
   }
 
   default R eval(final ReadMode readMode, final JedisClusterExecutor jce, final int numRetries,
       final List<byte[]> keys, final List<byte[]> args) {
 
-    return eval(readMode, RCUtils.getSlot(keys), jce, numRetries, keys, args);
+    return eval(readMode, CRC16.getSlot(keys), jce, numRetries, keys, args);
   }
 
   default R eval(final int slot, final JedisClusterExecutor jce, final List<byte[]> keys,
@@ -357,25 +356,25 @@ public interface LuaScript<R> {
 
   default R evalFill(final JedisClusterExecutor jce, final byte[][] params) {
 
-    return evalFill(jce.getDefaultReadMode(), RCUtils.getSlot(params), jce, jce.getMaxRetries(),
+    return evalFill(jce.getDefaultReadMode(), CRC16.getSlot(params), jce, jce.getMaxRetries(),
         params);
   }
 
   default R evalFill(final ReadMode readMode, final JedisClusterExecutor jce,
       final byte[][] params) {
 
-    return evalFill(readMode, RCUtils.getSlot(params), jce, jce.getMaxRetries(), params);
+    return evalFill(readMode, CRC16.getSlot(params), jce, jce.getMaxRetries(), params);
   }
 
   default R evalFill(final JedisClusterExecutor jce, final int numRetries, final byte[][] params) {
 
-    return evalFill(jce.getDefaultReadMode(), RCUtils.getSlot(params), jce, numRetries, params);
+    return evalFill(jce.getDefaultReadMode(), CRC16.getSlot(params), jce, numRetries, params);
   }
 
   default R evalFill(final ReadMode readMode, final JedisClusterExecutor jce, final int numRetries,
       final byte[][] params) {
 
-    return evalFill(readMode, RCUtils.getSlot(params), jce, numRetries, params);
+    return evalFill(readMode, CRC16.getSlot(params), jce, numRetries, params);
   }
 
   default R evalFill(final int slot, final JedisClusterExecutor jce, final byte[][] params) {

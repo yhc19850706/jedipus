@@ -78,7 +78,7 @@ try (final JedisClusterExecutor jce =
 
    // Hash tagged pipelined transaction.
    final String hashTag = RCUtils.createNameSpacedHashTag("HT");
-   final int slot = JedisClusterCRC16.getSlot(hashTag);
+   final int slot = CRC16.getSlot(hashTag);
 
    final String hashTaggedKey = hashTag + "key";
    final String fooKey = hashTag + "foo";

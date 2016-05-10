@@ -25,7 +25,6 @@ import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 
-import redis.clients.jedis.BinaryJedisCluster;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 class JedisClusterSlotCache implements AutoCloseable {
@@ -125,13 +124,13 @@ class JedisClusterSlotCache implements AutoCloseable {
 
     final Map<ClusterNode, ObjectPool<IJedis>> masterPools =
         defaultReadMode == ReadMode.SLAVES ? Collections.emptyMap() : new ConcurrentHashMap<>();
-    final ObjectPool<IJedis>[] masterSlots = defaultReadMode == ReadMode.SLAVES ? new ObjectPool[0]
-        : new ObjectPool[BinaryJedisCluster.HASHSLOTS];
+    final ObjectPool<IJedis>[] masterSlots =
+        defaultReadMode == ReadMode.SLAVES ? new ObjectPool[0] : new ObjectPool[CRC16.HASHSLOTS];
 
     final Map<ClusterNode, ObjectPool<IJedis>> slavePools =
         defaultReadMode == ReadMode.MASTER ? Collections.emptyMap() : new ConcurrentHashMap<>();
     final LoadBalancedPools<IJedis, ReadMode>[] slaveSlots = defaultReadMode == ReadMode.MASTER
-        ? new LoadBalancedPools[0] : new LoadBalancedPools[BinaryJedisCluster.HASHSLOTS];
+        ? new LoadBalancedPools[0] : new LoadBalancedPools[CRC16.HASHSLOTS];
 
     return create(defaultReadMode, optimisticReads, durationBetweenCacheRefresh,
         maxAwaitCacheRefresh, discoveryNodes, hostPortMapper, masterPoolFactory, slavePoolFactory,

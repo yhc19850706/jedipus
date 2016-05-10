@@ -1,33 +1,13 @@
 package com.fabahaba.jedipus.cluster;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 
 import com.fabahaba.jedipus.HostPort;
-
-import redis.clients.jedis.BinaryJedisCluster;
-import redis.clients.util.JedisClusterCRC16;
 
 public final class RCUtils {
 
   private RCUtils() {}
-
-  public static int getRandomSlot() {
-
-    return ThreadLocalRandom.current().nextInt(BinaryJedisCluster.HASHSLOTS);
-  }
-
-  public static int getSlot(final byte[]... params) {
-
-    return params.length == 0 ? getRandomSlot() : JedisClusterCRC16.getSlot(params[0]);
-  }
-
-  public static int getSlot(final List<byte[]> keys) {
-
-    return keys.isEmpty() ? getRandomSlot() : JedisClusterCRC16.getSlot(keys.get(0));
-  }
 
   public static String createHashTag(final String shardKey) {
 

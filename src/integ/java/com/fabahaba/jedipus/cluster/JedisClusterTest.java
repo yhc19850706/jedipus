@@ -49,13 +49,12 @@ import redis.clients.jedis.exceptions.JedisClusterException;
 import redis.clients.jedis.exceptions.JedisClusterMaxRedirectionsException;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisMovedDataException;
-import redis.clients.util.JedisClusterCRC16;
 
 public class JedisClusterTest {
 
   protected final Logger log = Logger.getLogger(getClass().getSimpleName());
 
-  private static final int MAX_WAIT_CLUSTER_READY = 3000;
+  private static final int MAX_WAIT_CLUSTER_READY = 2000;
 
   private static final String ANNOUNCE_IP = Optional
       .ofNullable(System.getProperty("jedipus.redis.cluster.announceip")).orElse("127.0.0.1");
@@ -133,7 +132,7 @@ public class JedisClusterTest {
         return;
       }
 
-      log.warning("Time out setting up cluster for test, trying again...");
+      log.warning("Timed out setting up cluster for test, trying again...");
       for (final ClusterNode node : slaves) {
         try (final IJedis client = JEDIS_BUILDER.create(node)) {
           client.clusterReset(Reset.SOFT);
@@ -239,7 +238,7 @@ public class JedisClusterTest {
   public void testMovedExceptionParameters() {
 
     final byte[] key = RESP.toBytes("42");
-    final int slot = JedisClusterCRC16.getSlot(key);
+    final int slot = CRC16.getSlot(key);
     final int invalidSlot = rotateSlotNode(slot);
 
     try (final JedisClusterExecutor jce =
@@ -268,7 +267,7 @@ public class JedisClusterTest {
   public void testThrowAskException() {
 
     final byte[] key = RESP.toBytes("test");
-    final int slot = JedisClusterCRC16.getSlot(key);
+    final int slot = CRC16.getSlot(key);
     final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final JedisClusterExecutor jce =
@@ -322,7 +321,7 @@ public class JedisClusterTest {
     }
 
     final byte[] key = RESP.toBytes("ro");
-    final int slot = JedisClusterCRC16.getSlot(key);
+    final int slot = CRC16.getSlot(key);
 
     try (final JedisClusterExecutor jce =
         JedisClusterExecutor.startBuilding(discoveryNodes).withReadMode(ReadMode.SLAVES).create()) {
@@ -343,7 +342,7 @@ public class JedisClusterTest {
 
     final String keyString = "MIGRATE";
     final byte[] key = RESP.toBytes(keyString);
-    final int slot = JedisClusterCRC16.getSlot(key);
+    final int slot = CRC16.getSlot(key);
     final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final JedisClusterExecutor jce =
@@ -420,7 +419,7 @@ public class JedisClusterTest {
 
     final String keyString = "MIGRATE";
     final byte[] key = RESP.toBytes(keyString);
-    final int slot = JedisClusterCRC16.getSlot(key);
+    final int slot = CRC16.getSlot(key);
     final ClusterNode newNode = slaves[0];
 
     try (final IJedis client = JedisFactory.startBuilding().create(newNode)) {
@@ -507,7 +506,7 @@ public class JedisClusterTest {
   public void testAskResponse() {
 
     final String key = "42";
-    final int slot = JedisClusterCRC16.getSlot(key);
+    final int slot = CRC16.getSlot(key);
     final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final JedisClusterExecutor jce =
@@ -537,7 +536,7 @@ public class JedisClusterTest {
   public void testRedisClusterMaxRedirections() {
 
     final byte[] key = RESP.toBytes("42");
-    final int slot = JedisClusterCRC16.getSlot(key);
+    final int slot = CRC16.getSlot(key);
     final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final JedisClusterExecutor jce =
@@ -571,7 +570,7 @@ public class JedisClusterTest {
   public void testClusterFlushSlots() {
 
     final byte[] key = RESP.toBytes("42");
-    final int slot = JedisClusterCRC16.getSlot(key);
+    final int slot = CRC16.getSlot(key);
 
     try (final JedisClusterExecutor jce =
         JedisClusterExecutor.startBuilding(discoveryNodes).withReadMode(ReadMode.MIXED).create()) {
@@ -601,10 +600,9 @@ public class JedisClusterTest {
         JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
       jce.acceptJedis(jedis -> {
-        assertEquals(jedis.clusterKeySlot("foo{bar}zap}").intValue(),
-            JedisClusterCRC16.getSlot("foo{bar}zap"));
+        assertEquals(jedis.clusterKeySlot("foo{bar}zap}").intValue(), CRC16.getSlot("foo{bar}zap"));
         assertEquals(jedis.clusterKeySlot("{user1000}.following").intValue(),
-            JedisClusterCRC16.getSlot("{user1000}.following"));
+            CRC16.getSlot("{user1000}.following"));
       });
     }
   }
@@ -612,7 +610,7 @@ public class JedisClusterTest {
   @Test(timeout = 3000)
   public void testClusterCountKeysInSlot() {
 
-    final int slot = JedisClusterCRC16.getSlot("foo{bar}");
+    final int slot = CRC16.getSlot("foo{bar}");
 
     try (final JedisClusterExecutor jce =
         JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
@@ -629,7 +627,7 @@ public class JedisClusterTest {
 
     final String keyString = "42";
     final byte[] key = RESP.toBytes(keyString);
-    final int slot = JedisClusterCRC16.getSlot(key);
+    final int slot = CRC16.getSlot(key);
     final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final JedisClusterExecutor jce =
@@ -729,7 +727,7 @@ public class JedisClusterTest {
 
     final String keyString = "42";
     final byte[] key = RESP.toBytes(keyString);
-    final int slot = JedisClusterCRC16.getSlot(key);
+    final int slot = CRC16.getSlot(key);
 
     try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes)
         .withMasterPoolFactory(poolFactory).create()) {
@@ -762,7 +760,7 @@ public class JedisClusterTest {
 
     final String keyString = "42";
     final byte[] key = RESP.toBytes(keyString);
-    final int slot = JedisClusterCRC16.getSlot(key);
+    final int slot = CRC16.getSlot(key);
 
     final GenericObjectPoolConfig config = new GenericObjectPoolConfig();
     config.setMaxTotal(1);
@@ -798,7 +796,7 @@ public class JedisClusterTest {
   public void testReturnConnectionOnRedirection() {
 
     final byte[] key = RESP.toBytes("42");
-    final int slot = JedisClusterCRC16.getSlot(key);
+    final int slot = CRC16.getSlot(key);
     final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final JedisClusterExecutor jce =
