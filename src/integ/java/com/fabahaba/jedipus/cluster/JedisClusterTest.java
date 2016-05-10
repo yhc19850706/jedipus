@@ -23,6 +23,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
 import org.apache.commons.pool2.ObjectPool;
@@ -52,6 +53,10 @@ import redis.clients.util.JedisClusterCRC16;
 
 public class JedisClusterTest {
 
+  protected final Logger log = Logger.getLogger(getClass().getSimpleName());
+
+  private static final int MAX_WAIT_CLUSTER_READY = 3000;
+
   private static final String ANNOUNCE_IP = Optional
       .ofNullable(System.getProperty("jedipus.redis.cluster.announceip")).orElse("127.0.0.1");
 
@@ -68,6 +73,7 @@ public class JedisClusterTest {
           .map(Integer::parseInt).orElse(1);
 
   private static final int NUM_SLAVES = NUM_MASTERS * NUM_SLAVES_EACH;
+  private static final JedisFactory.Builder JEDIS_BUILDER = JedisFactory.startBuilding();
 
   private static final ClusterNode[] masters = new ClusterNode[NUM_MASTERS];
   private static final ClusterNode[] slaves = new ClusterNode[NUM_SLAVES];
@@ -106,28 +112,34 @@ public class JedisClusterTest {
   @Before
   public void before() {
 
-    for (final IJedis jedis : masterClients) {
-      jedis.flushAll();
-      jedis.clusterReset(Reset.SOFT);
-    }
-
-    IJedis previous = null;
-    for (int i = 0; i < NUM_MASTERS; i++) {
-      final IJedis jedis = masterClients[i];
-      jedis.clusterAddSlots(slots[i]);
-
-      for (final ClusterNode meetNode : slaves) {
-        jedis.clusterMeet(meetNode.getHost(), meetNode.getPort());
+    for (;;) {
+      for (final IJedis jedis : masterClients) {
+        jedis.flushAll();
+        jedis.clusterReset(Reset.SOFT);
       }
 
-      if (previous != null) {
-        previous.clusterMeet(jedis.getHost(), jedis.getPort());
+      for (int i = 0; i < NUM_MASTERS; i++) {
+        final IJedis jedis = masterClients[i];
+        jedis.clusterAddSlots(slots[i]);
+
+        for (final ClusterNode meetNode : slaves) {
+          jedis.clusterMeet(meetNode.getHost(), meetNode.getPort());
+        }
+
+        masterClients[(i == 0 ? NUM_MASTERS : i) - 1].clusterMeet(jedis.getHost(), jedis.getPort());
       }
 
-      previous = jedis;
-    }
+      if (waitForClusterReady(masterClients)) {
+        return;
+      }
 
-    waitForClusterReady(masterClients);
+      log.warning("Time out setting up cluster for test, trying again...");
+      for (final ClusterNode node : slaves) {
+        try (final IJedis client = JEDIS_BUILDER.create(node)) {
+          client.clusterReset(Reset.SOFT);
+        }
+      }
+    }
   }
 
   @After
@@ -187,23 +199,35 @@ public class JedisClusterTest {
     }
   }
 
-  private static void waitForClusterReady(final IJedis[] clients) {
+  private static boolean waitForClusterReady(final IJedis[] clients) {
 
     for (final IJedis client : clients) {
-      waitForClusterReady(client);
+      if (!waitForClusterReady(client, MAX_WAIT_CLUSTER_READY)) {
+        return false;
+      }
     }
+
+    return true;
   }
 
-  private static void waitForClusterReady(final IJedis client) {
+  private static boolean waitForClusterReady(final IJedis client, final long timeout) {
 
-    while (!client.clusterInfo().startsWith("cluster_state:ok")) {
+    for (int slept = 0, sleep = 7; !client.clusterInfo().startsWith("cluster_state:ok"); slept +=
+        sleep) {
+
+      if (slept > timeout) {
+        return false;
+      }
+
       try {
-        Thread.sleep(7);
+        Thread.sleep(sleep);
       } catch (final InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
     }
+
+    return true;
   }
 
   private static int rotateSlotNode(final int slot) {
@@ -391,7 +415,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test(timeout = 3000)
+  @Test(timeout = 4000)
   public void testMigrateToNewNode() {
 
     final String keyString = "MIGRATE";
@@ -401,11 +425,13 @@ public class JedisClusterTest {
 
     try (final IJedis client = JedisFactory.startBuilding().create(newNode)) {
 
-      client.clusterReset(Reset.HARD);
-      pendingReset.add(newNode);
-      final ClusterNode master = masters[0];
-      client.clusterMeet(master.getHost(), master.getPort());
-      waitForClusterReady(client);
+      do {
+        client.clusterReset(Reset.HARD);
+        pendingReset.add(newNode);
+        for (final ClusterNode master : masters) {
+          client.clusterMeet(master.getHost(), master.getPort());
+        }
+      } while (!waitForClusterReady(client, 2000));
     }
 
     try (final JedisClusterExecutor jce =
