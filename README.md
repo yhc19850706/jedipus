@@ -127,12 +127,12 @@ try (final JedisClusterExecutor jce =
 
    // Read from load balanced slave.
    final String roResult =
-   jce.applyJedis(ReadMode.SLAVES, slot, jedis -> jedis.get(hashTaggedKey));
+      jce.applyJedis(ReadMode.SLAVES, slot, jedis -> jedis.get(hashTaggedKey));
    System.out.format("%n'%s': %s%n", hashTaggedKey, roResult);
 
    // cleanup
    final long numRemoved =
-   jce.applyJedis(ReadMode.MASTER, slot, jedis -> jedis.del(hashTaggedKey, fooKey));
+      jce.applyJedis(ReadMode.MASTER, slot, jedis -> jedis.del(hashTaggedKey, fooKey));
    System.out.format("%nRemoved %d keys.%n", numRemoved);
 }
 ```
