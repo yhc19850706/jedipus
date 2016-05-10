@@ -480,7 +480,7 @@ public class JedisClusterTest {
   }
 
   @Test(timeout = 3000)
-  public void testRecalculateSlotsWhenMoved() {
+  public void testHeartbeatSlotDiscovery() {
 
     final byte[] key = RESP.toBytes("42");
     final int slot = JedisClusterCRC16.getSlot(key);
