@@ -1,4 +1,4 @@
-package jedipus;
+package com.fabahaba.jedipus.cluster;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -7,7 +7,7 @@ import org.junit.Test;
 
 import redis.clients.util.JedisClusterCRC16;
 
-public class JedisClusterTest {
+public class JedisClusterUnitTest {
 
   @Test
   public void testRedisHashtag() {
