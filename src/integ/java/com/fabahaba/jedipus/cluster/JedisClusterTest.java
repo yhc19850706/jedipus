@@ -29,6 +29,7 @@ import org.apache.commons.pool2.ObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -77,12 +78,22 @@ public class JedisClusterTest {
   private static Set<ClusterNode> discoveryNodes;
   private static final Queue<ClusterNode> pendingReset = new ArrayDeque<>(NUM_SLAVES);
 
+  static final IJedis[] masterClients = new IJedis[NUM_MASTERS];
+
   @BeforeClass
   public static void beforeClass() {
 
     int port = STARTING_PORT;
-    for (int i = 0; i < NUM_MASTERS; i++, port++) {
-      masters[i] = ClusterNode.create(ANNOUNCE_IP, port);
+    for (int i = 0, slotOffset = 0; i < NUM_MASTERS; i++, port++, slotOffset += MAX_SLOT_RANGE) {
+
+      final ClusterNode master = ClusterNode.create(ANNOUNCE_IP, port);
+      masters[i] = master;
+
+      final IJedis jedis = JedisFactory.startBuilding().create(master);
+      masterClients[i] = jedis;
+
+      final int endSlot = Math.min(slotOffset + MAX_SLOT_RANGE, JedisCluster.HASHSLOTS);
+      slots[i] = IntStream.range(slotOffset, endSlot).toArray();
     }
 
     discoveryNodes = Collections.singleton(masters[0]);
@@ -90,39 +101,35 @@ public class JedisClusterTest {
     for (int i = 0; i < NUM_SLAVES; i++, port++) {
       slaves[i] = ClusterNode.create(ANNOUNCE_IP, port);
     }
-
-    for (int i = 0, slotOffset = 0; i < NUM_MASTERS; i++, slotOffset += MAX_SLOT_RANGE) {
-      final int endSlot = Math.min(slotOffset + MAX_SLOT_RANGE, JedisCluster.HASHSLOTS);
-      slots[i] = IntStream.range(slotOffset, endSlot).toArray();
-    }
   }
 
   @Before
   public void before() {
 
-    final IJedis[] masterClients = new IJedis[NUM_MASTERS];
-
-    for (int i = 0; i < NUM_MASTERS; i++) {
-      final IJedis jedis = JedisFactory.startBuilding().create(masters[i]);
+    for (final IJedis jedis : masterClients) {
       jedis.flushAll();
       jedis.clusterReset(Reset.SOFT);
-      masterClients[i] = jedis;
     }
 
-    for (int i = 0; i < NUM_MASTERS; i++) {
+    for (int i = 0; i < NUM_MASTERS;) {
       final IJedis jedis = masterClients[i];
       jedis.clusterAddSlots(slots[i]);
 
       for (final ClusterNode meetNode : slaves) {
         jedis.clusterMeet(meetNode.getHost(), meetNode.getPort());
       }
+
+      if (i++ > 0) {
+        continue;
+      }
+
+      for (int j = 1; j < NUM_MASTERS; j++) {
+        final ClusterNode meetNode = masters[j];
+        jedis.clusterMeet(meetNode.getHost(), meetNode.getPort());
+      }
     }
 
     waitForClusterReady(masterClients);
-
-    for (final IJedis jedis : masterClients) {
-      jedis.close();
-    }
   }
 
   @After
@@ -138,6 +145,16 @@ public class JedisClusterTest {
         jedis.flushAll();
         jedis.clusterReset(Reset.SOFT);
       }
+    }
+  }
+
+  @AfterClass
+  public static void afterClass() {
+
+    for (final IJedis master : masterClients) {
+      master.flushAll();
+      master.clusterReset(Reset.SOFT);
+      master.close();
     }
   }
 
@@ -365,7 +382,8 @@ public class JedisClusterTest {
       });
 
       assertEquals("val", jce.applyJedis(slot, jedis -> jedis.get(keyString)));
-      jce.acceptJedis(importingNodeSlot, jedis -> jedis.clusterSetSlotNode(slot, jedis.getNodeId()));
+      jce.acceptJedis(importingNodeSlot,
+          jedis -> jedis.clusterSetSlotNode(slot, jedis.getNodeId()));
       assertEquals("val", jce.applyJedis(importingNodeSlot, jedis -> jedis.get(keyString)));
 
       jce.acceptJedis(slot, migrated -> {
@@ -745,7 +763,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test(timeout = 200)
+  @Test(timeout = 1000)
   public void testReturnConnectionOnJedisConnectionException() throws InterruptedException {
 
     final String keyString = "42";
