@@ -58,8 +58,8 @@ project.ext.set('numMasters', '3')
 project.ext.set('numSlavesEach', '1')
 
 test {
+   //outputs.upToDateWhen { false }
    maxParallelForks = Runtime.getRuntime().availableProcessors() / 2;
-   outputs.upToDateWhen { false }
    testLogging {
       events "failed", "standardOut", "standardError"
       showExceptions true

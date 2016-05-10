@@ -76,14 +76,6 @@ try (final JedisClusterExecutor jce =
       JedisClusterExecutor.startBuilding(ClusterNode.create("localhost", 7000))
          .withReadMode(ReadMode.MIXED_SLAVES).create()) {
 
-   // Ping-Pong all masters.
-   jce.acceptAllMasters(master -> System.out.format("%s %s%n", master, master.ping()));
-
-   // Ping-Pong all slaves concurrently.
-   jce.applyAllSlaves(slave -> String.format("%s %s%n", slave, slave.ping()), 1,
-      ForkJoinPool.commonPool()).stream().map(CompletableFuture::join)
-      .forEach(System.out::print);
-
    // Hash tagged pipelined transaction.
    final String hashTag = RCUtils.createNameSpacedHashTag("HT");
    final int slot = JedisClusterCRC16.getSlot(hashTag);
@@ -91,8 +83,7 @@ try (final JedisClusterExecutor jce =
    final String hashTaggedKey = hashTag + "key";
    final String fooKey = hashTag + "foo";
 
-   final Set<Tuple> zrangeResult =
-   jce.applyPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
+   final Set<Tuple> zrangeResult = jce.applyPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
 
       // Direct command execution.
       pipeline.sendCmd(Command.SET, hashTaggedKey, "value");
@@ -126,13 +117,26 @@ try (final JedisClusterExecutor jce =
    System.out.format("%n'%s': [%s]%n", fooKey, values);
 
    // Read from load balanced slave.
-   final String roResult =
-      jce.applyJedis(ReadMode.SLAVES, slot, jedis -> jedis.get(hashTaggedKey));
+   final String roResult = jce.applyJedis(ReadMode.SLAVES, slot, jedis -> jedis.get(hashTaggedKey));
    System.out.format("%n'%s': %s%n", hashTaggedKey, roResult);
 
    // cleanup
-   final long numRemoved =
-      jce.applyJedis(ReadMode.MASTER, slot, jedis -> jedis.del(hashTaggedKey, fooKey));
+   final long numRemoved = jce.applyJedis(ReadMode.MASTER, slot, jedis -> jedis.del(hashTaggedKey, fooKey));
    System.out.format("%nRemoved %d keys.%n", numRemoved);
+}
+```
+
+```java
+try (final JedisClusterExecutor jce =
+      JedisClusterExecutor.startBuilding(ClusterNode.create("localhost", 7000))
+         .withReadMode(ReadMode.MIXED_SLAVES).create()) {
+
+   // Ping-Pong all masters.
+   jce.acceptAllMasters(master -> System.out.format("%s %s%n", master, master.ping()));
+
+   // Ping-Pong all slaves concurrently.
+   jce.applyAllSlaves(slave -> String.format("%s %s%n", slave, slave.ping()), 1,
+      ForkJoinPool.commonPool()).stream().map(CompletableFuture::join)
+      .forEach(System.out::print);
 }
 ```

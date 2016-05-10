@@ -111,7 +111,8 @@ public class JedisClusterTest {
       jedis.clusterReset(Reset.SOFT);
     }
 
-    for (int i = 0; i < NUM_MASTERS;) {
+    IJedis previous = null;
+    for (int i = 0; i < NUM_MASTERS; i++) {
       final IJedis jedis = masterClients[i];
       jedis.clusterAddSlots(slots[i]);
 
@@ -119,14 +120,11 @@ public class JedisClusterTest {
         jedis.clusterMeet(meetNode.getHost(), meetNode.getPort());
       }
 
-      if (i++ > 0) {
-        continue;
+      if (previous != null) {
+        previous.clusterMeet(jedis.getHost(), jedis.getPort());
       }
 
-      for (int j = 1; j < NUM_MASTERS; j++) {
-        final ClusterNode meetNode = masters[j];
-        jedis.clusterMeet(meetNode.getHost(), meetNode.getPort());
-      }
+      previous = jedis;
     }
 
     waitForClusterReady(masterClients);
@@ -475,36 +473,6 @@ public class JedisClusterTest {
       jce.acceptJedis(slot, migrated -> {
         migrated.get(key);
         assertEquals(newNode, migrated.getClusterNode());
-      });
-    }
-  }
-
-  @Test(timeout = 3000)
-  public void testHeartbeatSlotDiscovery() {
-
-    final byte[] key = RESP.toBytes("42");
-    final int slot = JedisClusterCRC16.getSlot(key);
-    final int addingNodeSlot = rotateSlotNode(slot);
-
-    try (final JedisClusterExecutor jce =
-        JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
-
-      jce.acceptJedis(slot, jedis -> jedis.clusterDelSlots(slot));
-      jce.acceptPipeline(addingNodeSlot, jedis -> {
-        jedis.clusterDelSlots(slot);
-        final Response<String> addSlots = jedis.clusterAddSlots(slot);
-        jedis.sync();
-        assertEquals("OK", addSlots.get());
-      });
-
-      jce.acceptAllMasters(master -> waitForClusterReady(master), ForkJoinPool.commonPool())
-          .forEach(CompletableFuture::join);
-
-      jce.acceptPipeline(slot, jedis -> {
-        jedis.sadd(key, new byte[0]);
-        final Response<Long> response = jedis.scard(key);
-        jedis.sync();
-        assertEquals(1L, response.get().longValue());
       });
     }
   }
