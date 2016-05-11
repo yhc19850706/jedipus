@@ -1,16 +1,11 @@
 package com.fabahaba.jedipus.cluster;
 
-import java.util.List;
-
 import com.fabahaba.jedipus.HostPort;
-import com.fabahaba.jedipus.IJedis;
-import com.fabahaba.jedipus.JedisPipeline;
-import com.fabahaba.jedipus.JedisTransaction;
+import com.fabahaba.jedipus.RedisClient;
+import com.fabahaba.jedipus.RedisPipeline;
+import com.fabahaba.jedipus.primitive.Cmd;
 
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Protocol.Command;
-
-public class MockJedis extends Jedis implements IJedis {
+public class MockJedis implements RedisClient {
 
   @Override
   public int getConnectionTimeout() {
@@ -49,79 +44,72 @@ public class MockJedis extends Jedis implements IJedis {
   }
 
   @Override
-  public JedisPipeline createPipeline() {
+  public <T> T sendCmd(final Cmd<T> cmd) {
 
     return null;
   }
 
   @Override
-  public JedisPipeline createOrUseExistingPipeline() {
+  public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd) {
 
     return null;
   }
 
   @Override
-  public JedisTransaction createMulti() {
+  public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[]... args) {
 
     return null;
   }
 
   @Override
-  public String getNodeId() {
+  public <T> T sendBlockingCmd(final Cmd<T> cmd) {
 
     return null;
   }
 
   @Override
-  public Object evalSha1Hex(final byte[][] allArgs) {
+  public <T> T sendCmd(final Cmd<T> cmd, final byte[]... args) {
 
     return null;
   }
 
   @Override
-  public String cmdWithStatusCodeReply(final Command cmd, final byte[]... args) {
+  public <T> T sendCmd(final Cmd<T> cmd, final String... args) {
 
     return null;
   }
 
   @Override
-  public byte[] cmdWithBinaryBulkReply(final Command cmd, final byte[]... args) {
-
-    return new byte[0];
-  }
-
-  @Override
-  public List<byte[]> cmdWithBinaryMultiBulkReply(final Command cmd, final byte[]... args) {
+  public <T> T sendBlockingCmd(final Cmd<T> cmd, final byte[]... args) {
 
     return null;
   }
 
   @Override
-  public String cmdWithBulkReply(final Command cmd, final byte[]... args) {
+  public <T> T sendBlockingCmd(final Cmd<T> cmd, final String... args) {
 
     return null;
   }
 
   @Override
-  public Long cmdWithIntegerReply(final Command cmd, final byte[]... args) {
+  public RedisPipeline createPipeline() {
 
     return null;
   }
 
   @Override
-  public List<Long> cmdWithIntegerMultiBulkReply(final Command cmd, final byte[]... args) {
+  public RedisPipeline createOrUseExistingPipeline() {
 
     return null;
   }
 
   @Override
-  public List<String> cmdWithMultiBulkReply(final Command cmd, final byte[]... args) {
+  public void resetState() {
 
-    return null;
   }
 
   @Override
-  public List<Object> cmdWithObjectMultiBulkReply(final Command cmd, final byte[]... args) {
+  public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[] args) {
 
     return null;
   }

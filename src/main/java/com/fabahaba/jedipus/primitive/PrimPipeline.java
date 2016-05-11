@@ -1,121 +1,166 @@
 package com.fabahaba.jedipus.primitive;
 
-import com.fabahaba.jedipus.JedisPipeline;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
 
-import redis.clients.jedis.Builder;
-import redis.clients.jedis.BuilderFactory;
-import redis.clients.jedis.Pipeline;
-import redis.clients.jedis.Protocol.Command;
-import redis.clients.jedis.Response;
+import com.fabahaba.jedipus.RedisPipeline;
+import com.fabahaba.jedipus.RESP;
 
-final class PrimPipeline extends Pipeline implements JedisPipeline {
+import redis.clients.jedis.exceptions.JedisDataException;
 
-  private final PrimClient client;
+final class PrimPipeline extends PrimQueable implements RedisPipeline {
 
-  PrimPipeline(final PrimClient client) {
+  private final PrimRedisConn client;
+  private MultiResponseBuilder currentMulti;
 
-    super();
+  PrimPipeline(final PrimRedisConn client) {
 
-    this.setClient(client);
+    super(new ArrayDeque<>());
+
     this.client = client;
   }
 
-  @Override
-  public Response<String> auth(final String password) {
+  public boolean isInMulti() {
 
-    client.auth(password);
-    return getResponse(BuilderFactory.STRING);
+    return currentMulti != null;
   }
 
   @Override
-  public Response<String> clientSetname(final String name) {
+  public PrimResponse<String> discard() {
 
-    client.clientSetname(name);
-    return getResponse(BuilderFactory.STRING);
-  }
-
-  @Override
-  public Response<String> clientSetname(final byte[] name) {
-
-    client.clientSetname(name);
-    return getResponse(BuilderFactory.STRING);
-  }
-
-  @Override
-  public Response<String> asking() {
-
-    client.asking();
-    return getResponse(BuilderFactory.STRING);
-  }
-
-  @Override
-  public Response<String> readonly() {
-
-    client.readonly();
-    return getResponse(BuilderFactory.STRING);
-  }
-
-  @Override
-  public Response<String> scriptLoad(final String script) {
-
-    client.scriptLoad(script);
-    return getResponse(BuilderFactory.STRING);
-  }
-
-  @Override
-  public Response<byte[]> scriptLoad(final byte[] script) {
-
-    client.scriptLoad(script);
-    return getResponse(BuilderFactory.BYTE_ARRAY);
-  }
-
-  @Override
-  public Response<Object> evalSha1Hex(final byte[][] allArgs) {
-
-    client.sendCmd(Command.EVALSHA, allArgs);
-    return getResponse(DIRECT_BUILDER);
-  }
-
-  static final Builder<Object> DIRECT_BUILDER = new DirectBuilder();
-
-  private static final class DirectBuilder extends Builder<Object> {
-
-    @Override
-    public Object build(final Object data) {
-      return data;
+    if (currentMulti == null) {
+      throw new JedisDataException("DISCARD without MULTI");
     }
 
-    @Override
-    public String toString() {
-      return DirectBuilder.class.getSimpleName();
+    client.discard();
+    currentMulti = null;
+    return getResponse(RESP::toString);
+  }
+
+  @Override
+  public PrimResponse<String> multi() {
+
+    if (currentMulti != null) {
+      throw new JedisDataException("MULTI calls can not be nested");
+    }
+
+    client.multi();
+    final PrimResponse<String> response = getResponse(RESP::toString); // Expecting
+    currentMulti = new MultiResponseBuilder();
+    return response;
+  }
+
+  @Override
+  public PrimResponse<List<Object>> exec() {
+
+    if (currentMulti == null) {
+      throw new JedisDataException("EXEC without MULTI");
+    }
+
+    client.exec();
+    final PrimResponse<List<Object>> response = super.getResponse(currentMulti);
+    currentMulti.setResponseDependency(response);
+    currentMulti = null;
+    return response;
+  }
+
+  @Override
+  public void sync() {
+
+    if (getPipelinedResponseLength() > 0) {
+      for (final Object o : client.getMany(getPipelinedResponseLength())) {
+        generateResponse(o);
+      }
     }
   }
 
   @Override
-  public Response<Object> sendCmd(final Command cmd, final byte[]... args) {
+  protected <T> PrimResponse<T> getResponse(final Function<Object, T> builder) {
 
-    return sendCmd(cmd, DIRECT_BUILDER, args);
+    if (currentMulti != null) {
+      super.getResponse(RESP::toString); // Expected QUEUED
+
+      final PrimResponse<T> lr = new PrimResponse<>(builder);
+      currentMulti.addResponse(lr);
+      return lr;
+    }
+
+    return super.getResponse(builder);
   }
 
   @Override
-  public <T> Response<T> sendCmd(final Command cmd, final Builder<T> responseBuilder,
-      final byte[]... args) {
+  public void close() {
 
-    client.sendCmd(cmd, args);
-    return getResponse(responseBuilder);
+    if (isInMulti()) {
+      discard();
+    }
+
+    sync();
   }
 
   @Override
-  public Response<Object> sendCmd(final Command cmd, final String... args) {
+  public <T> PrimResponse<T> sendCmd(final Cmd<T> cmd) {
 
-    return sendCmd(cmd, DIRECT_BUILDER, args);
+    client.sendCommand(cmd.getCmdBytes());
+    return getResponse(cmd);
   }
 
   @Override
-  public <T> Response<T> sendCmd(final Command cmd, final Builder<T> responseBuilder,
-      final String... args) {
+  public <T> PrimResponse<T> sendCmd(final Cmd<T> cmd, final byte[]... args) {
 
-    client.sendCmd(cmd, args);
-    return getResponse(responseBuilder);
+    client.sendCommand(cmd.getCmdBytes(), args);
+    return getResponse(cmd);
+  }
+
+  @Override
+  public <T> PrimResponse<T> sendCmd(final Cmd<T> cmd, final String... args) {
+
+    client.sendCommand(cmd.getCmdBytes(), args);
+    return getResponse(cmd);
+  }
+
+  private static class MultiResponseBuilder implements Function<Object, List<Object>> {
+
+    private final List<PrimResponse<?>> responses = new ArrayList<>();
+
+    @Override
+    public List<Object> apply(final Object data) {
+
+      @SuppressWarnings("unchecked")
+      final List<Object> list = (List<Object>) data;
+      final List<Object> values = new ArrayList<>();
+
+      if (list.size() != responses.size()) {
+        throw new JedisDataException(
+            "Expected data size " + responses.size() + " but was " + list.size());
+      }
+
+      for (int i = 0; i < list.size(); i++) {
+
+        final PrimResponse<?> response = responses.get(i);
+        response.set(list.get(i));
+        Object builtResponse;
+        try {
+          builtResponse = response.get();
+        } catch (final JedisDataException e) {
+          builtResponse = e;
+        }
+        values.add(builtResponse);
+      }
+
+      return values;
+    }
+
+    public void setResponseDependency(final PrimResponse<?> dependency) {
+      for (final PrimResponse<?> response : responses) {
+        response.setDependency(dependency);
+      }
+    }
+
+    public void addResponse(final PrimResponse<?> response) {
+      responses.add(response);
+    }
   }
 }

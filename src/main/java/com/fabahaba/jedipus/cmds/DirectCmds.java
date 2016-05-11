@@ -1,24 +1,24 @@
 package com.fabahaba.jedipus.cmds;
 
-import java.util.List;
-
-import redis.clients.jedis.Protocol.Command;
+import com.fabahaba.jedipus.primitive.Cmd;
 
 public interface DirectCmds {
 
-  public String cmdWithStatusCodeReply(final Command cmd, final byte[]... args);
+  public <T> T sendCmd(final Cmd<T> cmd);
 
-  public byte[] cmdWithBinaryBulkReply(final Command cmd, final byte[]... args);
+  public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd);
 
-  public List<byte[]> cmdWithBinaryMultiBulkReply(final Command cmd, final byte[]... args);
+  public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[] args);
 
-  public String cmdWithBulkReply(final Command cmd, final byte[]... args);
+  public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[]... args);
 
-  public Long cmdWithIntegerReply(final Command cmd, final byte[]... args);
+  public <T> T sendBlockingCmd(final Cmd<T> cmd);
 
-  public List<Long> cmdWithIntegerMultiBulkReply(final Command cmd, final byte[]... args);
+  public <T> T sendCmd(final Cmd<T> cmd, final byte[]... args);
 
-  public List<String> cmdWithMultiBulkReply(final Command cmd, final byte[]... args);
+  public <T> T sendCmd(final Cmd<T> cmd, final String... args);
 
-  public List<Object> cmdWithObjectMultiBulkReply(final Command cmd, final byte[]... args);
+  public <T> T sendBlockingCmd(final Cmd<T> cmd, final byte[]... args);
+
+  public <T> T sendBlockingCmd(final Cmd<T> cmd, final String... args);
 }

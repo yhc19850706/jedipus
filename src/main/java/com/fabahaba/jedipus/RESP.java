@@ -7,6 +7,14 @@ public final class RESP {
 
   private RESP() {}
 
+  private static final byte[] BYTES_TRUE = RESP.toBytes(1);
+  private static final byte[] BYTES_FALSE = RESP.toBytes(0);
+
+  public static byte[] toBytes(final boolean bool) {
+
+    return bool ? BYTES_TRUE : BYTES_FALSE;
+  }
+
   public static byte[] toBytes(final int num) {
 
     return toBytes(String.valueOf(num));
@@ -24,7 +32,7 @@ public final class RESP {
 
   public static byte[] toBytes(final String string) {
 
-    return string.getBytes(StandardCharsets.UTF_8);
+    return string == null ? null : string.getBytes(StandardCharsets.UTF_8);
   }
 
   public static String toString(final Object bytes) {
@@ -60,6 +68,16 @@ public final class RESP {
   public static long toLong(final byte[] bytes) {
 
     return Long.parseLong(toString(bytes));
+  }
+
+  public static double toDouble(final Object bytes) {
+
+    return Double.parseDouble(toString(bytes));
+  }
+
+  public static double toDouble(final byte[] bytes) {
+
+    return Double.parseDouble(toString(bytes));
   }
 
   public static long convertMicros(final Object bytes, final TimeUnit timeUnit) {

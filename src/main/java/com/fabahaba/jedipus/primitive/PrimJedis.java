@@ -1,25 +1,23 @@
 package com.fabahaba.jedipus.primitive;
 
-import java.util.List;
-
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocketFactory;
 
 import com.fabahaba.jedipus.HostPort;
-import com.fabahaba.jedipus.IJedis;
-import com.fabahaba.jedipus.JedisPipeline;
-import com.fabahaba.jedipus.JedisTransaction;
+import com.fabahaba.jedipus.RESP;
+import com.fabahaba.jedipus.RedisClient;
+import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cluster.ClusterNode;
 
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Protocol.Command;
-import redis.clients.util.Pool;
+import redis.clients.jedis.exceptions.JedisDataException;
 
-final class PrimJedis extends Jedis implements IJedis {
+final class PrimJedis implements RedisClient {
 
-  private final PrimClient primClient;
+  private final PrimRedisConn primClient;
   private final ClusterNode node;
+
+  private PrimPipeline pipeline = null;
 
   PrimJedis(final ClusterNode node, final int connTimeout, final int soTimeout) {
 
@@ -30,11 +28,8 @@ final class PrimJedis extends Jedis implements IJedis {
       final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
       final HostnameVerifier hostnameVerifier) {
 
-    super();
-
-    this.primClient = new PrimClient(node, connTimeout, soTimeout, ssl, sslSocketFactory,
+    this.primClient = PrimRedisConn.create(node, connTimeout, soTimeout, ssl, sslSocketFactory,
         sslParameters, hostnameVerifier);
-    this.client = primClient;
     this.node = node;
   }
 
@@ -47,29 +42,60 @@ final class PrimJedis extends Jedis implements IJedis {
   @Override
   public int getConnectionTimeout() {
 
-    return client.getConnectionTimeout();
+    return primClient.getConnectionTimeout();
   }
 
   @Override
   public int getSoTimeout() {
 
-    return client.getSoTimeout();
+    return primClient.getSoTimeout();
   }
 
   @Override
   public boolean isBroken() {
 
-    return client.isBroken();
+    return primClient.isBroken();
   }
 
   @Override
-  public String quit() {
+  public void resetState() {
 
-    checkIsInMultiOrPipeline();
-    client.quit();
-    final String quitReturn = client.getStatusCodeReply();
-    client.disconnect();
-    return quitReturn;
+    if (pipeline != null) {
+      pipeline.close();
+    }
+
+    primClient.resetState();
+
+    pipeline = null;
+  }
+
+
+  public String watch(final byte[]... keys) {
+
+    primClient.watch(keys);
+    return RESP.toString(primClient.getReply(Cmds.WATCH));
+  }
+
+  public String unwatch() {
+
+    primClient.unwatch();
+    return RESP.toString(primClient.getReply(Cmds.UNWATCH));
+  }
+
+  @Override
+  public void close() {
+
+    try {
+      sendCmd(Cmds.QUIT);
+    } catch (final RuntimeException e) {
+      // closing anyways
+    } finally {
+      try {
+        primClient.close();
+      } catch (final RuntimeException e) {
+        // closing anyways
+      }
+    }
   }
 
   @Override
@@ -79,103 +105,118 @@ final class PrimJedis extends Jedis implements IJedis {
   }
 
   @Override
-  public JedisPipeline createPipeline() {
+  public RedisPipeline createPipeline() {
 
-    final PrimPipeline pipeline = new PrimPipeline(primClient);
-    this.pipeline = pipeline;
+    this.pipeline = new PrimPipeline(primClient);
 
     return pipeline;
   }
 
   @Override
-  public JedisPipeline createOrUseExistingPipeline() {
+  public RedisPipeline createOrUseExistingPipeline() {
 
-    if (pipeline != null && pipeline instanceof PrimPipeline) {
-      return (PrimPipeline) pipeline;
+    if (pipeline != null) {
+      return pipeline;
     }
 
     return createPipeline();
   }
 
-  @Override
-  public Object evalSha1Hex(final byte[][] allArgs) {
+  protected void checkIsInMultiOrPipeline() {
 
-    client.setTimeoutInfinite();
-    try {
-      primClient.sendCmd(Command.EVALSHA, allArgs);
-      return client.getOne();
-    } finally {
-      client.rollbackTimeout();
+    if (primClient.isInMulti()) {
+      throw new JedisDataException(
+          "Cannot use Jedis when in Multi. Please use Transation or reset jedis state.");
+    }
+
+    if (pipeline != null && pipeline.hasPipelinedResponse()) {
+      throw new JedisDataException(
+          "Cannot use Jedis when in Pipeline. Please use Pipeline or reset jedis state .");
     }
   }
 
   @Override
-  public JedisTransaction createMulti() {
+  public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[]... args) {
 
-    client.multi();
-    final PrimTransaction transaction = new PrimTransaction(primClient);
-    this.transaction = transaction;
-    return transaction;
-  }
-
-  @Override
-  public byte[] cmdWithBinaryBulkReply(final Command cmd, final byte[]... args) {
     checkIsInMultiOrPipeline();
-    primClient.sendCmd(cmd, args);
-    return primClient.getBinaryBulkReply();
+    primClient.sendSubCommand(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    return primClient.getReply(subCmd);
   }
 
   @Override
-  public List<byte[]> cmdWithBinaryMultiBulkReply(final Command cmd, final byte[]... args) {
+  public <T> T sendCmd(final Cmd<T> cmd) {
     checkIsInMultiOrPipeline();
-    primClient.sendCmd(cmd, args);
-    return primClient.getBinaryMultiBulkReply();
+    primClient.sendCommand(cmd.getCmdBytes());
+    return primClient.getReply(cmd);
   }
 
   @Override
-  public Long cmdWithIntegerReply(final Command cmd, final byte[]... args) {
+  public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd) {
     checkIsInMultiOrPipeline();
-    primClient.sendCmd(cmd, args);
-    return primClient.getIntegerReply();
+    primClient.sendSubCommand(cmd.getCmdBytes(), subCmd.getCmdBytes());
+    return primClient.getReply(subCmd);
   }
 
+
   @Override
-  public List<Long> cmdWithIntegerMultiBulkReply(final Command cmd, final byte[]... args) {
+  public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[] args) {
     checkIsInMultiOrPipeline();
-    primClient.sendCmd(cmd, args);
-    return primClient.getIntegerMultiBulkReply();
+    primClient.sendSubCommand(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    return primClient.getReply(subCmd);
   }
 
   @Override
-  public String cmdWithStatusCodeReply(final Command cmd, final byte[]... args) {
+  public <T> T sendCmd(final Cmd<T> cmd, final String... args) {
     checkIsInMultiOrPipeline();
-    primClient.sendCmd(cmd, args);
-    return primClient.getStatusCodeReply();
+    primClient.sendCommand(cmd.getCmdBytes(), args);
+    return primClient.getReply(cmd);
   }
 
   @Override
-  public String cmdWithBulkReply(final Command cmd, final byte[]... args) {
+  public <T> T sendCmd(final Cmd<T> cmd, final byte[]... args) {
     checkIsInMultiOrPipeline();
-    primClient.sendCmd(cmd, args);
-    return primClient.getBulkReply();
+    primClient.sendCommand(cmd.getCmdBytes(), args);
+    return primClient.getReply(cmd);
   }
 
   @Override
-  public List<String> cmdWithMultiBulkReply(final Command cmd, final byte[]... args) {
+  public <T> T sendBlockingCmd(final Cmd<T> cmd) {
+
     checkIsInMultiOrPipeline();
-    primClient.sendCmd(cmd, args);
-    return primClient.getMultiBulkReply();
+    primClient.setTimeoutInfinite();
+    try {
+      primClient.sendCommand(cmd.getCmdBytes());
+    } finally {
+      primClient.rollbackTimeout();
+    }
+    return primClient.getReply(cmd);
   }
 
   @Override
-  public List<Object> cmdWithObjectMultiBulkReply(final Command cmd, final byte[]... args) {
+  public <T> T sendBlockingCmd(final Cmd<T> cmd, final String... args) {
+
     checkIsInMultiOrPipeline();
-    primClient.sendCmd(cmd, args);
-    return primClient.getObjectMultiBulkReply();
+    primClient.setTimeoutInfinite();
+    try {
+      primClient.sendCommand(cmd.getCmdBytes(), args);
+    } finally {
+      primClient.rollbackTimeout();
+    }
+    return primClient.getReply(cmd);
   }
 
   @Override
-  public void setDataSource(final Pool<Jedis> jedisPool) {}
+  public <T> T sendBlockingCmd(final Cmd<T> cmd, final byte[]... args) {
+
+    checkIsInMultiOrPipeline();
+    primClient.setTimeoutInfinite();
+    try {
+      primClient.sendCommand(cmd.getCmdBytes(), args);
+    } finally {
+      primClient.rollbackTimeout();
+    }
+    return primClient.getReply(cmd);
+  }
 
   @Override
   public String toString() {

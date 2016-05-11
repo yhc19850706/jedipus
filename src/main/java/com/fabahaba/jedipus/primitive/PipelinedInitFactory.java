@@ -4,9 +4,10 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocketFactory;
 
-import com.fabahaba.jedipus.IJedis;
-import com.fabahaba.jedipus.JedisPipeline;
+import com.fabahaba.jedipus.RedisClient;
+import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cluster.ClusterNode;
+import com.fabahaba.jedipus.cmds.ClusterCmds;
 
 class PipelinedInitFactory extends JedisFactory {
 
@@ -20,23 +21,23 @@ class PipelinedInitFactory extends JedisFactory {
   }
 
   @Override
-  protected void initJedis(final IJedis jedis) {
+  protected void initJedis(final RedisClient jedis) {
 
-    final JedisPipeline pipeline = jedis.createPipeline();
+    final RedisPipeline pipeline = jedis.createPipeline();
 
     if (pass != null) {
 
-      pipeline.auth(pass);
+      pipeline.sendCmd(Cmds.AUTH, pass);
     }
 
     if (clientName != null) {
 
-      pipeline.clientSetname(clientName);
+      pipeline.sendCmd(Cmds.CLIENT, Cmds.SETNAME.getCmdBytes(), clientName);
     }
 
     if (initReadOnly) {
 
-      pipeline.readonly();
+      pipeline.sendCmd(ClusterCmds.READONLY);
     }
 
     pipeline.sync();

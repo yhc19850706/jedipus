@@ -3,8 +3,9 @@ package com.fabahaba.jedipus.cmds;
 import java.util.List;
 
 import com.fabahaba.jedipus.RESP;
+import com.fabahaba.jedipus.primitive.Cmd;
 
-public interface ScriptingCmds {
+public interface ScriptingCmds extends DirectCmds {
 
   public static byte[][] createEvalArgs(final byte[] sha1Hex, final byte[] keyCount,
       final byte[][] params) {
@@ -45,19 +46,22 @@ public interface ScriptingCmds {
     return evalSha1Hex(createEvalArgs(sha1Hex, keyCount, params));
   }
 
-  public Object evalSha1Hex(final byte[][] allArgs);
+  default Object evalSha1Hex(final byte[][] allArgs) {
 
-  Boolean scriptExists(String sha1);
+    return sendCmd(ScriptingCmds.EVALSHA, allArgs);
+  }
 
-  List<Boolean> scriptExists(String... sha1);
+  default Object scriptLoad(final byte[] script) {
 
-  String scriptLoad(String script);
+    return sendCmd(ScriptingCmds.EVALSHA, script);
+  }
 
-  List<Long> scriptExists(byte[]... sha1);
+  public static final Cmd<Object> EVAL = Cmd.create("EVAL");
+  public static final Cmd<Object> EVALSHA = Cmd.create("EVALSHA");
+  public static final Cmd<Object> SCRIPT = Cmd.create("SCRIPT");
+  @SuppressWarnings("unchecked")
+  public static final Cmd<List<byte[]>> EXISTS = Cmd.create("EXISTS", data -> (List<byte[]>) data);
 
-  byte[] scriptLoad(byte[] script);
-
-  String scriptFlush();
-
-  String scriptKill();
+  public static final Cmd<Object> FLUSH = Cmd.create("FLUSH");
+  public static final Cmd<Object> DEBUG = Cmd.create("DEBUG");
 }

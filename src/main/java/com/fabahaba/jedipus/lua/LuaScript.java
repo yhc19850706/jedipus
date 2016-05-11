@@ -15,15 +15,15 @@ import java.util.stream.Stream;
 
 import javax.xml.bind.DatatypeConverter;
 
-import com.fabahaba.jedipus.IJedis;
-import com.fabahaba.jedipus.JedisPipeline;
 import com.fabahaba.jedipus.RESP;
+import com.fabahaba.jedipus.RedisClient;
+import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cluster.CRC16;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.cmds.ScriptingCmds;
+import com.fabahaba.jedipus.primitive.PrimResponse;
 
-import redis.clients.jedis.Response;
 import redis.clients.jedis.exceptions.JedisDataException;
 
 public interface LuaScript<R> {
@@ -85,7 +85,7 @@ public interface LuaScript<R> {
     jce.acceptAllMasters(jedis -> loadIfNotExists(jedis, scriptSha1Bytes, luaScripts));
   }
 
-  default R eval(final IJedis jedis, final int keyCount, final byte[]... params) {
+  default R eval(final RedisClient jedis, final int keyCount, final byte[]... params) {
 
     final byte[][] args =
         ScriptingCmds.createEvalArgs(getSha1HexBytes(), RESP.toBytes(keyCount), params);
@@ -93,20 +93,20 @@ public interface LuaScript<R> {
     return eval(jedis, args);
   }
 
-  default R evalFill(final IJedis jedis, final byte[][] params) {
+  default R evalFill(final RedisClient jedis, final byte[][] params) {
 
     params[0] = getSha1HexBytes();
 
     return eval(jedis, params);
   }
 
-  default R eval(final IJedis jedis, final List<byte[]> keys, final List<byte[]> args) {
+  default R eval(final RedisClient jedis, final List<byte[]> keys, final List<byte[]> args) {
 
     return eval(jedis, ScriptingCmds.createEvalArgs(getSha1HexBytes(), keys, args));
   }
 
   @SuppressWarnings("unchecked")
-  default R eval(final IJedis jedis, final byte[][] args) {
+  default R eval(final RedisClient jedis, final byte[][] args) {
 
     try {
       return (R) jedis.evalSha1Hex(args);
@@ -114,9 +114,9 @@ public interface LuaScript<R> {
 
       if (jde.getMessage().startsWith("NOSCRIPT")) {
 
-        final JedisPipeline pipeline = jedis.createPipeline();
-        pipeline.scriptLoad(getLuaScript());
-        final Response<Object> response = pipeline.evalSha1Hex(args);
+        final RedisPipeline pipeline = jedis.createPipeline();
+        pipeline.scriptLoad(RESP.toBytes(getLuaScript()));
+        final PrimResponse<Object> response = pipeline.evalSha1Hex(args);
         pipeline.sync();
         return (R) response.get();
       }
@@ -125,7 +125,7 @@ public interface LuaScript<R> {
     }
   }
 
-  default Response<R> eval(final JedisPipeline pipeline, final int keyCount,
+  default PrimResponse<R> eval(final RedisPipeline pipeline, final int keyCount,
       final byte[]... params) {
 
     final byte[][] args =
@@ -134,23 +134,23 @@ public interface LuaScript<R> {
     return eval(pipeline, args);
   }
 
-  default Response<R> evalFill(final JedisPipeline pipeline, final byte[][] params) {
+  default PrimResponse<R> evalFill(final RedisPipeline pipeline, final byte[][] params) {
 
     params[0] = getSha1HexBytes();
 
     return eval(pipeline, params);
   }
 
-  default Response<R> eval(final JedisPipeline pipeline, final List<byte[]> keys,
+  default PrimResponse<R> eval(final RedisPipeline pipeline, final List<byte[]> keys,
       final List<byte[]> args) {
 
     return eval(pipeline, ScriptingCmds.createEvalArgs(getSha1HexBytes(), keys, args));
   }
 
   @SuppressWarnings("unchecked")
-  default Response<R> eval(final JedisPipeline pipeline, final byte[][] args) {
+  default PrimResponse<R> eval(final RedisPipeline pipeline, final byte[][] args) {
 
-    return (Response<R>) pipeline.evalSha1Hex(args);
+    return (PrimResponse<R>) pipeline.evalSha1Hex(args);
   }
 
   default R eval(final JedisClusterExecutor jce, final int keyCount, final byte[]... params) {
@@ -284,17 +284,18 @@ public interface LuaScript<R> {
     return eval(jce.getDefaultReadMode(), slot, jce, numRetries, keys, args);
   }
 
-  public static void loadIfNotExists(final IJedis jedis, final byte[] scriptSha1HexBytes,
-      final LuaScript<?> luaScripts) {
+  public static void loadIfNotExists(final RedisClient jedis, final byte[] scriptSha1HexBytes,
+      final LuaScript<?> luaScript) {
 
-    final long exists = jedis.scriptExists(scriptSha1HexBytes).get(0);
+    final byte[] exists =
+        jedis.sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.EXISTS, scriptSha1HexBytes).get(0);
 
-    if (exists == 0) {
-      jedis.scriptLoad(luaScripts.getLuaScript());
+    if (RESP.toInt(exists) == 0) {
+      jedis.scriptLoad(RESP.toBytes(luaScript.getLuaScript()));
     }
   }
 
-  public static void loadIfNotExists(final IJedis jedis, final byte[][] scriptSha1HexBytes,
+  public static void loadIfNotExists(final RedisClient jedis, final byte[][] scriptSha1HexBytes,
       final LuaScript<?>[] luaScripts) {
 
     if (scriptSha1HexBytes.length == 1) {
@@ -303,31 +304,26 @@ public interface LuaScript<R> {
       return;
     }
 
-    final List<Long> existResults = jedis.scriptExists(scriptSha1HexBytes);
+    final List<byte[]> existResults =
+        jedis.sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.EXISTS, scriptSha1HexBytes);
 
-    boolean missingScript = false;
-    for (final long exists : existResults) {
-      if (exists == 0) {
-        missingScript = true;
-        break;
-      }
-    }
-
-    if (!missingScript) {
-      return;
-    }
-
-    final JedisPipeline pipeline = jedis.createPipeline();
-
+    RedisPipeline pipeline = null;
     int index = 0;
-    for (final long exists : existResults) {
-      if (exists == 0) {
-        pipeline.scriptLoad(luaScripts[index].getLuaScript());
+
+    for (final byte[] exists : existResults) {
+
+      if (RESP.toInt(exists) == 0) {
+        if (pipeline == null) {
+          pipeline = jedis.createPipeline();
+        }
+        pipeline.scriptLoad(RESP.toBytes(luaScripts[index].getLuaScript()));
       }
       index++;
     }
 
-    pipeline.sync();
+    if (pipeline != null) {
+      pipeline.sync();
+    }
   }
 
   public static String readFromResourcePath(final String resourcePath) {

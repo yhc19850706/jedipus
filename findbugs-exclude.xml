@@ -2,4 +2,13 @@
 	<Match>
 		<Bug pattern="EI_EXPOSE_REP" />
 	</Match>
+	<Match>
+		<Bug pattern="MS_EXPOSE_REP" />
+	</Match>
+	<Match>
+		<Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS" />
+	</Match>
+	<Match>
+		<Bug pattern="BC_UNCONFIRMED_CAST_OF_RETURN_VALUE" />
+	</Match>
 </FindBugsFilter>

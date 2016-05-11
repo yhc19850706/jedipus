@@ -9,10 +9,11 @@ import java.util.function.Function;
 import org.apache.commons.pool2.ObjectPool;
 
 import com.fabahaba.jedipus.HostPort;
-import com.fabahaba.jedipus.IJedis;
+import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
+import com.fabahaba.jedipus.primitive.Cmds;
 
 import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisException;
@@ -25,10 +26,10 @@ class JedisClusterConnHandler implements AutoCloseable {
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
       final Collection<ClusterNode> discoveryNodes,
       final BiFunction<HostPort, String, HostPort> hostPortMapper,
-      final Function<ClusterNode, ObjectPool<IJedis>> masterPoolFactory,
-      final Function<ClusterNode, ObjectPool<IJedis>> slavePoolFactory,
-      final Function<ClusterNode, IJedis> nodeUnknownFactory,
-      final Function<ObjectPool<IJedis>[], LoadBalancedPools<IJedis, ReadMode>> lbFactory,
+      final Function<ClusterNode, ObjectPool<RedisClient>> masterPoolFactory,
+      final Function<ClusterNode, ObjectPool<RedisClient>> slavePoolFactory,
+      final Function<ClusterNode, RedisClient> nodeUnknownFactory,
+      final Function<ObjectPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> lbFactory,
       final ElementRetryDelay<ClusterNode> clusterNodeRetryDelay) {
 
     this.slotPoolCache = JedisClusterSlotCache.create(defaultReadMode, optimisticReads,
@@ -46,7 +47,7 @@ class JedisClusterConnHandler implements AutoCloseable {
     return slotPoolCache.getClusterNodeRetryDelay();
   }
 
-  IJedis createUnknownNode(final ClusterNode unknown) {
+  RedisClient createUnknownNode(final ClusterNode unknown) {
 
     return slotPoolCache.getNodeUnknownFactory().apply(unknown);
   }
@@ -56,14 +57,14 @@ class JedisClusterConnHandler implements AutoCloseable {
     return slotPoolCache.getHostPortMapper();
   }
 
-  ObjectPool<IJedis> getRandomPool(final ReadMode readMode) {
+  ObjectPool<RedisClient> getRandomPool(final ReadMode readMode) {
 
     return getPool(readMode, -1);
   }
 
-  private ObjectPool<IJedis> getPool(final ReadMode readMode, final int slot) {
+  private ObjectPool<RedisClient> getPool(final ReadMode readMode, final int slot) {
 
-    Collection<ObjectPool<IJedis>> pools = slotPoolCache.getPools(readMode).values();
+    Collection<ObjectPool<RedisClient>> pools = slotPoolCache.getPools(readMode).values();
 
     if (pools.isEmpty()) {
 
@@ -71,7 +72,7 @@ class JedisClusterConnHandler implements AutoCloseable {
 
       if (slot >= 0) {
 
-        final ObjectPool<IJedis> pool = slotPoolCache.getSlotPool(readMode, slot);
+        final ObjectPool<RedisClient> pool = slotPoolCache.getSlotPool(readMode, slot);
         if (pool != null) {
           return pool;
         }
@@ -80,9 +81,9 @@ class JedisClusterConnHandler implements AutoCloseable {
       pools = slotPoolCache.getPools(readMode).values();
     }
 
-    for (final ObjectPool<IJedis> pool : pools) {
+    for (final ObjectPool<RedisClient> pool : pools) {
 
-      IJedis jedis = null;
+      RedisClient jedis = null;
       try {
         jedis = JedisPool.borrowObject(pool);
 
@@ -90,7 +91,7 @@ class JedisClusterConnHandler implements AutoCloseable {
           continue;
         }
 
-        jedis.ping();
+        jedis.sendCmd(Cmds.PING);
         return pool;
       } catch (final JedisException ex) {
         // try next pool...
@@ -102,53 +103,53 @@ class JedisClusterConnHandler implements AutoCloseable {
     throw new JedisConnectionException("No reachable node in cluster.");
   }
 
-  ObjectPool<IJedis> getSlotPool(final ReadMode readMode, final int slot) {
+  ObjectPool<RedisClient> getSlotPool(final ReadMode readMode, final int slot) {
 
-    final ObjectPool<IJedis> pool = slotPoolCache.getSlotPool(readMode, slot);
+    final ObjectPool<RedisClient> pool = slotPoolCache.getSlotPool(readMode, slot);
 
     return pool == null ? getPool(readMode, slot) : pool;
   }
 
-  ObjectPool<IJedis> getAskPool(final ClusterNode askNode) {
+  ObjectPool<RedisClient> getAskPool(final ClusterNode askNode) {
 
     return slotPoolCache.getAskPool(askNode);
   }
 
-  Map<ClusterNode, ObjectPool<IJedis>> getMasterPools() {
+  Map<ClusterNode, ObjectPool<RedisClient>> getMasterPools() {
 
     return slotPoolCache.getMasterPools();
   }
 
-  Map<ClusterNode, ObjectPool<IJedis>> getSlavePools() {
+  Map<ClusterNode, ObjectPool<RedisClient>> getSlavePools() {
 
     return slotPoolCache.getSlavePools();
   }
 
-  Map<ClusterNode, ObjectPool<IJedis>> getAllPools() {
+  Map<ClusterNode, ObjectPool<RedisClient>> getAllPools() {
 
     return slotPoolCache.getAllPools();
   }
 
-  ObjectPool<IJedis> getMasterPoolIfPresent(final ClusterNode node) {
+  ObjectPool<RedisClient> getMasterPoolIfPresent(final ClusterNode node) {
 
     return slotPoolCache.getMasterPoolIfPresent(node);
   }
 
-  ObjectPool<IJedis> getSlavePoolIfPresent(final ClusterNode node) {
+  ObjectPool<RedisClient> getSlavePoolIfPresent(final ClusterNode node) {
 
     return slotPoolCache.getSlavePoolIfPresent(node);
   }
 
-  ObjectPool<IJedis> getPoolIfPresent(final ClusterNode node) {
+  ObjectPool<RedisClient> getPoolIfPresent(final ClusterNode node) {
 
     return slotPoolCache.getPoolIfPresent(node);
   }
 
   void renewSlotCache(final ReadMode readMode) {
 
-    for (final ObjectPool<IJedis> pool : slotPoolCache.getPools(readMode).values()) {
+    for (final ObjectPool<RedisClient> pool : slotPoolCache.getPools(readMode).values()) {
 
-      IJedis jedis = null;
+      RedisClient jedis = null;
       try {
         jedis = JedisPool.borrowObject(pool);
 
@@ -164,7 +165,7 @@ class JedisClusterConnHandler implements AutoCloseable {
     slotPoolCache.discoverClusterSlots();
   }
 
-  void renewSlotCache(final ReadMode readMode, final IJedis jedis) {
+  void renewSlotCache(final ReadMode readMode, final RedisClient jedis) {
 
     try {
 

@@ -33,8 +33,7 @@ repositories {
 dependencies {
    // Needed if supplying your own pool factories.
    // compile 'org.apache.commons:commons-pool2:+'
-   // Needed if using slot utilities.
-   // compile 'redis.clients:jedis:+'
+   compile 'redis.clients:jedis:+'
    compile 'com.fabahaba:jedipus:+'
 }
 ```
@@ -86,7 +85,7 @@ try (final JedisClusterExecutor jce =
    final Set<Tuple> zrangeResult = jce.applyPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
 
       // Direct command execution.
-      pipeline.sendCmd(Command.SET, hashTaggedKey, "value");
+      pipeline.sendCmd(Cmd.SET, hashTaggedKey, "value");
 
       pipeline.zadd(fooKey, -1, "barowitch");
       pipeline.zadd(fooKey, .37, "barinsky");
