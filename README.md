@@ -1,18 +1,19 @@
 ##Jedipus [![Build Status](https://img.shields.io/travis/jamespedwards42/jedipus.svg?branch=master)](https://travis-ci.org/jamespedwards42/jedipus) [![Bintray](https://api.bintray.com/packages/jamespedwards42/libs/jedipus/images/download.svg) ](https://bintray.com/jamespedwards42/libs/jedipus/_latestVersion) [![license](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://raw.githubusercontent.com/jamespedwards42/jedipus/master/LICENSE) [![Gitter Chat](https://badges.gitter.im/jamespedwards42/jedipus.svg)](https://gitter.im/jamespedwards42/jedipus?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
->Jedipus is a Redis Cluster Java client that manages redis client object pools.
+>Jedipus is a Redis Cluster Java client that manages Redis client object pools and command execution.
 
-######Features
-* Reuses the awesome work already done on Jedis by supporting all super interfaces of [`Jedis`](https://github.com/xetorthio/jedis/blob/master/src/main/java/redis/clients/jedis/Jedis.java), [`Pipeline`](https://github.com/xetorthio/jedis/blob/master/src/main/java/redis/clients/jedis/Pipeline.java) and [`Transaction`](https://github.com/xetorthio/jedis/blob/master/src/main/java/redis/clients/jedis/Transaction.java).
-* Execute `Consumer<IJedis>` and `Function<IJedis, R>` lambas.
-* Direct O(1) primitive array access to a corresponding [`IJedis`](src/main/java/com/fabahaba/jedipus/IJedis.java) pool.
-* Reuse known slot integers.
-* Locking is only applied to threads that are accessing slots that are moving, there is no known node, or for which a client connection continually cannot be established, triggering a slot cache refresh.
-* Minimal dependencies, Jedis and org.apache.commons:commons-pool2.
-* Optional user supplied [`ClusterNode`](src/main/java/com/fabahaba/jedipus/cluster/ClusterNode.java) -> `ObjectPool<IJedis>` factories.
-* Load balance read-only requests across pools.  Optional user supplied `ObjectPool<IJedis>[]` -> [`LoadBalancedPools`](src/main/java/com/fabahaba/jedipus/concurrent/LoadBalancedPools.java) factories.  By default, a [round robin strategy](src/main/java/com/fabahaba/jedipus/cluster/RoundRobinPools.java) is used.
+######Features 
+* Execute `Consumer<RedisClient>` and `Function<RedisClient, R>` lambas.
+* Perfomance focused
+  * Direct O(1) primitive array access to a corresponding `RedisClient` pool.
+  * Minimal enforced serialization.  Writes directly to socket output stream buffer, and raw responses can be retrieved. 
+  * Locking is only applied to threads that are accessing slots which are migrating; there is no known node; or for which a client connection continually cannot be established; all of which will trigger a slot cache refresh.
+  * Reuse known slot integers.
+* Minimal dependencies, only org.apache.commons:commons-pool2.
+* Optional user supplied [`Node`](src/main/java/com/fabahaba/jedipus/cluster/Node.java) -> `ObjectPool<RedisClient>` factories.
+* Load balance read-only requests across pools.  Optional user supplied `ObjectPool<RedisClient>[]` -> [`LoadBalancedPools`](src/main/java/com/fabahaba/jedipus/concurrent/LoadBalancedPools.java) factories.  By default, a [round robin strategy](src/main/java/com/fabahaba/jedipus/cluster/RoundRobinPools.java) is used.
 * [Client side HostPort mapping to internally networked clusters](https://gist.github.com/jamespedwards42/5037cf03768280ab1d81a88e7929c608).
-* Configurable [retry delays](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java) per cluster node for `JedisConnectionException's`.  By default, an [exponential backoff delay](src/main/java/com/fabahaba/jedipus/concurrent/SemaphoredRetryDelay.java) is used.
+* Configurable [retry delays](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java) per cluster node for `RedisConnectionException's`.  By default, an [exponential backoff delay](src/main/java/com/fabahaba/jedipus/concurrent/SemaphoredRetryDelay.java) is used.
 * Execute against known or random nodes.
 * Utilities to manage and execute Lua scripts, see this [RedisLock Gist](https://gist.github.com/jamespedwards42/46bc6fcd6e2c81315d2d63a4e80b527f).
 
@@ -32,8 +33,7 @@ repositories {
 
 dependencies {
    // Needed if supplying your own pool factories.
-   // compile 'org.apache.commons:commons-pool2:+'
-   compile 'redis.clients:jedis:+'
+   // compile 'org.apache.commons:commons-pool2:+' 
    compile 'com.fabahaba:jedipus:+'
 }
 ```
