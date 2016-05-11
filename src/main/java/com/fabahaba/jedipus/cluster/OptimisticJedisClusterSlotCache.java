@@ -2,7 +2,6 @@ package com.fabahaba.jedipus.cluster;
 
 import java.time.Duration;
 import java.util.Map;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.apache.commons.pool2.ObjectPool;
@@ -17,17 +16,17 @@ class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
 
   OptimisticJedisClusterSlotCache(final ReadMode defaultReadMode,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
-      final Map<HostPort, ClusterNode> discoveryNodes,
-      final BiFunction<HostPort, String, HostPort> hostPortMapper,
-      final Map<ClusterNode, ObjectPool<RedisClient>> masterPools,
+      final Map<HostPort, Node> discoveryNodes,
+      final Function<Node, Node> hostPortMapper,
+      final Map<Node, ObjectPool<RedisClient>> masterPools,
       final ObjectPool<RedisClient>[] masterSlots,
-      final Map<ClusterNode, ObjectPool<RedisClient>> slavePools,
+      final Map<Node, ObjectPool<RedisClient>> slavePools,
       final LoadBalancedPools<RedisClient, ReadMode>[] slaveSlots,
-      final Function<ClusterNode, ObjectPool<RedisClient>> masterPoolFactory,
-      final Function<ClusterNode, ObjectPool<RedisClient>> slavePoolFactory,
-      final Function<ClusterNode, RedisClient> nodeUnknownFactory,
+      final Function<Node, ObjectPool<RedisClient>> masterPoolFactory,
+      final Function<Node, ObjectPool<RedisClient>> slavePoolFactory,
+      final Function<Node, RedisClient> nodeUnknownFactory,
       final Function<ObjectPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> lbFactory,
-      final ElementRetryDelay<ClusterNode> clusterNodeRetryDelay) {
+      final ElementRetryDelay<Node> clusterNodeRetryDelay) {
 
     super(defaultReadMode, true, durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes,
         hostPortMapper, masterPools, masterSlots, slavePools, slaveSlots, masterPoolFactory,
@@ -35,7 +34,7 @@ class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
   }
 
   @Override
-  protected ObjectPool<RedisClient> getAskPool(final ClusterNode askNode) {
+  protected ObjectPool<RedisClient> getAskPool(final Node askNode) {
 
     final ObjectPool<RedisClient> pool = getAskPoolGuarded(askNode);
 
@@ -50,19 +49,19 @@ class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
   }
 
   @Override
-  ObjectPool<RedisClient> getMasterPoolIfPresent(final ClusterNode node) {
+  ObjectPool<RedisClient> getMasterPoolIfPresent(final Node node) {
 
     return masterPools.get(node);
   }
 
   @Override
-  ObjectPool<RedisClient> getSlavePoolIfPresent(final ClusterNode node) {
+  ObjectPool<RedisClient> getSlavePoolIfPresent(final Node node) {
 
     return slavePools.get(node);
   }
 
   @Override
-  ObjectPool<RedisClient> getPoolIfPresent(final ClusterNode node) {
+  ObjectPool<RedisClient> getPoolIfPresent(final Node node) {
 
     final ObjectPool<RedisClient> pool = masterPools.get(node);
 

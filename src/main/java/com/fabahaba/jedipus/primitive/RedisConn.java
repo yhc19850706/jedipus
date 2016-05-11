@@ -3,18 +3,15 @@ package com.fabahaba.jedipus.primitive;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.function.Function;
 
-import com.fabahaba.jedipus.HostPort;
-
-import redis.clients.jedis.exceptions.JedisConnectionException;
-import redis.clients.jedis.exceptions.JedisDataException;
-import redis.clients.util.IOUtils;
-import redis.clients.util.RedisInputStream;
-import redis.clients.util.RedisOutputStream;
+import com.fabahaba.jedipus.cluster.Node;
+import com.fabahaba.jedipus.exceptions.RedisConnectionException;
+import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 abstract class RedisConn implements AutoCloseable {
 
-  private final HostPort hostPort;
+  private final Function<Node, Node> hostPortMapper;
   private final Socket socket;
   private final RedisOutputStream outputStream;
   private final RedisInputStream inputStream;
@@ -22,20 +19,25 @@ abstract class RedisConn implements AutoCloseable {
   private final int soTimeout;
   private boolean broken = false;
 
-  protected RedisConn(final HostPort hostPort, final int connectionTimeout, final int soTimeout,
-      final Socket socket) {
+  protected RedisConn(final Node node, final Function<Node, Node> hostPortMapper,
+      final int connTimeout, final int soTimeout, final Socket socket) {
 
-    this.hostPort = hostPort;
-    this.connectionTimeout = connectionTimeout;
+    this.hostPortMapper = hostPortMapper;
+    this.connectionTimeout = connTimeout;
     this.soTimeout = soTimeout;
     this.socket = socket;
 
     try {
       outputStream = new RedisOutputStream(socket.getOutputStream());
-      inputStream = new RedisInputStream(socket.getInputStream());
+      inputStream = new RedisInputStream(node, socket.getInputStream());
     } catch (final IOException ex) {
-      throw new JedisConnectionException(ex);
+      throw new RedisConnectionException(node, ex);
     }
+  }
+
+  public Node getNode() {
+
+    return inputStream.getNode();
   }
 
   @Override
@@ -44,11 +46,14 @@ abstract class RedisConn implements AutoCloseable {
     broken = true;
     try {
       outputStream.flush();
-      socket.close();
     } catch (final IOException ex) {
-      throw new JedisConnectionException(ex);
+      throw new RedisConnectionException(getNode(), ex);
     } finally {
-      IOUtils.closeQuietly(socket);
+      try {
+        socket.close();
+      } catch (final IOException ex) {
+        // closing anyways
+      }
     }
   }
 
@@ -66,7 +71,7 @@ abstract class RedisConn implements AutoCloseable {
       socket.setSoTimeout(0);
     } catch (final SocketException ex) {
       broken = true;
-      throw new JedisConnectionException(ex);
+      throw new RedisConnectionException(getNode(), ex);
     }
   }
 
@@ -76,7 +81,7 @@ abstract class RedisConn implements AutoCloseable {
       socket.setSoTimeout(soTimeout);
     } catch (final SocketException ex) {
       broken = true;
-      throw new JedisConnectionException(ex);
+      throw new RedisConnectionException(getNode(), ex);
     }
   }
 
@@ -84,8 +89,8 @@ abstract class RedisConn implements AutoCloseable {
 
     try {
       Protocol.sendCommand(outputStream, cmd);
-    } catch (final JedisConnectionException jcex) {
-      handleJCE(jcex);
+    } catch (final RuntimeException | IOException jcex) {
+      handleWriteException(jcex);
     }
   }
 
@@ -94,8 +99,8 @@ abstract class RedisConn implements AutoCloseable {
 
     try {
       Protocol.sendCommand(outputStream, cmd, args);
-    } catch (final JedisConnectionException jcex) {
-      handleJCE(jcex);
+    } catch (final RuntimeException | IOException jcex) {
+      handleWriteException(jcex);
     }
   }
 
@@ -103,8 +108,8 @@ abstract class RedisConn implements AutoCloseable {
 
     try {
       Protocol.sendSubCommand(outputStream, cmd, args);
-    } catch (final JedisConnectionException jcex) {
-      handleJCE(jcex);
+    } catch (final RuntimeException | IOException jcex) {
+      handleWriteException(jcex);
     }
   }
 
@@ -112,8 +117,8 @@ abstract class RedisConn implements AutoCloseable {
 
     try {
       Protocol.sendSubCommand(outputStream, cmd, subcmd, args);
-    } catch (final JedisConnectionException jcex) {
-      handleJCE(jcex);
+    } catch (final RuntimeException | IOException jcex) {
+      handleWriteException(jcex);
     }
   }
 
@@ -121,8 +126,8 @@ abstract class RedisConn implements AutoCloseable {
 
     try {
       Protocol.sendSubCommand(outputStream, cmd, subcmd, args);
-    } catch (final JedisConnectionException jcex) {
-      handleJCE(jcex);
+    } catch (final RuntimeException | IOException jcex) {
+      handleWriteException(jcex);
     }
   }
 
@@ -130,39 +135,24 @@ abstract class RedisConn implements AutoCloseable {
 
     try {
       Protocol.sendCommand(outputStream, cmd, args);
-    } catch (final JedisConnectionException jcex) {
-      handleJCE(jcex);
+    } catch (final RuntimeException | IOException jcex) {
+      handleWriteException(jcex);
     }
   }
 
-  private void handleJCE(final JedisConnectionException jcex) {
+  private void handleWriteException(final Exception ioEx) {
 
-    /*
-     * When client send request which formed by invalid protocol, Redis send back error message
-     * before close connection. We try to read it to provide reason of failure.
-     */
-    String errorMessage = null;
-    try {
-      errorMessage = Protocol.readErrorLineIfPossible(inputStream);
-    } catch (final RuntimeException e) {
-      /*
-       * Catch any IOException or JedisConnectionException occurred from InputStream#read and just
-       * ignore. This approach is safe because reading error message is optional and connection will
-       * eventually be closed.
-       */
-    }
-    // Any other exceptions related to connection?
     broken = true;
 
+    final String errorMessage = Protocol.readErrorLineIfPossible(inputStream);
+
     if (errorMessage != null && errorMessage.length() > 0) {
-      throw new JedisConnectionException(errorMessage, jcex.getCause());
+      System.out.println(errorMessage);
+
+      throw new RedisConnectionException(getNode(), errorMessage, ioEx);
     }
 
-    throw jcex;
-  }
-
-  public HostPort getHostPort() {
-    return hostPort;
+    throw new RedisConnectionException(getNode(), ioEx);
   }
 
   public Object getOne() {
@@ -179,14 +169,15 @@ abstract class RedisConn implements AutoCloseable {
       outputStream.flush();
     } catch (final IOException ex) {
       broken = true;
-      throw new JedisConnectionException(ex);
+      throw new RedisConnectionException(getNode(), ex);
     }
   }
 
   protected Object readProtocolWithCheckingBroken() {
+
     try {
-      return Protocol.read(inputStream);
-    } catch (final JedisConnectionException exc) {
+      return Protocol.read(getNode(), hostPortMapper, inputStream);
+    } catch (final RedisConnectionException exc) {
       broken = true;
       throw exc;
     }
@@ -199,10 +190,15 @@ abstract class RedisConn implements AutoCloseable {
     for (int i = 0; i < count; i++) {
       try {
         responses[i] = readProtocolWithCheckingBroken();
-      } catch (final JedisDataException e) {
+      } catch (final RedisUnhandledException e) {
         responses[i] = e;
       }
     }
     return responses;
+  }
+
+  @Override
+  public String toString() {
+    return getNode().toString();
   }
 }

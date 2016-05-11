@@ -10,16 +10,16 @@ import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
-import com.fabahaba.jedipus.cluster.ClusterNode;
-
-import redis.clients.jedis.exceptions.JedisConnectionException;
+import com.fabahaba.jedipus.cluster.Node;
+import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 
 final class PrimRedisConn extends RedisConn {
 
   private boolean isInMulti;
   private boolean isInWatch;
 
-  public static PrimRedisConn create(final ClusterNode node, final int connectionTimeout,
+  public static PrimRedisConn create(final Node node,
+      final Function<Node, Node> hostPortMapper, final int connTimeout,
       final int soTimeout, final boolean ssl, final SSLSocketFactory sslSocketFactory,
       final SSLParameters sslParameters, final HostnameVerifier hostnameVerifier) {
 
@@ -37,11 +37,11 @@ final class PrimRedisConn extends RedisConn {
       // immediately
       // <-@wjw_add
 
-      socket.connect(new InetSocketAddress(node.getHost(), node.getPort()), connectionTimeout);
+      socket.connect(new InetSocketAddress(node.getHost(), node.getPort()), connTimeout);
       socket.setSoTimeout(soTimeout);
 
       if (!ssl) {
-        return new PrimRedisConn(node, connectionTimeout, soTimeout, socket);
+        return new PrimRedisConn(node, hostPortMapper, connTimeout, soTimeout, socket);
       }
 
       final SSLSocket sslSocket =
@@ -56,19 +56,20 @@ final class PrimRedisConn extends RedisConn {
 
         final String message = String
             .format("The connection to '%s' failed ssl/tls hostname verification.", node.getHost());
-        throw new JedisConnectionException(message);
+        throw new RedisConnectionException(node, message);
       }
 
-      return new PrimRedisConn(node, connectionTimeout, soTimeout, sslSocket);
+      return new PrimRedisConn(node, hostPortMapper, connTimeout, soTimeout, sslSocket);
     } catch (final IOException ex) {
-      throw new JedisConnectionException(ex);
+      throw new RedisConnectionException(node, ex);
     }
   }
 
-  private PrimRedisConn(final ClusterNode node, final int connTimeout, final int soTimeout,
-      final Socket socket) {
+  private PrimRedisConn(final Node node,
+      final Function<Node, Node> hostPortMapper, final int connTimeout,
+      final int soTimeout, final Socket socket) {
 
-    super(node, connTimeout, soTimeout, socket);
+    super(node, hostPortMapper, connTimeout, soTimeout, socket);
   }
 
   public boolean isInMulti() {

@@ -1,16 +1,18 @@
 package com.fabahaba.jedipus.params;
 
-import static redis.clients.jedis.Protocol.Keyword.ALPHA;
-import static redis.clients.jedis.Protocol.Keyword.ASC;
-import static redis.clients.jedis.Protocol.Keyword.BY;
-import static redis.clients.jedis.Protocol.Keyword.DESC;
-import static redis.clients.jedis.Protocol.Keyword.GET;
-import static redis.clients.jedis.Protocol.Keyword.LIMIT;
-import static redis.clients.jedis.Protocol.Keyword.NOSORT;
-
 import com.fabahaba.jedipus.RESP;
 
 public final class SortingParams {
+
+  public static enum SortKeywords {
+    ALPHA, ASC, BY, DESC, GET, LIMIT, NOSORT;
+
+    private byte[] bytes;
+
+    private SortKeywords() {
+      this.bytes = RESP.toBytes(name());
+    }
+  }
 
   private SortingParams() {}
 
@@ -72,7 +74,7 @@ public final class SortingParams {
       int index = fillOps(ops, RESP.toBytes(key), params);
 
       for (final String pattern : getPatterns) {
-        params[index++] = GET.raw;
+        params[index++] = SortKeywords.GET.bytes;
         params[index++] = RESP.toBytes(pattern);
       }
 
@@ -86,7 +88,7 @@ public final class SortingParams {
       int index = fillOps(ops, key, params);
 
       for (final byte[] pattern : getPatterns) {
-        params[index++] = GET.raw;
+        params[index++] = SortKeywords.GET.bytes;
         params[index++] = pattern;
       }
 
@@ -96,7 +98,7 @@ public final class SortingParams {
     public byte[][] fill(final byte[] key, final byte[][] args) {
 
       for (int index = fillOps(ops, key, args); index < args.length; index += 2) {
-        args[index] = GET.raw;
+        args[index] = SortKeywords.GET.bytes;
       }
 
       return args;
@@ -115,12 +117,12 @@ public final class SortingParams {
 
     public Builder nosort() {
 
-      return by(NOSORT.raw);
+      return by(SortKeywords.NOSORT.bytes);
     }
 
     public Builder by(final byte[] by) {
 
-      ops[0] = BY.raw;
+      ops[0] = SortKeywords.BY.bytes;
       ops[1] = by;
       return this;
     }
@@ -132,7 +134,7 @@ public final class SortingParams {
 
     public Builder limit(final byte[] offset, final byte[] count) {
 
-      ops[2] = LIMIT.raw;
+      ops[2] = SortKeywords.LIMIT.bytes;
       ops[3] = offset;
       ops[4] = count;
       return this;
@@ -140,19 +142,19 @@ public final class SortingParams {
 
     public Builder asc() {
 
-      ops[5] = ASC.raw;
+      ops[5] = SortKeywords.ASC.bytes;
       return this;
     }
 
     public Builder desc() {
 
-      ops[5] = DESC.raw;
+      ops[5] = SortKeywords.DESC.bytes;
       return this;
     }
 
     public Builder alpha() {
 
-      ops[6] = ALPHA.raw;
+      ops[6] = SortKeywords.ALPHA.bytes;
       return this;
     }
 

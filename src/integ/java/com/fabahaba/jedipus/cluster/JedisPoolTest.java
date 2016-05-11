@@ -21,18 +21,17 @@ import org.junit.Test;
 
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
+import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
+import com.fabahaba.jedipus.exceptions.RedisException;
 import com.fabahaba.jedipus.primitive.Cmds;
 import com.fabahaba.jedipus.primitive.JedisFactory;
-
-import redis.clients.jedis.exceptions.JedisDataException;
-import redis.clients.jedis.exceptions.JedisException;
 
 public class JedisPoolTest {
 
   private static final int REDIS_PORT = Optional
       .ofNullable(System.getProperty("jedipus.redis.port")).map(Integer::parseInt).orElse(9736);
 
-  private final ClusterNode defaultNode = ClusterNode.create("localhost", REDIS_PORT);
+  private final Node defaultNode = Node.create("localhost", REDIS_PORT);
 
   private PooledObjectFactory<RedisClient> defaultJedisFactory;
   private GenericObjectPoolConfig config;
@@ -163,7 +162,7 @@ public class JedisPoolTest {
 
     @Override
     public void resetState() {
-      throw new JedisException("crashed");
+      throw new RedisException("crashed");
     }
   }
 
@@ -299,7 +298,7 @@ public class JedisPoolTest {
     pool.close();
   }
 
-  @Test(timeout = 1000, expected = JedisDataException.class)
+  @Test(timeout = 1000, expected = RedisUnhandledException.class)
   public void testCloseConnectionOnMakeObject() {
 
     final GenericObjectPool<RedisClient> pool = new GenericObjectPool<>(

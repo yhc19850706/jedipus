@@ -1,7 +1,7 @@
 package com.fabahaba.jedipus.cmds;
 
 import com.fabahaba.jedipus.RESP;
-import com.fabahaba.jedipus.cluster.ClusterNode;
+import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cluster.RCUtils;
 import com.fabahaba.jedipus.primitive.Cmd;
 
@@ -12,18 +12,18 @@ public interface ClusterCmds extends DirectCmds {
     return RESP.toString(sendCmd(ClusterCmds.ASKING));
   }
 
-  public ClusterNode getClusterNode();
+  public Node getClusterNode();
 
   default String getNodeId() {
 
-    final ClusterNode node = getClusterNode();
+    final Node node = getClusterNode();
     String id = node.getId();
 
     if (id == null) {
       synchronized (node) {
         id = node.getId();
         if (id == null) {
-          return node.updateId(RCUtils.getId(node.getHostPort(), clusterNodes()));
+          return node.updateId(RCUtils.getId(node.getHostPort(), clusterNodes())).getId();
         }
       }
     }

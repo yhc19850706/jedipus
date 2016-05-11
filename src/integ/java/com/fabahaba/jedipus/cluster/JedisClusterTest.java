@@ -40,16 +40,14 @@ import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.cmds.ClusterCmds;
+import com.fabahaba.jedipus.exceptions.AskNodeException;
+import com.fabahaba.jedipus.exceptions.MaxRedirectsExceededException;
+import com.fabahaba.jedipus.exceptions.RedisClusterDownException;
+import com.fabahaba.jedipus.exceptions.RedisConnectionException;
+import com.fabahaba.jedipus.exceptions.SlotMovedException;
 import com.fabahaba.jedipus.primitive.Cmds;
 import com.fabahaba.jedipus.primitive.JedisFactory;
 import com.fabahaba.jedipus.primitive.PrimResponse;
-
-import redis.clients.jedis.JedisCluster;
-import redis.clients.jedis.exceptions.JedisAskDataException;
-import redis.clients.jedis.exceptions.JedisClusterException;
-import redis.clients.jedis.exceptions.JedisClusterMaxRedirectionsException;
-import redis.clients.jedis.exceptions.JedisConnectionException;
-import redis.clients.jedis.exceptions.JedisMovedDataException;
 
 public class JedisClusterTest {
 
@@ -75,14 +73,13 @@ public class JedisClusterTest {
   private static final int NUM_SLAVES = NUM_MASTERS * NUM_SLAVES_EACH;
   private static final JedisFactory.Builder JEDIS_BUILDER = JedisFactory.startBuilding();
 
-  private static final ClusterNode[] masters = new ClusterNode[NUM_MASTERS];
-  private static final ClusterNode[] slaves = new ClusterNode[NUM_SLAVES];
-  private static final int MAX_SLOT_RANGE =
-      (int) Math.ceil(JedisCluster.HASHSLOTS / (double) NUM_MASTERS);
+  private static final Node[] masters = new Node[NUM_MASTERS];
+  private static final Node[] slaves = new Node[NUM_SLAVES];
+  private static final int MAX_SLOT_RANGE = (int) Math.ceil(CRC16.HASHSLOTS / (double) NUM_MASTERS);
   private static final int[][] slots = new int[NUM_MASTERS][];
 
-  private static Set<ClusterNode> discoveryNodes;
-  private static final Queue<ClusterNode> pendingReset = new ArrayDeque<>(NUM_SLAVES);
+  private static Set<Node> discoveryNodes;
+  private static final Queue<Node> pendingReset = new ArrayDeque<>(NUM_SLAVES);
 
   static final RedisClient[] masterClients = new RedisClient[NUM_MASTERS];
 
@@ -92,20 +89,20 @@ public class JedisClusterTest {
     int port = STARTING_PORT;
     for (int i = 0, slotOffset = 0; i < NUM_MASTERS; i++, port++, slotOffset += MAX_SLOT_RANGE) {
 
-      final ClusterNode master = ClusterNode.create(ANNOUNCE_IP, port);
+      final Node master = Node.create(ANNOUNCE_IP, port);
       masters[i] = master;
 
       final RedisClient jedis = JedisFactory.startBuilding().create(master);
       masterClients[i] = jedis;
 
-      final int endSlot = Math.min(slotOffset + MAX_SLOT_RANGE, JedisCluster.HASHSLOTS);
+      final int endSlot = Math.min(slotOffset + MAX_SLOT_RANGE, CRC16.HASHSLOTS);
       slots[i] = IntStream.range(slotOffset, endSlot).toArray();
     }
 
     discoveryNodes = Collections.singleton(masters[0]);
 
     for (int i = 0; i < NUM_SLAVES; i++, port++) {
-      slaves[i] = ClusterNode.create(ANNOUNCE_IP, port);
+      slaves[i] = Node.create(ANNOUNCE_IP, port);
     }
   }
 
@@ -122,7 +119,7 @@ public class JedisClusterTest {
         final RedisClient jedis = masterClients[i];
         jedis.clusterAddSlots(slots[i]);
 
-        for (final ClusterNode meetNode : slaves) {
+        for (final Node meetNode : slaves) {
           jedis.clusterMeet(meetNode.getHost(), meetNode.getPort());
         }
 
@@ -134,7 +131,7 @@ public class JedisClusterTest {
       }
 
       log.warning("Timed out setting up cluster for test, trying again...");
-      for (final ClusterNode node : slaves) {
+      for (final Node node : slaves) {
         try (final RedisClient client = JEDIS_BUILDER.create(node)) {
           client.clusterReset(ClusterCmds.SOFT);
         }
@@ -146,7 +143,7 @@ public class JedisClusterTest {
   public void after() {
 
     for (;;) {
-      final ClusterNode node = pendingReset.poll();
+      final Node node = pendingReset.poll();
       if (node == null) {
         break;
       }
@@ -168,11 +165,11 @@ public class JedisClusterTest {
     }
   }
 
-  static void setUpSlaves(final Map<HostPort, ClusterNode> clusterNodes) {
+  static void setUpSlaves(final Map<HostPort, Node> clusterNodes) {
 
     for (int i = 0; i < NUM_MASTERS; i++) {
 
-      final ClusterNode master = clusterNodes.get(masters[i].getHostPort());
+      final Node master = clusterNodes.get(masters[i].getHostPort());
 
       for (int s = i; s < slaves.length; s += NUM_MASTERS) {
         try (final RedisClient slave = JedisFactory.startBuilding().create(slaves[s])) {
@@ -185,7 +182,7 @@ public class JedisClusterTest {
 
       for (int i = 0; i < NUM_MASTERS; i++) {
 
-        final ClusterNode master = clusterNodes.get(masters[i].getHostPort());
+        final Node master = clusterNodes.get(masters[i].getHostPort());
 
         while (client.clusterSlaves(master.getId()).length != NUM_SLAVES_EACH) {
           try {
@@ -232,7 +229,7 @@ public class JedisClusterTest {
 
   private static int rotateSlotNode(final int slot) {
 
-    return (slot + MAX_SLOT_RANGE) % JedisCluster.HASHSLOTS;
+    return (slot + MAX_SLOT_RANGE) % CRC16.HASHSLOTS;
   }
 
   @Test(timeout = 3000)
@@ -249,14 +246,14 @@ public class JedisClusterTest {
 
         try {
           invalid.sendCmd(Cmds.SET, key, new byte[0]);
-        } catch (final JedisMovedDataException jme) {
+        } catch (final SlotMovedException jme) {
 
           assertEquals(slot, jme.getSlot());
           return jme.getTargetNode().getPort();
         }
 
         throw new IllegalStateException(String.format(
-            "JedisMovedDataException was not thrown when executing a %d slot key against a %d slot pool.",
+            "SlotMovedException was not thrown when executing a %d slot key against a %d slot pool.",
             slot, invalidSlot));
       });
 
@@ -274,7 +271,7 @@ public class JedisClusterTest {
     try (final JedisClusterExecutor jce =
         JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      final ClusterNode importing = jce.applyJedis(importingNodeSlot, RedisClient::getClusterNode);
+      final Node importing = jce.applyJedis(importingNodeSlot, RedisClient::getClusterNode);
 
       jce.acceptJedis(slot, jedis -> {
 
@@ -282,7 +279,7 @@ public class JedisClusterTest {
 
         try {
           jedis.sendCmd(Cmds.GET_RAW, key);
-        } catch (final JedisAskDataException jade) {
+        } catch (final AskNodeException jade) {
           return;
         }
 
@@ -331,7 +328,7 @@ public class JedisClusterTest {
         try {
           jedis.sendCmd(Cmds.SET, key, new byte[0]);
           fail();
-        } catch (final JedisMovedDataException e) {
+        } catch (final SlotMovedException e) {
           jedis.sendCmd(Cmds.GET_RAW, key);
         }
       });
@@ -349,8 +346,8 @@ public class JedisClusterTest {
     try (final JedisClusterExecutor jce =
         JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      final ClusterNode exporting = jce.applyJedis(slot, RedisClient::getClusterNode);
-      final ClusterNode importing = jce.applyJedis(importingNodeSlot, jedis -> {
+      final Node exporting = jce.applyJedis(slot, RedisClient::getClusterNode);
+      final Node importing = jce.applyJedis(importingNodeSlot, jedis -> {
         jedis.clusterSetSlotImporting(slot, exporting.getId());
         return jedis.getClusterNode();
       });
@@ -361,8 +358,8 @@ public class JedisClusterTest {
         try {
           jedis.sendCmd(Cmds.SET, key, new byte[0]);
           fail(
-              "JedisMovedDataException was not thrown after accessing a slot-importing node on first try.");
-        } catch (final JedisMovedDataException jme) {
+              "SlotMovedException was not thrown after accessing a slot-importing node on first try.");
+        } catch (final SlotMovedException jme) {
           assertEquals(slot, jme.getSlot());
           assertEquals(exporting.getPort(), jme.getTargetNode().getPort());
         }
@@ -372,8 +369,8 @@ public class JedisClusterTest {
         try {
           jedis.sendCmd(Cmds.SET, key, new byte[0]);
           fail(
-              "JedisAskDataException was not thrown after accessing a slot-migrating node on first try.");
-        } catch (final JedisAskDataException jae) {
+              "AskNodeException was not thrown after accessing a slot-migrating node on first try.");
+        } catch (final AskNodeException jae) {
           assertEquals(slot, jae.getSlot());
           assertEquals(importing.getPort(), jae.getTargetNode().getPort());
         }
@@ -385,8 +382,8 @@ public class JedisClusterTest {
         try {
           jedis.sendCmd(Cmds.GET_RAW, key);
           fail(
-              "JedisMovedDataException was not thrown after accessing a slot-importing node on first try.");
-        } catch (final JedisMovedDataException jme) {
+              "SlotMovedException was not thrown after accessing a slot-importing node on first try.");
+        } catch (final SlotMovedException jme) {
           assertEquals(slot, jme.getSlot());
           assertEquals(exporting.getPort(), jme.getTargetNode().getPort());
         }
@@ -396,8 +393,8 @@ public class JedisClusterTest {
         try {
           jedis.sendCmd(Cmds.GET_RAW, key);
           fail(
-              "JedisAskDataException was not thrown after accessing a slot-migrating node on first try.");
-        } catch (final JedisAskDataException jae) {
+              "AskNodeException was not thrown after accessing a slot-migrating node on first try.");
+        } catch (final AskNodeException jae) {
           assertEquals(slot, jae.getSlot());
           assertEquals(importing.getPort(), jae.getTargetNode().getPort());
         }
@@ -422,14 +419,14 @@ public class JedisClusterTest {
     final String keyString = "MIGRATE";
     final byte[] key = RESP.toBytes(keyString);
     final int slot = CRC16.getSlot(key);
-    final ClusterNode newNode = slaves[0];
+    final Node newNode = slaves[0];
 
     try (final RedisClient client = JedisFactory.startBuilding().create(newNode)) {
 
       do {
         client.clusterReset(ClusterCmds.HARD);
         pendingReset.add(newNode);
-        for (final ClusterNode master : masters) {
+        for (final Node master : masters) {
           client.clusterMeet(master.getHost(), master.getPort());
         }
       } while (!waitForClusterReady(client, 2000));
@@ -438,8 +435,8 @@ public class JedisClusterTest {
     try (final JedisClusterExecutor jce =
         JedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      final ClusterNode exporting = jce.applyJedis(slot, RedisClient::getClusterNode);
-      final ClusterNode importing = jce.applyUnknownNode(newNode, jedis -> {
+      final Node exporting = jce.applyJedis(slot, RedisClient::getClusterNode);
+      final Node importing = jce.applyUnknownNode(newNode, jedis -> {
         jedis.clusterSetSlotImporting(slot, exporting.getId());
         jedis.getNodeId();
         return jedis.getClusterNode();
@@ -451,8 +448,8 @@ public class JedisClusterTest {
         try {
           jedis.sendCmd(Cmds.SET, key, new byte[0]);
           fail(
-              "JedisMovedDataException was not thrown after accessing a slot-importing node on first try.");
-        } catch (final JedisMovedDataException jme) {
+              "SlotMovedException was not thrown after accessing a slot-importing node on first try.");
+        } catch (final SlotMovedException jme) {
           assertEquals(slot, jme.getSlot());
           assertEquals(exporting.getPort(), jme.getTargetNode().getPort());
         }
@@ -462,8 +459,8 @@ public class JedisClusterTest {
         try {
           jedis.sendCmd(Cmds.SET, key, new byte[0]);
           fail(
-              "JedisAskDataException was not thrown after accessing a slot-migrating node on first try.");
-        } catch (final JedisAskDataException jae) {
+              "AskNodeException was not thrown after accessing a slot-migrating node on first try.");
+        } catch (final AskNodeException jae) {
           assertEquals(slot, jae.getSlot());
           assertEquals(importing.getPort(), jae.getTargetNode().getPort());
         }
@@ -475,8 +472,8 @@ public class JedisClusterTest {
         try {
           jedis.sendCmd(Cmds.GET_RAW, key);
           fail(
-              "JedisMovedDataException was not thrown after accessing a slot-importing node on first try.");
-        } catch (final JedisMovedDataException jme) {
+              "SlotMovedException was not thrown after accessing a slot-importing node on first try.");
+        } catch (final SlotMovedException jme) {
           assertEquals(slot, jme.getSlot());
           assertEquals(exporting.getPort(), jme.getTargetNode().getPort());
         }
@@ -486,8 +483,8 @@ public class JedisClusterTest {
         try {
           jedis.sendCmd(Cmds.GET_RAW, key);
           fail(
-              "JedisAskDataException was not thrown after accessing a slot-migrating node on first try.");
-        } catch (final JedisAskDataException jae) {
+              "AskNodeException was not thrown after accessing a slot-migrating node on first try.");
+        } catch (final AskNodeException jae) {
           assertEquals(slot, jae.getSlot());
           assertEquals(importing.getPort(), jae.getTargetNode().getPort());
         }
@@ -535,7 +532,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test(timeout = 3000, expected = JedisClusterMaxRedirectionsException.class)
+  @Test(timeout = 3000, expected = MaxRedirectsExceededException.class)
   public void testRedisClusterMaxRedirections() {
 
     final byte[] key = RESP.toBytes("42");
@@ -578,19 +575,19 @@ public class JedisClusterTest {
     try (final JedisClusterExecutor jce =
         JedisClusterExecutor.startBuilding(discoveryNodes).withReadMode(ReadMode.MIXED).create()) {
 
-      final ClusterNode node = jce.applyJedis(ReadMode.MASTER, slot, jedis -> {
+      final Node node = jce.applyJedis(ReadMode.MASTER, slot, jedis -> {
         jedis.clusterFlushSlots();
         return jedis.getClusterNode();
       });
 
       try {
         jce.acceptJedis(ReadMode.MASTER, slot, jedis -> jedis.sendCmd(Cmds.SET, key, new byte[0]));
-      } catch (final JedisClusterException jcex) {
-        assertTrue(jcex.getMessage().startsWith("CLUSTERDOWN"));
+      } catch (final RedisClusterDownException downEx) {
+        assertTrue(downEx.getMessage().startsWith("CLUSTERDOWN"));
       }
 
       jce.acceptNodeIfPresent(node, jedis -> jedis
-          .clusterAddSlots(slots[(int) ((slot / (double) JedisCluster.HASHSLOTS) * slots.length)]));
+          .clusterAddSlots(slots[(int) ((slot / (double) CRC16.HASHSLOTS) * slots.length)]));
 
       jce.acceptJedis(ReadMode.MASTER, slot, jedis -> jedis.sendCmd(Cmds.SET, key, new byte[0]));
     }
@@ -664,7 +661,7 @@ public class JedisClusterTest {
     config.setMaxTotal(0);
     config.setMaxWaitMillis(0);
 
-    final Function<ClusterNode, ObjectPool<RedisClient>> poolFactory =
+    final Function<Node, ObjectPool<RedisClient>> poolFactory =
         node -> new GenericObjectPool<>(JedisFactory.startBuilding().createPooled(node), config);
 
     try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes)
@@ -690,7 +687,7 @@ public class JedisClusterTest {
     try {
       jce.acceptJedis(jedis -> RESP.toString(jedis.sendCmd(Cmds.PING)));
       fail("All pools should have been closed.");
-    } catch (final JedisConnectionException jcex) {
+    } catch (final RedisConnectionException jcex) {
       // expected
     }
   }
@@ -698,9 +695,9 @@ public class JedisClusterTest {
   @Test(timeout = 3000)
   public void testJedisClusterTimeout() {
 
-    final Function<ClusterNode, ObjectPool<RedisClient>> poolFactory =
-        node -> new GenericObjectPool<>(JedisFactory.startBuilding().withConnTimeout(1234)
-            .withSoTimeout(4321).createPooled(node), new GenericObjectPoolConfig());
+    final Function<Node, ObjectPool<RedisClient>> poolFactory = node -> new GenericObjectPool<>(
+        JedisFactory.startBuilding().withConnTimeout(1234).withSoTimeout(4321).createPooled(node),
+        new GenericObjectPoolConfig());
 
     try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes)
         .withMasterPoolFactory(poolFactory).create()) {
@@ -721,7 +718,7 @@ public class JedisClusterTest {
     final GenericObjectPoolConfig config = new GenericObjectPoolConfig();
     config.setMaxTotal(numCpus * 2);
 
-    final Function<ClusterNode, ObjectPool<RedisClient>> poolFactory =
+    final Function<Node, ObjectPool<RedisClient>> poolFactory =
         node -> new GenericObjectPool<>(JedisFactory.startBuilding().createPooled(node), config);
 
     final int numThreads = numCpus * 4;
@@ -759,7 +756,7 @@ public class JedisClusterTest {
   }
 
   @Test(timeout = 1000)
-  public void testReturnConnectionOnJedisConnectionException() throws InterruptedException {
+  public void testReturnConnectionOnRedisConnectionException() {
 
     final String keyString = "42";
     final byte[] key = RESP.toBytes(keyString);
@@ -768,7 +765,7 @@ public class JedisClusterTest {
     final GenericObjectPoolConfig config = new GenericObjectPoolConfig();
     config.setMaxTotal(1);
 
-    final Function<ClusterNode, ObjectPool<RedisClient>> poolFactory =
+    final Function<Node, ObjectPool<RedisClient>> poolFactory =
         node -> new GenericObjectPool<>(JedisFactory.startBuilding().createPooled(node), config);
 
     try (final JedisClusterExecutor jce = JedisClusterExecutor.startBuilding(discoveryNodes)
@@ -796,7 +793,7 @@ public class JedisClusterTest {
     }
   }
 
-  @Test(timeout = 3000, expected = JedisClusterMaxRedirectionsException.class)
+  @Test(timeout = 3000, expected = MaxRedirectsExceededException.class)
   public void testReturnConnectionOnRedirection() {
 
     final byte[] key = RESP.toBytes("42");
@@ -815,8 +812,8 @@ public class JedisClusterTest {
   @Test(timeout = 3000)
   public void testLocalhostNodeNotAddedWhen127Present() {
 
-    try (final JedisClusterExecutor jce = JedisClusterExecutor
-        .startBuilding(ClusterNode.create("localhost", STARTING_PORT)).create()) {
+    try (final JedisClusterExecutor jce =
+        JedisClusterExecutor.startBuilding(Node.create("localhost", STARTING_PORT)).create()) {
 
       final int[] count = new int[1];
       jce.acceptAll(jedis -> {
@@ -831,8 +828,8 @@ public class JedisClusterTest {
   public void testInvalidStartNodeNotAdded() {
 
     try (final JedisClusterExecutor jce =
-        JedisClusterExecutor.startBuilding(ClusterNode.create("not-a-real-host", STARTING_PORT),
-            ClusterNode.create("127.0.0.1", STARTING_PORT)).create()) {
+        JedisClusterExecutor.startBuilding(Node.create("not-a-real-host", STARTING_PORT),
+            Node.create("127.0.0.1", STARTING_PORT)).create()) {
 
       final int[] count = new int[1];
       jce.acceptAll(jedis -> {

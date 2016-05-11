@@ -1,5 +1,7 @@
 package com.fabahaba.jedipus.primitive;
 
+import java.util.function.Function;
+
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocketFactory;
@@ -11,17 +13,13 @@ import org.apache.commons.pool2.impl.DefaultPooledObject;
 
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
-import com.fabahaba.jedipus.cluster.ClusterNode;
-import com.fabahaba.jedipus.cluster.JedisNodeConnectionException;
+import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.ClusterCmds;
-
-import redis.clients.jedis.Protocol;
-import redis.clients.jedis.exceptions.JedisConnectionException;
-import redis.clients.jedis.exceptions.JedisException;
 
 public class JedisFactory extends BasePooledObjectFactory<RedisClient> {
 
-  private final ClusterNode node;
+  private final Node node;
+  private final Function<Node, Node> hostPortMapper;
   private final int connTimeout;
   private final int soTimeout;
 
@@ -34,16 +32,17 @@ public class JedisFactory extends BasePooledObjectFactory<RedisClient> {
   private final SSLParameters sslParameters;
   private final HostnameVerifier hostnameVerifier;
 
-  JedisFactory(final ClusterNode node, final int connTimeout, final int soTimeout,
-      final String pass, final String clientName, final boolean initReadOnly, final boolean ssl,
-      final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
+  JedisFactory(final Node node, final Function<Node, Node> hostPortMapper, final int connTimeout,
+      final int soTimeout, final String pass, final String clientName, final boolean initReadOnly,
+      final boolean ssl, final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
       final HostnameVerifier hostnameVerifier) {
 
     this.node = node;
+    this.hostPortMapper = hostPortMapper;
     this.connTimeout = connTimeout;
     this.soTimeout = soTimeout;
-    this.pass = RESP.toBytes(pass);
-    this.clientName = RESP.toBytes(clientName);
+    this.pass = pass == null ? null : RESP.toBytes(pass);
+    this.clientName = clientName == null ? null : RESP.toBytes(clientName);
     this.initReadOnly = initReadOnly;
 
     this.ssl = ssl;
@@ -62,20 +61,12 @@ public class JedisFactory extends BasePooledObjectFactory<RedisClient> {
   @Override
   public RedisClient create() throws Exception {
 
+    final PrimJedis jedis = new PrimJedis(node, hostPortMapper, connTimeout, soTimeout, ssl,
+        sslSocketFactory, sslParameters, hostnameVerifier);
 
-    try {
-      final PrimJedis jedis = new PrimJedis(node, connTimeout, soTimeout, ssl, sslSocketFactory,
-          sslParameters, hostnameVerifier);
+    initJedis(jedis);
 
-      initJedis(jedis);
-
-      return jedis;
-    } catch (final JedisConnectionException jcex) {
-
-      throw new JedisNodeConnectionException(node, jcex);
-    } catch (final JedisException je) {
-      throw je;
-    }
+    return jedis;
   }
 
   @Override
@@ -116,8 +107,9 @@ public class JedisFactory extends BasePooledObjectFactory<RedisClient> {
 
     private String host;
     private int port;
-    private int connTimeout = Protocol.DEFAULT_TIMEOUT;
-    private int soTimeout = Protocol.DEFAULT_TIMEOUT;
+    private Function<Node, Node> hostPortMapper = Node.DEFAULT_HOSTPORT_MAPPER;
+    private int connTimeout = 2000;
+    private int soTimeout = 2000;
 
     private String pass;
     private String clientName;
@@ -137,21 +129,21 @@ public class JedisFactory extends BasePooledObjectFactory<RedisClient> {
 
     public PooledObjectFactory<RedisClient> createPooled(final String host, final int port) {
 
-      return createPooled(ClusterNode.create(host, port));
+      return createPooled(Node.create(host, port));
     }
 
     public PooledObjectFactory<RedisClient> createPooled(final String host, final int port,
         final boolean initReadOnly) {
 
-      return createPooled(ClusterNode.create(host, port), initReadOnly);
+      return createPooled(Node.create(host, port), initReadOnly);
     }
 
-    public PooledObjectFactory<RedisClient> createPooled(final ClusterNode node) {
+    public PooledObjectFactory<RedisClient> createPooled(final Node node) {
 
       return createPooled(node, initReadOnly);
     }
 
-    public PooledObjectFactory<RedisClient> createPooled(final ClusterNode node,
+    public PooledObjectFactory<RedisClient> createPooled(final Node node,
         final boolean initReadOnly) {
 
       int numInits = 0;
@@ -170,29 +162,29 @@ public class JedisFactory extends BasePooledObjectFactory<RedisClient> {
 
       if (numInits == 0) {
 
-        return new JedisFactory(node, connTimeout, soTimeout, pass, clientName, initReadOnly, ssl,
-            sslSocketFactory, sslParameters, hostnameVerifier);
+        return new JedisFactory(node, hostPortMapper, connTimeout, soTimeout, pass, clientName,
+            initReadOnly, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
       }
 
       if (numInits == 1) {
 
-        return new SingleInitFactory(node, connTimeout, soTimeout, pass, clientName, initReadOnly,
-            ssl, sslSocketFactory, sslParameters, hostnameVerifier);
+        return new SingleInitFactory(node, hostPortMapper, connTimeout, soTimeout, pass, clientName,
+            initReadOnly, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
       }
 
-      return new PipelinedInitFactory(node, connTimeout, soTimeout, pass, clientName, initReadOnly,
-          ssl, sslSocketFactory, sslParameters, hostnameVerifier);
+      return new PipelinedInitFactory(node, hostPortMapper, connTimeout, soTimeout, pass,
+          clientName, initReadOnly, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
     }
 
-    public RedisClient create(final ClusterNode node) {
+    public RedisClient create(final Node node) {
 
       return create(node, initReadOnly);
     }
 
-    public RedisClient create(final ClusterNode node, final boolean initReadOnly) {
+    public RedisClient create(final Node node, final boolean initReadOnly) {
 
-      final PrimJedis jedis = new PrimJedis(node, connTimeout, soTimeout, ssl, sslSocketFactory,
-          sslParameters, hostnameVerifier);
+      final PrimJedis jedis = new PrimJedis(node, hostPortMapper, connTimeout, soTimeout, ssl,
+          sslSocketFactory, sslParameters, hostnameVerifier);
 
       if (pass != null) {
 
@@ -227,6 +219,15 @@ public class JedisFactory extends BasePooledObjectFactory<RedisClient> {
 
     public Builder withPort(final int port) {
       this.port = port;
+      return this;
+    }
+
+    public Function<Node, Node> getHostPortMapper() {
+      return hostPortMapper;
+    }
+
+    public Builder withHostPortMapper(final Function<Node, Node> hostPortMapper) {
+      this.hostPortMapper = hostPortMapper;
       return this;
     }
 

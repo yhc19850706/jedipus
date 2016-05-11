@@ -3,8 +3,7 @@ package com.fabahaba.jedipus.cluster;
 import org.apache.commons.pool2.ObjectPool;
 
 import com.fabahaba.jedipus.RedisClient;
-
-import redis.clients.jedis.exceptions.JedisException;
+import com.fabahaba.jedipus.exceptions.RedisException;
 
 final class JedisPool {
 
@@ -17,7 +16,7 @@ final class JedisPool {
     } catch (final RuntimeException re) {
       throw re;
     } catch (final Exception e) {
-      throw new JedisException("Could not get a resource from the pool.", e);
+      throw new RedisException("Could not get a resource from the pool.", e);
     }
   }
 
@@ -33,7 +32,7 @@ final class JedisPool {
       } catch (final RuntimeException re) {
         throw re;
       } catch (final Exception e) {
-        throw new JedisException("Could not return broken jedis to its pool.", e);
+        throw new RedisException("Could not return broken jedis to its pool.", e);
       }
       return;
     }
@@ -46,7 +45,7 @@ final class JedisPool {
       } catch (final RuntimeException re2) {
         throw re2;
       } catch (final Exception e) {
-        throw new JedisException("Could not return broken jedis to its pool.", e);
+        throw new RedisException("Could not return broken jedis to its pool.", e);
       }
 
       throw re;
@@ -57,7 +56,7 @@ final class JedisPool {
     } catch (final RuntimeException re) {
       throw re;
     } catch (final Exception e) {
-      throw new JedisException("Could not return jedis to its pool.", e);
+      throw new RedisException("Could not return jedis to its pool.", e);
     }
   }
 }

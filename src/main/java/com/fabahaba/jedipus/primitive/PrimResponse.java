@@ -2,12 +2,12 @@ package com.fabahaba.jedipus.primitive;
 
 import java.util.function.Function;
 
-import redis.clients.jedis.exceptions.JedisDataException;
+import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 public class PrimResponse<T> {
 
   protected T response = null;
-  protected JedisDataException exception = null;
+  protected RedisUnhandledException exception = null;
 
   private boolean building = false;
   private boolean built = false;
@@ -37,7 +37,7 @@ public class PrimResponse<T> {
     }
 
     if (!set) {
-      throw new JedisDataException(
+      throw new RedisUnhandledException(null,
           "Please close pipeline or multi block before calling this method.");
     }
 
@@ -65,8 +65,8 @@ public class PrimResponse<T> {
     building = true;
     try {
       if (data != null) {
-        if (data instanceof JedisDataException) {
-          exception = (JedisDataException) data;
+        if (data instanceof RedisUnhandledException) {
+          exception = (RedisUnhandledException) data;
         } else {
           response = builder.apply(data);
         }

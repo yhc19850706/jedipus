@@ -1,5 +1,7 @@
 package com.fabahaba.jedipus.primitive;
 
+import java.util.function.Function;
+
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocketFactory;
@@ -8,35 +10,33 @@ import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.RedisPipeline;
-import com.fabahaba.jedipus.cluster.ClusterNode;
-
-import redis.clients.jedis.exceptions.JedisDataException;
+import com.fabahaba.jedipus.cluster.Node;
+import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 final class PrimJedis implements RedisClient {
 
   private final PrimRedisConn primClient;
-  private final ClusterNode node;
 
   private PrimPipeline pipeline = null;
 
-  PrimJedis(final ClusterNode node, final int connTimeout, final int soTimeout) {
+  PrimJedis(final Node node, final Function<Node, Node> hostPortMapper, final int connTimeout,
+      final int soTimeout) {
 
-    this(node, connTimeout, soTimeout, false, null, null, null);
+    this(node, hostPortMapper, connTimeout, soTimeout, false, null, null, null);
   }
 
-  PrimJedis(final ClusterNode node, final int connTimeout, final int soTimeout, final boolean ssl,
-      final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
-      final HostnameVerifier hostnameVerifier) {
+  PrimJedis(final Node node, final Function<Node, Node> hostPortMapper, final int connTimeout,
+      final int soTimeout, final boolean ssl, final SSLSocketFactory sslSocketFactory,
+      final SSLParameters sslParameters, final HostnameVerifier hostnameVerifier) {
 
-    this.primClient = PrimRedisConn.create(node, connTimeout, soTimeout, ssl, sslSocketFactory,
-        sslParameters, hostnameVerifier);
-    this.node = node;
+    this.primClient = PrimRedisConn.create(node, hostPortMapper, connTimeout, soTimeout, ssl,
+        sslSocketFactory, sslParameters, hostnameVerifier);
   }
 
   @Override
   public HostPort getHostPort() {
 
-    return node.getHostPort();
+    return primClient.getNode().getHostPort();
   }
 
   @Override
@@ -99,9 +99,9 @@ final class PrimJedis implements RedisClient {
   }
 
   @Override
-  public ClusterNode getClusterNode() {
+  public Node getClusterNode() {
 
-    return node;
+    return primClient.getNode();
   }
 
   @Override
@@ -125,12 +125,12 @@ final class PrimJedis implements RedisClient {
   protected void checkIsInMultiOrPipeline() {
 
     if (primClient.isInMulti()) {
-      throw new JedisDataException(
+      throw new RedisUnhandledException(getClusterNode(),
           "Cannot use Jedis when in Multi. Please use Transation or reset jedis state.");
     }
 
     if (pipeline != null && pipeline.hasPipelinedResponse()) {
-      throw new JedisDataException(
+      throw new RedisUnhandledException(getClusterNode(),
           "Cannot use Jedis when in Pipeline. Please use Pipeline or reset jedis state .");
     }
   }
@@ -221,6 +221,6 @@ final class PrimJedis implements RedisClient {
   @Override
   public String toString() {
 
-    return node.toString();
+    return getClusterNode().toString();
   }
 }

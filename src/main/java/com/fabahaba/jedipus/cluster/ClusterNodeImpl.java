@@ -2,7 +2,7 @@ package com.fabahaba.jedipus.cluster;
 
 import com.fabahaba.jedipus.HostPort;
 
-class ClusterNodeImpl implements ClusterNode {
+class ClusterNodeImpl implements Node {
 
   private final HostPort hostPort;
   private String id;
@@ -13,6 +13,7 @@ class ClusterNodeImpl implements ClusterNode {
     this.id = id;
   }
 
+  @Override
   public HostPort getHostPort() {
 
     return hostPort;
@@ -30,14 +31,17 @@ class ClusterNodeImpl implements ClusterNode {
     return hostPort.getPort();
   }
 
+  @Override
   public String getId() {
 
     return id;
   }
 
-  public String updateId(final String id) {
+  @Override
+  public Node updateId(final String id) {
 
-    return this.id = id;
+    this.id = id;
+    return this;
   }
 
   @Override

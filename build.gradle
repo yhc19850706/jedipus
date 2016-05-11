@@ -31,8 +31,7 @@ repositories {
 }
 
 dependencies {
-   compile 'org.apache.commons:commons-pool2:+'
-   compile 'redis.clients:jedis:+'
+   compile 'org.apache.commons:commons-pool2:+' 
 
    testCompile 'junit:junit:+'
 }

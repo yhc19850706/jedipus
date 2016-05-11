@@ -3,6 +3,8 @@ package com.fabahaba.jedipus;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
+import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
+
 public final class RESP {
 
   private RESP() {}
@@ -17,22 +19,26 @@ public final class RESP {
 
   public static byte[] toBytes(final int num) {
 
-    return toBytes(String.valueOf(num));
+    return Integer.toString(num).getBytes(StandardCharsets.UTF_8);
   }
 
   public static byte[] toBytes(final long num) {
 
-    return toBytes(String.valueOf(num));
+    return Long.toString(num).getBytes(StandardCharsets.UTF_8);
   }
 
   public static byte[] toBytes(final double num) {
 
-    return toBytes(String.valueOf(num));
+    return Double.toString(num).getBytes(StandardCharsets.UTF_8);
   }
 
   public static byte[] toBytes(final String string) {
 
-    return string == null ? null : string.getBytes(StandardCharsets.UTF_8);
+    if (string == null) {
+      throw new RedisUnhandledException(null, "value sent to redis cannot be null");
+    }
+
+    return string.getBytes(StandardCharsets.UTF_8);
   }
 
   public static String toString(final Object bytes) {

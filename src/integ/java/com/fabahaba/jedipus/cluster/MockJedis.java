@@ -38,7 +38,7 @@ public class MockJedis implements RedisClient {
   }
 
   @Override
-  public ClusterNode getClusterNode() {
+  public Node getClusterNode() {
 
     return null;
   }

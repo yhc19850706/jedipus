@@ -12,7 +12,7 @@ public class PrimQueable {
     this.pipelinedResponses = pipelinedResponses;
   }
 
-  protected void clean() {
+  protected void clear() {
 
     pipelinedResponses.clear();
   }

@@ -23,12 +23,12 @@ public interface JedisClusterExecutor extends AutoCloseable {
     return new Jedipus.Builder(null);
   }
 
-  public static Builder startBuilding(final ClusterNode... discoveryNodes) {
+  public static Builder startBuilding(final Node... discoveryNodes) {
 
     return new Jedipus.Builder(Arrays.asList(discoveryNodes));
   }
 
-  public static Builder startBuilding(final Collection<ClusterNode> discoveryNodes) {
+  public static Builder startBuilding(final Collection<Node> discoveryNodes) {
 
     return new Jedipus.Builder(discoveryNodes);
   }
@@ -893,13 +893,13 @@ public interface JedisClusterExecutor extends AutoCloseable {
     }, maxRetries, executor);
   }
 
-  default void acceptNodeIfPresent(final ClusterNode node,
+  default void acceptNodeIfPresent(final Node node,
       final Consumer<RedisClient> jedisConsumer) {
 
     acceptNodeIfPresent(node, jedisConsumer, getMaxRetries());
   }
 
-  default void acceptNodeIfPresent(final ClusterNode node,
+  default void acceptNodeIfPresent(final Node node,
       final Consumer<RedisClient> jedisConsumer, final int maxRetries) {
 
     applyNodeIfPresent(node, jedis -> {
@@ -908,13 +908,13 @@ public interface JedisClusterExecutor extends AutoCloseable {
     }, maxRetries);
   }
 
-  default void acceptPipelinedNodeIfPresent(final ClusterNode node,
+  default void acceptPipelinedNodeIfPresent(final Node node,
       final Consumer<RedisPipeline> pipelineConsumer) {
 
     acceptPipelinedNodeIfPresent(node, pipelineConsumer, getMaxRetries());
   }
 
-  default void acceptPipelinedNodeIfPresent(final ClusterNode node,
+  default void acceptPipelinedNodeIfPresent(final Node node,
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries) {
 
     applyNodeIfPresent(node, jedis -> {
@@ -924,13 +924,13 @@ public interface JedisClusterExecutor extends AutoCloseable {
     }, maxRetries);
   }
 
-  default void acceptPipelinedTransactionNodeIfPresent(final ClusterNode node,
+  default void acceptPipelinedTransactionNodeIfPresent(final Node node,
       final Consumer<RedisPipeline> pipelineConsumer) {
 
     acceptPipelinedTransactionNodeIfPresent(node, pipelineConsumer, getMaxRetries());
   }
 
-  default void acceptPipelinedTransactionNodeIfPresent(final ClusterNode node,
+  default void acceptPipelinedTransactionNodeIfPresent(final Node node,
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries) {
 
     applyNodeIfPresent(node, jedis -> {
@@ -941,19 +941,19 @@ public interface JedisClusterExecutor extends AutoCloseable {
     }, maxRetries);
   }
 
-  default <R> R applyNodeIfPresent(final ClusterNode node,
+  default <R> R applyNodeIfPresent(final Node node,
       final Function<RedisClient, R> jedisConsumer) {
 
     return applyNodeIfPresent(node, jedisConsumer, getMaxRetries());
   }
 
-  default <R> R applyPipelinedNodeIfPresent(final ClusterNode node,
+  default <R> R applyPipelinedNodeIfPresent(final Node node,
       final Function<RedisPipeline, R> pipelineConsumer) {
 
     return applyPipelinedNodeIfPresent(node, pipelineConsumer, getMaxRetries());
   }
 
-  default <R> R applyPipelinedNodeIfPresent(final ClusterNode node,
+  default <R> R applyPipelinedNodeIfPresent(final Node node,
       final Function<RedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
     return applyNodeIfPresent(node, jedis -> {
@@ -962,13 +962,13 @@ public interface JedisClusterExecutor extends AutoCloseable {
     }, maxRetries);
   }
 
-  default <R> R applyPipelinedTransasctionNodeIfPresent(final ClusterNode node,
+  default <R> R applyPipelinedTransasctionNodeIfPresent(final Node node,
       final Function<RedisPipeline, R> pipelineConsumer) {
 
     return applyPipelinedTransasctionNodeIfPresent(node, pipelineConsumer, getMaxRetries());
   }
 
-  default <R> R applyPipelinedTransasctionNodeIfPresent(final ClusterNode node,
+  default <R> R applyPipelinedTransasctionNodeIfPresent(final Node node,
       final Function<RedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
     return applyNodeIfPresent(node, jedis -> {
@@ -978,16 +978,16 @@ public interface JedisClusterExecutor extends AutoCloseable {
     }, maxRetries);
   }
 
-  public <R> R applyNodeIfPresent(final ClusterNode node,
+  public <R> R applyNodeIfPresent(final Node node,
       final Function<RedisClient, R> jedisConsumer, final int maxRetries);
 
-  default void acceptUnknownNode(final ClusterNode node,
+  default void acceptUnknownNode(final Node node,
       final Consumer<RedisClient> jedisConsumer) {
 
     acceptUnknownNode(node, jedisConsumer, getMaxRetries());
   }
 
-  default void acceptUnknownNode(final ClusterNode node, final Consumer<RedisClient> jedisConsumer,
+  default void acceptUnknownNode(final Node node, final Consumer<RedisClient> jedisConsumer,
       final int maxRetries) {
 
     applyUnknownNode(node, jedis -> {
@@ -996,13 +996,13 @@ public interface JedisClusterExecutor extends AutoCloseable {
     }, maxRetries);
   }
 
-  default void acceptPipelinedUnknownNode(final ClusterNode node,
+  default void acceptPipelinedUnknownNode(final Node node,
       final Consumer<RedisPipeline> pipelineConsumer) {
 
     acceptPipelinedUnknownNode(node, pipelineConsumer, getMaxRetries());
   }
 
-  default void acceptPipelinedUnknownNode(final ClusterNode node,
+  default void acceptPipelinedUnknownNode(final Node node,
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries) {
 
     applyUnknownNode(node, jedis -> {
@@ -1012,13 +1012,13 @@ public interface JedisClusterExecutor extends AutoCloseable {
     }, maxRetries);
   }
 
-  default void acceptPipelinedTransactionUnknownNode(final ClusterNode node,
+  default void acceptPipelinedTransactionUnknownNode(final Node node,
       final Consumer<RedisPipeline> pipelineConsumer) {
 
     acceptPipelinedTransactionUnknownNode(node, pipelineConsumer, getMaxRetries());
   }
 
-  default void acceptPipelinedTransactionUnknownNode(final ClusterNode node,
+  default void acceptPipelinedTransactionUnknownNode(final Node node,
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries) {
 
     applyUnknownNode(node, jedis -> {
@@ -1029,19 +1029,19 @@ public interface JedisClusterExecutor extends AutoCloseable {
     }, maxRetries);
   }
 
-  default <R> R applyUnknownNode(final ClusterNode node,
+  default <R> R applyUnknownNode(final Node node,
       final Function<RedisClient, R> jedisConsumer) {
 
     return applyUnknownNode(node, jedisConsumer, getMaxRetries());
   }
 
-  default <R> R applyPipelinedUnknownNode(final ClusterNode node,
+  default <R> R applyPipelinedUnknownNode(final Node node,
       final Function<RedisPipeline, R> pipelineConsumer) {
 
     return applyPipelinedUnknownNode(node, pipelineConsumer, getMaxRetries());
   }
 
-  default <R> R applyPipelinedUnknownNode(final ClusterNode node,
+  default <R> R applyPipelinedUnknownNode(final Node node,
       final Function<RedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
     return applyUnknownNode(node, jedis -> {
@@ -1050,13 +1050,13 @@ public interface JedisClusterExecutor extends AutoCloseable {
     }, maxRetries);
   }
 
-  default <R> R applyPipelinedTransasctionUnknownNode(final ClusterNode node,
+  default <R> R applyPipelinedTransasctionUnknownNode(final Node node,
       final Function<RedisPipeline, R> pipelineConsumer) {
 
     return applyPipelinedTransasctionUnknownNode(node, pipelineConsumer, getMaxRetries());
   }
 
-  default <R> R applyPipelinedTransasctionUnknownNode(final ClusterNode node,
+  default <R> R applyPipelinedTransasctionUnknownNode(final Node node,
       final Function<RedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
     return applyUnknownNode(node, jedis -> {
@@ -1066,7 +1066,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
     }, maxRetries);
   }
 
-  public <R> R applyUnknownNode(final ClusterNode node,
+  public <R> R applyUnknownNode(final Node node,
       final Function<RedisClient, R> jedisConsumer, final int maxRetries);
 
   public void refreshSlotCache();

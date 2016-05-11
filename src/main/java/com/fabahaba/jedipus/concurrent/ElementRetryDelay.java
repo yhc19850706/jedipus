@@ -3,7 +3,7 @@ package com.fabahaba.jedipus.concurrent;
 import java.time.Duration;
 import java.util.function.LongFunction;
 
-import com.fabahaba.jedipus.cluster.ClusterNode;
+import com.fabahaba.jedipus.cluster.Node;
 
 public interface ElementRetryDelay<E> {
 
@@ -75,7 +75,7 @@ public interface ElementRetryDelay<E> {
 
     private Builder() {}
 
-    public ElementRetryDelay<ClusterNode> create() {
+    public ElementRetryDelay<Node> create() {
 
       if (maxDelay == null) {
         maxDelay = Duration.ofMillis(2000);

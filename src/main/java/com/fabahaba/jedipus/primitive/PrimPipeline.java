@@ -5,10 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.RESP;
-
-import redis.clients.jedis.exceptions.JedisDataException;
+import com.fabahaba.jedipus.RedisPipeline;
+import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 final class PrimPipeline extends PrimQueable implements RedisPipeline {
 
@@ -28,10 +27,20 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
   }
 
   @Override
+  public void close() {
+
+    clear();
+
+    if (isInMulti()) {
+      discard();
+    }
+  }
+
+  @Override
   public PrimResponse<String> discard() {
 
     if (currentMulti == null) {
-      throw new JedisDataException("DISCARD without MULTI");
+      throw new RedisUnhandledException(null, "DISCARD without MULTI");
     }
 
     client.discard();
@@ -39,11 +48,26 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
     return getResponse(RESP::toString);
   }
 
+
+  @Override
+  public void sync() {
+
+    if (currentMulti != null) {
+      throw new RedisUnhandledException(null, "EXEC your MULTI before calling SYNC.");
+    }
+
+    if (getPipelinedResponseLength() > 0) {
+      for (final Object o : client.getMany(getPipelinedResponseLength())) {
+        generateResponse(o);
+      }
+    }
+  }
+
   @Override
   public PrimResponse<String> multi() {
 
     if (currentMulti != null) {
-      throw new JedisDataException("MULTI calls can not be nested");
+      throw new RedisUnhandledException(null, "MULTI calls can not be nested.");
     }
 
     client.multi();
@@ -56,7 +80,7 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
   public PrimResponse<List<Object>> exec() {
 
     if (currentMulti == null) {
-      throw new JedisDataException("EXEC without MULTI");
+      throw new RedisUnhandledException(null, "EXEC without MULTI.");
     }
 
     client.exec();
@@ -66,15 +90,6 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
     return response;
   }
 
-  @Override
-  public void sync() {
-
-    if (getPipelinedResponseLength() > 0) {
-      for (final Object o : client.getMany(getPipelinedResponseLength())) {
-        generateResponse(o);
-      }
-    }
-  }
 
   @Override
   protected <T> PrimResponse<T> getResponse(final Function<Object, T> builder) {
@@ -88,16 +103,6 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
     }
 
     return super.getResponse(builder);
-  }
-
-  @Override
-  public void close() {
-
-    if (isInMulti()) {
-      discard();
-    }
-
-    sync();
   }
 
   @Override
@@ -133,7 +138,7 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
       final List<Object> values = new ArrayList<>();
 
       if (list.size() != responses.size()) {
-        throw new JedisDataException(
+        throw new RedisUnhandledException(null,
             "Expected data size " + responses.size() + " but was " + list.size());
       }
 
@@ -144,7 +149,7 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
         Object builtResponse;
         try {
           builtResponse = response.get();
-        } catch (final JedisDataException e) {
+        } catch (final RedisUnhandledException e) {
           builtResponse = e;
         }
         values.add(builtResponse);

@@ -1,19 +1,18 @@
 package com.fabahaba.jedipus.primitive;
 
 import java.io.IOException;
+import java.util.function.Function;
 
 import com.fabahaba.jedipus.RESP;
+import com.fabahaba.jedipus.cluster.Node;
+import com.fabahaba.jedipus.exceptions.AskNodeException;
+import com.fabahaba.jedipus.exceptions.RedisBusyException;
+import com.fabahaba.jedipus.exceptions.RedisClusterDownException;
+import com.fabahaba.jedipus.exceptions.RedisConnectionException;
+import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
+import com.fabahaba.jedipus.exceptions.SlotMovedException;
 
-import redis.clients.jedis.HostAndPort;
-import redis.clients.jedis.exceptions.JedisAskDataException;
-import redis.clients.jedis.exceptions.JedisClusterException;
-import redis.clients.jedis.exceptions.JedisConnectionException;
-import redis.clients.jedis.exceptions.JedisDataException;
-import redis.clients.jedis.exceptions.JedisMovedDataException;
-import redis.clients.util.RedisInputStream;
-import redis.clients.util.RedisOutputStream;
-
-public final class Protocol {
+final class Protocol {
 
   private Protocol() {}
 
@@ -22,218 +21,188 @@ public final class Protocol {
   private static final String CLUSTERDOWN_RESPONSE = "CLUSTERDOWN";
   private static final String BUSY_RESPONSE = "BUSY";
 
-  public static final byte DOLLAR_BYTE = '$';
-  public static final byte ASTERISK_BYTE = '*';
-  public static final byte PLUS_BYTE = '+';
-  public static final byte MINUS_BYTE = '-';
-  public static final byte COLON_BYTE = ':';
+  private static final byte DOLLAR_BYTE = '$';
+  private static final byte ASTERISK_BYTE = '*';
+  private static final byte PLUS_BYTE = '+';
+  private static final byte MINUS_BYTE = '-';
+  private static final byte COLON_BYTE = ':';
 
-  public static void sendCommand(final RedisOutputStream os, final byte[] command) {
+  private static final byte[] ONE_CMD = RESP.toBytes(1);
+  private static final byte[] TWO_CMD = RESP.toBytes(2);
+  private static final byte[] THREE_CMD = RESP.toBytes(3);
 
-    try {
-      os.write(ASTERISK_BYTE);
-      os.writeIntCrLf(1);
-      os.write(DOLLAR_BYTE);
-      os.writeIntCrLf(command.length);
-      os.write(command);
-      os.writeCrLf();
-    } catch (final IOException e) {
-      throw new JedisConnectionException(e);
+  static void sendCommand(final RedisOutputStream os, final byte[] cmd) throws IOException {
+
+    startWrite(os, ONE_CMD);
+    writeArg(os, cmd);
+  }
+
+  static void sendCommand(final RedisOutputStream os, final byte[] cmd, final byte[][] args)
+      throws IOException {
+
+    startWrite(os, args.length + 1);
+    writeArg(os, cmd);
+    writeArgs(os, args);
+  }
+
+  static void sendSubCommand(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
+      final byte[][] args) throws IOException {
+
+    startWrite(os, args.length + 2);
+    writeArg(os, cmd);
+    writeArg(os, subcmd);
+
+    writeArgs(os, args);
+  }
+
+  static void sendSubCommand(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
+      final byte[] arg) throws IOException {
+
+    startWrite(os, THREE_CMD);
+    writeArg(os, cmd);
+    writeArg(os, subcmd);
+    writeArg(os, arg);
+  }
+
+  static void sendSubCommand(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd)
+      throws IOException {
+
+    startWrite(os, TWO_CMD);
+    writeArg(os, cmd);
+    writeArg(os, subcmd);
+  }
+
+  static void sendCommand(final RedisOutputStream os, final String cmd, final String[] args)
+      throws IOException {
+
+    sendCommand(os, RESP.toBytes(cmd), args);
+  }
+
+  static void sendCommand(final RedisOutputStream os, final byte[] cmd, final String[] args)
+      throws IOException {
+
+    startWrite(os, args.length + 1);
+    writeArg(os, cmd);
+    writeArgs(os, args);
+  }
+
+  private static void startWrite(final RedisOutputStream os, final int numArgs) throws IOException {
+
+    os.write(ASTERISK_BYTE);
+    os.write(numArgs);
+  }
+
+  private static void startWrite(final RedisOutputStream os, final byte[] numArgs)
+      throws IOException {
+
+    os.write(ASTERISK_BYTE);
+    os.write(numArgs);
+    os.writeCRLF();
+  }
+
+  private static void writeArg(final RedisOutputStream os, final byte[] arg) throws IOException {
+
+    os.write(DOLLAR_BYTE);
+    os.write(arg.length);
+    os.write(arg);
+    os.writeCRLF();
+  }
+
+  private static void writeArgs(final RedisOutputStream os, final byte[][] args)
+      throws IOException {
+
+    for (final byte[] arg : args) {
+      writeArg(os, arg);
     }
   }
 
-  public static void sendCommand(final RedisOutputStream os, final byte[] command,
-      final byte[][] args) {
+  private static void writeArgs(final RedisOutputStream os, final String[] args)
+      throws IOException {
 
-    try {
-      os.write(ASTERISK_BYTE);
-      os.writeIntCrLf(args.length + 1);
-      os.write(DOLLAR_BYTE);
-      os.writeIntCrLf(command.length);
-      os.write(command);
-      os.writeCrLf();
-
-      for (final byte[] arg : args) {
-        os.write(DOLLAR_BYTE);
-        os.writeIntCrLf(arg.length);
-        os.write(arg);
-        os.writeCrLf();
-      }
-    } catch (final IOException e) {
-      throw new JedisConnectionException(e);
+    for (final String arg : args) {
+      writeArg(os, RESP.toBytes(arg));
     }
   }
 
-  public static void sendSubCommand(final RedisOutputStream os, final byte[] command,
-      final byte[] subcmd, final byte[][] args) {
-
-    try {
-      os.write(ASTERISK_BYTE);
-      os.writeIntCrLf(args.length + 2);
-      os.write(DOLLAR_BYTE);
-      os.writeIntCrLf(command.length);
-      os.write(command);
-      os.writeCrLf();
-      os.write(DOLLAR_BYTE);
-      os.writeIntCrLf(subcmd.length);
-      os.write(subcmd);
-      os.writeCrLf();
-
-      for (final byte[] arg : args) {
-        os.write(DOLLAR_BYTE);
-        os.writeIntCrLf(arg.length);
-        os.write(arg);
-        os.writeCrLf();
-      }
-    } catch (final IOException e) {
-      throw new JedisConnectionException(e);
-    }
-  }
-
-  public static void sendSubCommand(final RedisOutputStream os, final byte[] command,
-      final byte[] subcmd, final byte[] args) {
-
-    try {
-      os.write(ASTERISK_BYTE);
-      os.writeIntCrLf(3);
-      os.write(DOLLAR_BYTE);
-      os.writeIntCrLf(command.length);
-      os.write(command);
-      os.writeCrLf();
-      os.write(DOLLAR_BYTE);
-      os.writeIntCrLf(subcmd.length);
-      os.write(subcmd);
-      os.writeCrLf();
-      os.write(DOLLAR_BYTE);
-      os.writeIntCrLf(args.length);
-      os.write(args);
-      os.writeCrLf();
-    } catch (final IOException e) {
-      throw new JedisConnectionException(e);
-    }
-  }
-
-  public static void sendSubCommand(final RedisOutputStream os, final byte[] command,
-      final byte[] subcmd) {
-
-    try {
-      os.write(ASTERISK_BYTE);
-      os.writeIntCrLf(2);
-      os.write(DOLLAR_BYTE);
-      os.writeIntCrLf(command.length);
-      os.write(command);
-      os.writeCrLf();
-      os.write(DOLLAR_BYTE);
-      os.writeIntCrLf(subcmd.length);
-      os.write(subcmd);
-      os.writeCrLf();
-    } catch (final IOException e) {
-      throw new JedisConnectionException(e);
-    }
-  }
-
-  public static void sendCommand(final RedisOutputStream os, final String command,
-      final String[] args) {
-
-    sendCommand(os, RESP.toBytes(command), args);
-  }
-
-  public static void sendCommand(final RedisOutputStream os, final byte[] command,
-      final String[] args) {
-
-    try {
-      os.write(ASTERISK_BYTE);
-      os.writeIntCrLf(args.length + 1);
-      os.write(DOLLAR_BYTE);
-      os.writeIntCrLf(command.length);
-      os.write(command);
-      os.writeCrLf();
-
-      for (final String arg : args) {
-        os.write(DOLLAR_BYTE);
-        final byte[] argBytes = RESP.toBytes(arg);
-        os.writeIntCrLf(argBytes.length);
-        os.write(argBytes);
-        os.writeCrLf();
-      }
-    } catch (final IOException e) {
-      throw new JedisConnectionException(e);
-    }
-  }
-
-  private static void processError(final RedisInputStream is) {
+  private static void processError(final Node node, final Function<Node, Node> hostPortMapper,
+      final RedisInputStream is) {
 
     final String message = is.readLine();
 
     if (message.startsWith(MOVED_RESPONSE)) {
 
-      final String[] movedInfo = parseTargetHostAndSlot(message);
-      throw new JedisMovedDataException(message,
-          new HostAndPort(movedInfo[1], Integer.parseInt(movedInfo[2])),
-          Integer.parseInt(movedInfo[0]));
+      final String[] movedInfo = parseTargetHostAndSlot(message, 6);
+      final Node targetNode = hostPortMapper.apply(Node.create(movedInfo[1], movedInfo[2]));
+
+      throw new SlotMovedException(node, message, targetNode, Integer.parseInt(movedInfo[0]));
     }
 
     if (message.startsWith(ASK_RESPONSE)) {
 
-      final String[] askInfo = parseTargetHostAndSlot(message);
-      throw new JedisAskDataException(message,
-          new HostAndPort(askInfo[1], Integer.parseInt(askInfo[2])), Integer.parseInt(askInfo[0]));
+      final String[] askInfo = parseTargetHostAndSlot(message, 4);
+      final Node targetNode = hostPortMapper.apply(Node.create(askInfo[1], askInfo[2]));
+
+      throw new AskNodeException(node, message, targetNode, Integer.parseInt(askInfo[0]));
     }
 
     if (message.startsWith(CLUSTERDOWN_RESPONSE)) {
 
-      throw new JedisClusterException(message);
+      throw new RedisClusterDownException(node, message);
     }
 
     if (message.startsWith(BUSY_RESPONSE)) {
 
-      throw new JedisBusyException(message);
+      throw new RedisBusyException(node, message);
     }
 
-    throw new JedisDataException(message);
+    throw new RedisUnhandledException(node, message);
   }
 
-  public static String readErrorLineIfPossible(final RedisInputStream is) {
+  static String readErrorLineIfPossible(final RedisInputStream is) {
 
     final byte bite = is.readByte();
 
     return bite == MINUS_BYTE ? is.readLine() : null;
   }
 
-  private static String[] parseTargetHostAndSlot(final String clusterRedirectResponse) {
+  private static String[] parseTargetHostAndSlot(final String clusterRedirectResponse,
+      final int slotOffset) {
+
+    final int colon = clusterRedirectResponse.lastIndexOf(':');
+    final int hostOffset = clusterRedirectResponse.lastIndexOf(' ', colon);
 
     final String[] response = new String[3];
-    final String[] messageInfo = clusterRedirectResponse.split(" ");
-    final String[] targetHostAndPort = messageInfo[2].split(":");
-    response[0] = messageInfo[1];
-    response[1] = targetHostAndPort[0];
-    response[2] = targetHostAndPort[1];
+    response[0] = clusterRedirectResponse.substring(slotOffset, hostOffset);
+    response[1] = clusterRedirectResponse.substring(hostOffset + 1, colon);
+    response[2] = clusterRedirectResponse.substring(colon + 1);
+
     return response;
   }
 
-  private static Object process(final RedisInputStream is) {
+  private static Object process(final Node node, final Function<Node, Node> hostPortMapper,
+      final RedisInputStream is) {
 
-    final byte b = is.readByte();
+    final byte bite = is.readByte();
 
-    switch (b) {
+    switch (bite) {
 
       case PLUS_BYTE:
         return is.readLineBytes();
       case DOLLAR_BYTE:
-        return processBulkReply(is);
+        return processBulkReply(node, is);
       case ASTERISK_BYTE:
-        return processMultiBulkReply(is);
+        return processMultiBulkReply(node, hostPortMapper, is);
       case COLON_BYTE:
         return is.readLongCrLf();
       case MINUS_BYTE:
-        processError(is);
+        processError(node, hostPortMapper, is);
         return null;
       default:
-        throw new JedisConnectionException("Unknown reply: " + (char) b);
+        throw new RedisConnectionException(node, "Unknown reply: " + (char) bite);
     }
   }
 
-  private static byte[] processBulkReply(final RedisInputStream is) {
+  private static byte[] processBulkReply(final Node node, final RedisInputStream is) {
 
     final int len = is.readIntCrLf();
     if (len == -1) {
@@ -245,7 +214,7 @@ public final class Protocol {
     for (int offset = 0; offset < len;) {
       final int size = is.read(read, offset, (len - offset));
       if (size == -1) {
-        throw new JedisConnectionException("It seems like server has closed the connection.");
+        throw new RedisConnectionException(node, "It seems like server has closed the connection.");
       }
       offset += size;
     }
@@ -257,7 +226,8 @@ public final class Protocol {
     return read;
   }
 
-  private static Object[] processMultiBulkReply(final RedisInputStream is) {
+  private static Object[] processMultiBulkReply(final Node node,
+      final Function<Node, Node> hostPortMapper, final RedisInputStream is) {
 
     final int num = is.readIntCrLf();
     if (num == -1) {
@@ -267,16 +237,17 @@ public final class Protocol {
     final Object[] reply = new Object[num];
     for (int i = 0; i < num; i++) {
       try {
-        reply[i] = process(is);
-      } catch (final JedisDataException e) {
+        reply[i] = process(node, hostPortMapper, is);
+      } catch (final RedisUnhandledException e) {
         reply[i] = e;
       }
     }
     return reply;
   }
 
-  public static Object read(final RedisInputStream is) {
+  static Object read(final Node node, final Function<Node, Node> hostPortMapper,
+      final RedisInputStream is) {
 
-    return process(is);
+    return process(node, hostPortMapper, is);
   }
 }

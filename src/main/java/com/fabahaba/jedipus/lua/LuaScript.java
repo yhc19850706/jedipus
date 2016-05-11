@@ -22,9 +22,8 @@ import com.fabahaba.jedipus.cluster.CRC16;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor;
 import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.cmds.ScriptingCmds;
+import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.primitive.PrimResponse;
-
-import redis.clients.jedis.exceptions.JedisDataException;
 
 public interface LuaScript<R> {
 
@@ -110,7 +109,7 @@ public interface LuaScript<R> {
 
     try {
       return (R) jedis.evalSha1Hex(args);
-    } catch (final JedisDataException jde) {
+    } catch (final RedisUnhandledException jde) {
 
       if (jde.getMessage().startsWith("NOSCRIPT")) {
 

@@ -72,10 +72,10 @@ public final class RCUtils {
     return null;
   }
 
-  public static Map<HostPort, ClusterNode> getClusterNodes(final String clusterNodes) {
+  public static Map<HostPort, Node> getClusterNodes(final String clusterNodes) {
 
     final String[] lines = clusterNodes.split("\\r?\\n");
-    final Map<HostPort, ClusterNode> nodes = new HashMap<>(lines.length);
+    final Map<HostPort, Node> nodes = new HashMap<>(lines.length);
 
     for (final String nodeInfo : lines) {
 
@@ -92,7 +92,7 @@ public final class RCUtils {
           final String port = nodeInfo.substring(startPort + 1, endPort);
 
           final HostPort hostPort = HostPort.create(host, port);
-          nodes.put(hostPort, ClusterNode.create(hostPort, nodeId));
+          nodes.put(hostPort, Node.create(hostPort, nodeId));
           break;
         }
       }
