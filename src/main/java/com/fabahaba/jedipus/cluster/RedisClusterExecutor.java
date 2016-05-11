@@ -12,7 +12,7 @@ import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cluster.Jedipus.Builder;
 
-public interface JedisClusterExecutor extends AutoCloseable {
+public interface RedisClusterExecutor extends AutoCloseable {
 
   public static enum ReadMode {
     MASTER, SLAVES, MIXED, MIXED_SLAVES;
@@ -42,191 +42,191 @@ public interface JedisClusterExecutor extends AutoCloseable {
   @Override
   public void close();
 
-  default <R> R applyJedis(final ReadMode readMode, final int slot,
-      final Function<RedisClient, R> jedisConsumer, final int maxRetries) {
+  default <R> R apply(final ReadMode readMode, final int slot,
+      final Function<RedisClient, R> clientConsumer, final int maxRetries) {
 
-    return applyJedis(readMode, slot, jedisConsumer, maxRetries, false);
+    return apply(readMode, slot, clientConsumer, maxRetries, false);
   }
 
-  public <R> R applyJedis(final ReadMode readMode, final int slot,
-      final Function<RedisClient, R> jedisConsumer, final int maxRetries,
+  public <R> R apply(final ReadMode readMode, final int slot,
+      final Function<RedisClient, R> clientConsumer, final int maxRetries,
       final boolean wantsPipeline);
 
-  default void acceptJedis(final Consumer<RedisClient> jedisConsumer) {
+  default void accept(final Consumer<RedisClient> clientConsumer) {
 
-    acceptJedis(getDefaultReadMode(), CRC16.getRandomSlot(), jedisConsumer, getMaxRetries());
+    accept(getDefaultReadMode(), CRC16.getRandomSlot(), clientConsumer, getMaxRetries());
   }
 
-  default void acceptJedis(final ReadMode readMode, final Consumer<RedisClient> jedisConsumer) {
+  default void accept(final ReadMode readMode, final Consumer<RedisClient> clientConsumer) {
 
-    acceptJedis(readMode, CRC16.getRandomSlot(), jedisConsumer, getMaxRetries());
+    accept(readMode, CRC16.getRandomSlot(), clientConsumer, getMaxRetries());
   }
 
-  default void acceptJedis(final Consumer<RedisClient> jedisConsumer, final int maxRetries) {
+  default void accept(final Consumer<RedisClient> clientConsumer, final int maxRetries) {
 
-    acceptJedis(getDefaultReadMode(), CRC16.getRandomSlot(), jedisConsumer, maxRetries);
+    accept(getDefaultReadMode(), CRC16.getRandomSlot(), clientConsumer, maxRetries);
   }
 
-  default void acceptJedis(final ReadMode readMode, final Consumer<RedisClient> jedisConsumer,
+  default void accept(final ReadMode readMode, final Consumer<RedisClient> clientConsumer,
       final int maxRetries) {
 
-    acceptJedis(readMode, CRC16.getRandomSlot(), jedisConsumer, maxRetries);
+    accept(readMode, CRC16.getRandomSlot(), clientConsumer, maxRetries);
   }
 
-  default void acceptJedis(final String slotKey, final Consumer<RedisClient> jedisConsumer) {
+  default void accept(final String slotKey, final Consumer<RedisClient> clientConsumer) {
 
-    acceptJedis(getDefaultReadMode(), CRC16.getSlot(slotKey), jedisConsumer, getMaxRetries());
+    accept(getDefaultReadMode(), CRC16.getSlot(slotKey), clientConsumer, getMaxRetries());
   }
 
-  default void acceptJedis(final byte[] slotKey, final Consumer<RedisClient> jedisConsumer) {
+  default void accept(final byte[] slotKey, final Consumer<RedisClient> clientConsumer) {
 
-    acceptJedis(getDefaultReadMode(), CRC16.getSlot(slotKey), jedisConsumer, getMaxRetries());
+    accept(getDefaultReadMode(), CRC16.getSlot(slotKey), clientConsumer, getMaxRetries());
   }
 
-  default void acceptJedis(final ReadMode readMode, final String slotKey,
-      final Consumer<RedisClient> jedisConsumer) {
+  default void accept(final ReadMode readMode, final String slotKey,
+      final Consumer<RedisClient> clientConsumer) {
 
-    acceptJedis(readMode, CRC16.getSlot(slotKey), jedisConsumer, getMaxRetries());
+    accept(readMode, CRC16.getSlot(slotKey), clientConsumer, getMaxRetries());
   }
 
-  default void acceptJedis(final ReadMode readMode, final byte[] slotKey,
-      final Consumer<RedisClient> jedisConsumer) {
+  default void accept(final ReadMode readMode, final byte[] slotKey,
+      final Consumer<RedisClient> clientConsumer) {
 
-    acceptJedis(readMode, CRC16.getSlot(slotKey), jedisConsumer, getMaxRetries());
+    accept(readMode, CRC16.getSlot(slotKey), clientConsumer, getMaxRetries());
   }
 
-  default void acceptJedis(final int slot, final Consumer<RedisClient> jedisConsumer) {
+  default void accept(final int slot, final Consumer<RedisClient> clientConsumer) {
 
-    acceptJedis(slot, jedisConsumer, getMaxRetries());
+    accept(slot, clientConsumer, getMaxRetries());
   }
 
-  default void acceptJedis(final ReadMode readMode, final int slot,
-      final Consumer<RedisClient> jedisConsumer) {
+  default void accept(final ReadMode readMode, final int slot,
+      final Consumer<RedisClient> clientConsumer) {
 
-    acceptJedis(readMode, slot, jedisConsumer, getMaxRetries());
+    accept(readMode, slot, clientConsumer, getMaxRetries());
   }
 
-  default void acceptJedis(final String slotKey, final Consumer<RedisClient> jedisConsumer,
+  default void accept(final String slotKey, final Consumer<RedisClient> clientConsumer,
       final int maxRetries) {
 
-    acceptJedis(getDefaultReadMode(), CRC16.getSlot(slotKey), jedisConsumer, getMaxRetries());
+    accept(getDefaultReadMode(), CRC16.getSlot(slotKey), clientConsumer, getMaxRetries());
   }
 
-  default void acceptJedis(final byte[] slotKey, final Consumer<RedisClient> jedisConsumer,
+  default void accept(final byte[] slotKey, final Consumer<RedisClient> clientConsumer,
       final int maxRetries) {
 
-    acceptJedis(getDefaultReadMode(), CRC16.getSlot(slotKey), jedisConsumer, getMaxRetries());
+    accept(getDefaultReadMode(), CRC16.getSlot(slotKey), clientConsumer, getMaxRetries());
   }
 
-  default void acceptJedis(final ReadMode readMode, final String slotKey,
-      final Consumer<RedisClient> jedisConsumer, final int maxRetries) {
+  default void accept(final ReadMode readMode, final String slotKey,
+      final Consumer<RedisClient> clientConsumer, final int maxRetries) {
 
-    acceptJedis(readMode, CRC16.getSlot(slotKey), jedisConsumer, getMaxRetries());
+    accept(readMode, CRC16.getSlot(slotKey), clientConsumer, getMaxRetries());
   }
 
-  default void acceptJedis(final ReadMode readMode, final byte[] slotKey,
-      final Consumer<RedisClient> jedisConsumer, final int maxRetries) {
+  default void accept(final ReadMode readMode, final byte[] slotKey,
+      final Consumer<RedisClient> clientConsumer, final int maxRetries) {
 
-    acceptJedis(readMode, CRC16.getSlot(slotKey), jedisConsumer, getMaxRetries());
+    accept(readMode, CRC16.getSlot(slotKey), clientConsumer, getMaxRetries());
   }
 
-  default void acceptJedis(final int slot, final Consumer<RedisClient> jedisConsumer,
+  default void accept(final int slot, final Consumer<RedisClient> clientConsumer,
       final int maxRetries) {
 
-    acceptJedis(getDefaultReadMode(), slot, jedisConsumer, getMaxRetries());
+    accept(getDefaultReadMode(), slot, clientConsumer, getMaxRetries());
   }
 
-  default void acceptJedis(final ReadMode readMode, final int slot,
-      final Consumer<RedisClient> jedisConsumer, final int maxRetries) {
+  default void accept(final ReadMode readMode, final int slot,
+      final Consumer<RedisClient> clientConsumer, final int maxRetries) {
 
-    applyJedis(readMode, slot, j -> {
-      jedisConsumer.accept(j);
+    apply(readMode, slot, j -> {
+      clientConsumer.accept(j);
       return null;
     }, maxRetries);
   }
 
-  default <R> R applyJedis(final Function<RedisClient, R> jedisConsumer) {
+  default <R> R apply(final Function<RedisClient, R> clientConsumer) {
 
-    return applyJedis(getDefaultReadMode(), CRC16.getRandomSlot(), jedisConsumer, getMaxRetries());
+    return apply(getDefaultReadMode(), CRC16.getRandomSlot(), clientConsumer, getMaxRetries());
   }
 
-  default <R> R applyJedis(final ReadMode readMode, final Function<RedisClient, R> jedisConsumer) {
+  default <R> R apply(final ReadMode readMode, final Function<RedisClient, R> clientConsumer) {
 
-    return applyJedis(readMode, CRC16.getRandomSlot(), jedisConsumer, getMaxRetries());
+    return apply(readMode, CRC16.getRandomSlot(), clientConsumer, getMaxRetries());
   }
 
-  default <R> R applyJedis(final Function<RedisClient, R> jedisConsumer, final int maxRetries) {
+  default <R> R apply(final Function<RedisClient, R> clientConsumer, final int maxRetries) {
 
-    return applyJedis(getDefaultReadMode(), CRC16.getRandomSlot(), jedisConsumer, maxRetries);
+    return apply(getDefaultReadMode(), CRC16.getRandomSlot(), clientConsumer, maxRetries);
   }
 
-  default <R> R applyJedis(final ReadMode readMode, final Function<RedisClient, R> jedisConsumer,
+  default <R> R apply(final ReadMode readMode, final Function<RedisClient, R> clientConsumer,
       final int maxRetries) {
 
-    return applyJedis(readMode, CRC16.getRandomSlot(), jedisConsumer, maxRetries);
+    return apply(readMode, CRC16.getRandomSlot(), clientConsumer, maxRetries);
   }
 
-  default <R> R applyJedis(final String slotKey, final Function<RedisClient, R> jedisConsumer) {
+  default <R> R apply(final String slotKey, final Function<RedisClient, R> clientConsumer) {
 
-    return applyJedis(getDefaultReadMode(), CRC16.getSlot(slotKey), jedisConsumer, getMaxRetries());
+    return apply(getDefaultReadMode(), CRC16.getSlot(slotKey), clientConsumer, getMaxRetries());
   }
 
-  default <R> R applyJedis(final byte[] slotKey, final Function<RedisClient, R> jedisConsumer) {
+  default <R> R apply(final byte[] slotKey, final Function<RedisClient, R> clientConsumer) {
 
-    return applyJedis(getDefaultReadMode(), CRC16.getSlot(slotKey), jedisConsumer, getMaxRetries());
+    return apply(getDefaultReadMode(), CRC16.getSlot(slotKey), clientConsumer, getMaxRetries());
   }
 
-  default <R> R applyJedis(final ReadMode readMode, final String slotKey,
-      final Function<RedisClient, R> jedisConsumer) {
+  default <R> R apply(final ReadMode readMode, final String slotKey,
+      final Function<RedisClient, R> clientConsumer) {
 
-    return applyJedis(readMode, CRC16.getSlot(slotKey), jedisConsumer, getMaxRetries());
+    return apply(readMode, CRC16.getSlot(slotKey), clientConsumer, getMaxRetries());
   }
 
-  default <R> R applyJedis(final ReadMode readMode, final byte[] slotKey,
-      final Function<RedisClient, R> jedisConsumer) {
+  default <R> R apply(final ReadMode readMode, final byte[] slotKey,
+      final Function<RedisClient, R> clientConsumer) {
 
-    return applyJedis(readMode, CRC16.getSlot(slotKey), jedisConsumer, getMaxRetries());
+    return apply(readMode, CRC16.getSlot(slotKey), clientConsumer, getMaxRetries());
   }
 
-  default <R> R applyJedis(final int slot, final Function<RedisClient, R> jedisConsumer) {
+  default <R> R apply(final int slot, final Function<RedisClient, R> clientConsumer) {
 
-    return applyJedis(getDefaultReadMode(), slot, jedisConsumer, getMaxRetries());
+    return apply(getDefaultReadMode(), slot, clientConsumer, getMaxRetries());
   }
 
-  default <R> R applyJedis(final ReadMode readMode, final int slot,
-      final Function<RedisClient, R> jedisConsumer) {
+  default <R> R apply(final ReadMode readMode, final int slot,
+      final Function<RedisClient, R> clientConsumer) {
 
-    return applyJedis(readMode, slot, jedisConsumer, getMaxRetries());
+    return apply(readMode, slot, clientConsumer, getMaxRetries());
   }
 
-  default <R> R applyJedis(final String slotKey, final Function<RedisClient, R> jedisConsumer,
+  default <R> R apply(final String slotKey, final Function<RedisClient, R> clientConsumer,
       final int maxRetries) {
 
-    return applyJedis(getDefaultReadMode(), CRC16.getSlot(slotKey), jedisConsumer, maxRetries);
+    return apply(getDefaultReadMode(), CRC16.getSlot(slotKey), clientConsumer, maxRetries);
   }
 
-  default <R> R applyJedis(final byte[] slotKey, final Function<RedisClient, R> jedisConsumer,
+  default <R> R apply(final byte[] slotKey, final Function<RedisClient, R> clientConsumer,
       final int maxRetries) {
 
-    return applyJedis(getDefaultReadMode(), CRC16.getSlot(slotKey), jedisConsumer, maxRetries);
+    return apply(getDefaultReadMode(), CRC16.getSlot(slotKey), clientConsumer, maxRetries);
   }
 
-  default <R> R applyJedis(final ReadMode readMode, final String slotKey,
-      final Function<RedisClient, R> jedisConsumer, final int maxRetries) {
+  default <R> R apply(final ReadMode readMode, final String slotKey,
+      final Function<RedisClient, R> clientConsumer, final int maxRetries) {
 
-    return applyJedis(readMode, CRC16.getSlot(slotKey), jedisConsumer, maxRetries);
+    return apply(readMode, CRC16.getSlot(slotKey), clientConsumer, maxRetries);
   }
 
-  default <R> R applyJedis(final ReadMode readMode, final byte[] slotKey,
-      final Function<RedisClient, R> jedisConsumer, final int maxRetries) {
+  default <R> R apply(final ReadMode readMode, final byte[] slotKey,
+      final Function<RedisClient, R> clientConsumer, final int maxRetries) {
 
-    return applyJedis(readMode, CRC16.getSlot(slotKey), jedisConsumer, maxRetries);
+    return apply(readMode, CRC16.getSlot(slotKey), clientConsumer, maxRetries);
   }
 
-  default <R> R applyJedis(final int slot, final Function<RedisClient, R> jedisConsumer,
+  default <R> R apply(final int slot, final Function<RedisClient, R> clientConsumer,
       final int maxRetries) {
 
-    return applyJedis(getDefaultReadMode(), slot, jedisConsumer, maxRetries);
+    return apply(getDefaultReadMode(), slot, clientConsumer, maxRetries);
   }
 
   default <R> R applyPipeline(final Function<RedisPipeline, R> pipelineConsumer) {
@@ -325,7 +325,7 @@ public interface JedisClusterExecutor extends AutoCloseable {
   default <R> R applyPipeline(final ReadMode readMode, final int slot,
       final Function<RedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
-    return applyJedis(readMode, slot, jedis -> pipelineConsumer.apply(jedis.createPipeline()),
+    return apply(readMode, slot, client -> pipelineConsumer.apply(client.createPipeline()),
         maxRetries);
   }
 
@@ -420,8 +420,8 @@ public interface JedisClusterExecutor extends AutoCloseable {
   default void acceptPipeline(final ReadMode readMode, final int slot,
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries) {
 
-    applyJedis(readMode, slot, jedis -> {
-      pipelineConsumer.accept(jedis.createOrUseExistingPipeline());
+    apply(readMode, slot, client -> {
+      pipelineConsumer.accept(client.createOrUseExistingPipeline());
       return null;
     }, maxRetries, true);
   }
@@ -529,8 +529,8 @@ public interface JedisClusterExecutor extends AutoCloseable {
   default <R> R applyPipelinedTransaction(final ReadMode readMode, final int slot,
       final Function<RedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
-    return applyJedis(readMode, slot, jedis -> {
-      final RedisPipeline pipeline = jedis.createOrUseExistingPipeline();
+    return apply(readMode, slot, client -> {
+      final RedisPipeline pipeline = client.createOrUseExistingPipeline();
       pipeline.multi();
       return pipelineConsumer.apply(pipeline);
     }, maxRetries, true);
@@ -634,41 +634,41 @@ public interface JedisClusterExecutor extends AutoCloseable {
   default void acceptPipelinedTransaction(final ReadMode readMode, final int slot,
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries) {
 
-    applyJedis(readMode, slot, jedis -> {
-      final RedisPipeline pipeline = jedis.createOrUseExistingPipeline();
+    apply(readMode, slot, client -> {
+      final RedisPipeline pipeline = client.createOrUseExistingPipeline();
       pipeline.multi();
       pipelineConsumer.accept(pipeline);
       return null;
     }, maxRetries, true);
   }
 
-  default void acceptAllMasters(final Consumer<RedisClient> jedisConsumer) {
+  default void acceptAllMasters(final Consumer<RedisClient> clientConsumer) {
 
-    acceptAllMasters(jedisConsumer, getMaxRetries(), null);
+    acceptAllMasters(clientConsumer, getMaxRetries(), null);
   }
 
-  default List<CompletableFuture<Void>> acceptAllMasters(final Consumer<RedisClient> jedisConsumer,
+  default List<CompletableFuture<Void>> acceptAllMasters(final Consumer<RedisClient> clientConsumer,
       final ExecutorService executor) {
 
-    return acceptAllMasters(jedisConsumer, getMaxRetries(), executor);
+    return acceptAllMasters(clientConsumer, getMaxRetries(), executor);
   }
 
-  default void acceptAllMasters(final Consumer<RedisClient> jedisConsumer, final int maxRetries) {
+  default void acceptAllMasters(final Consumer<RedisClient> clientConsumer, final int maxRetries) {
 
-    acceptAllMasters(jedisConsumer, maxRetries, null);
+    acceptAllMasters(clientConsumer, maxRetries, null);
   }
 
-  default List<CompletableFuture<Void>> acceptAllMasters(final Consumer<RedisClient> jedisConsumer,
+  default List<CompletableFuture<Void>> acceptAllMasters(final Consumer<RedisClient> clientConsumer,
       final int maxRetries, final ExecutorService executor) {
 
-    return applyAllMasters(jedis -> {
-      jedisConsumer.accept(jedis);
+    return applyAllMasters(client -> {
+      clientConsumer.accept(client);
       return null;
     }, maxRetries, executor);
   }
 
   public <R> List<CompletableFuture<R>> applyAllMasters(
-      final Function<RedisClient, R> jedisConsumer, final int maxRetries,
+      final Function<RedisClient, R> clientConsumer, final int maxRetries,
       final ExecutorService executor);
 
   default void acceptAllPipelinedMasters(final Consumer<RedisPipeline> pipelineConsumer) {
@@ -692,8 +692,8 @@ public interface JedisClusterExecutor extends AutoCloseable {
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries,
       final ExecutorService executor) {
 
-    return acceptAllMasters(jedis -> {
-      final RedisPipeline pipeline = jedis.createPipeline();
+    return acceptAllMasters(client -> {
+      final RedisPipeline pipeline = client.createPipeline();
       pipelineConsumer.accept(pipeline);
     }, maxRetries, executor);
   }
@@ -720,39 +720,39 @@ public interface JedisClusterExecutor extends AutoCloseable {
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries,
       final ExecutorService executor) {
 
-    return acceptAllMasters(jedis -> {
-      final RedisPipeline pipeline = jedis.createPipeline();
+    return acceptAllMasters(client -> {
+      final RedisPipeline pipeline = client.createPipeline();
       pipeline.multi();
       pipelineConsumer.accept(pipeline);
     }, maxRetries, executor);
   }
 
-  default void acceptAllSlaves(final Consumer<RedisClient> jedisConsumer) {
+  default void acceptAllSlaves(final Consumer<RedisClient> clientConsumer) {
 
-    acceptAllSlaves(jedisConsumer, getMaxRetries(), null);
+    acceptAllSlaves(clientConsumer, getMaxRetries(), null);
   }
 
-  default List<CompletableFuture<Void>> acceptAllSlaves(final Consumer<RedisClient> jedisConsumer,
+  default List<CompletableFuture<Void>> acceptAllSlaves(final Consumer<RedisClient> clientConsumer,
       final ExecutorService executor) {
 
-    return acceptAllSlaves(jedisConsumer, getMaxRetries(), executor);
+    return acceptAllSlaves(clientConsumer, getMaxRetries(), executor);
   }
 
-  default void acceptAllSlaves(final Consumer<RedisClient> jedisConsumer, final int maxRetries) {
+  default void acceptAllSlaves(final Consumer<RedisClient> clientConsumer, final int maxRetries) {
 
-    acceptAllSlaves(jedisConsumer, maxRetries, null);
+    acceptAllSlaves(clientConsumer, maxRetries, null);
   }
 
-  default List<CompletableFuture<Void>> acceptAllSlaves(final Consumer<RedisClient> jedisConsumer,
+  default List<CompletableFuture<Void>> acceptAllSlaves(final Consumer<RedisClient> clientConsumer,
       final int maxRetries, final ExecutorService executor) {
 
-    return applyAllSlaves(jedis -> {
-      jedisConsumer.accept(jedis);
+    return applyAllSlaves(client -> {
+      clientConsumer.accept(client);
       return null;
     }, maxRetries, executor);
   }
 
-  public <R> List<CompletableFuture<R>> applyAllSlaves(final Function<RedisClient, R> jedisConsumer,
+  public <R> List<CompletableFuture<R>> applyAllSlaves(final Function<RedisClient, R> clientConsumer,
       final int maxRetries, final ExecutorService executor);
 
   default void acceptAllPipelinedSlaves(final Consumer<RedisPipeline> pipelineConsumer) {
@@ -776,8 +776,8 @@ public interface JedisClusterExecutor extends AutoCloseable {
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries,
       final ExecutorService executor) {
 
-    return acceptAllSlaves(jedis -> {
-      final RedisPipeline pipeline = jedis.createPipeline();
+    return acceptAllSlaves(client -> {
+      final RedisPipeline pipeline = client.createPipeline();
       pipelineConsumer.accept(pipeline);
     }, maxRetries, executor);
   }
@@ -803,39 +803,39 @@ public interface JedisClusterExecutor extends AutoCloseable {
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries,
       final ExecutorService executor) {
 
-    return acceptAllSlaves(jedis -> {
-      final RedisPipeline pipeline = jedis.createPipeline();
+    return acceptAllSlaves(client -> {
+      final RedisPipeline pipeline = client.createPipeline();
       pipeline.multi();
       pipelineConsumer.accept(pipeline);
     }, maxRetries, executor);
   }
 
-  default void acceptAll(final Consumer<RedisClient> jedisConsumer) {
+  default void acceptAll(final Consumer<RedisClient> clientConsumer) {
 
-    acceptAll(jedisConsumer, getMaxRetries(), null);
+    acceptAll(clientConsumer, getMaxRetries(), null);
   }
 
-  default List<CompletableFuture<Void>> acceptAll(final Consumer<RedisClient> jedisConsumer,
+  default List<CompletableFuture<Void>> acceptAll(final Consumer<RedisClient> clientConsumer,
       final ExecutorService executor) {
 
-    return acceptAll(jedisConsumer, getMaxRetries(), executor);
+    return acceptAll(clientConsumer, getMaxRetries(), executor);
   }
 
-  default void acceptAll(final Consumer<RedisClient> jedisConsumer, final int maxRetries) {
+  default void acceptAll(final Consumer<RedisClient> clientConsumer, final int maxRetries) {
 
-    acceptAll(jedisConsumer, maxRetries, null);
+    acceptAll(clientConsumer, maxRetries, null);
   }
 
-  default List<CompletableFuture<Void>> acceptAll(final Consumer<RedisClient> jedisConsumer,
+  default List<CompletableFuture<Void>> acceptAll(final Consumer<RedisClient> clientConsumer,
       final int maxRetries, final ExecutorService executor) {
 
-    return applyAll(jedis -> {
-      jedisConsumer.accept(jedis);
+    return applyAll(client -> {
+      clientConsumer.accept(client);
       return null;
     }, maxRetries, executor);
   }
 
-  public <R> List<CompletableFuture<R>> applyAll(final Function<RedisClient, R> jedisConsumer,
+  public <R> List<CompletableFuture<R>> applyAll(final Function<RedisClient, R> clientConsumer,
       final int maxRetries, final ExecutorService executor);
 
   default void acceptAllPipelined(final Consumer<RedisPipeline> pipelineConsumer) {
@@ -859,8 +859,8 @@ public interface JedisClusterExecutor extends AutoCloseable {
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries,
       final ExecutorService executor) {
 
-    return acceptAll(jedis -> {
-      final RedisPipeline pipeline = jedis.createPipeline();
+    return acceptAll(client -> {
+      final RedisPipeline pipeline = client.createPipeline();
       pipelineConsumer.accept(pipeline);
     }, maxRetries, executor);
   }
@@ -886,188 +886,188 @@ public interface JedisClusterExecutor extends AutoCloseable {
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries,
       final ExecutorService executor) {
 
-    return acceptAll(jedis -> {
-      final RedisPipeline pipeline = jedis.createPipeline();
+    return acceptAll(client -> {
+      final RedisPipeline pipeline = client.createPipeline();
       pipeline.multi();
       pipelineConsumer.accept(pipeline);
     }, maxRetries, executor);
   }
 
-  default void acceptNodeIfPresent(final Node node,
-      final Consumer<RedisClient> jedisConsumer) {
+  default void acceptIfPresent(final Node node,
+      final Consumer<RedisClient> clientConsumer) {
 
-    acceptNodeIfPresent(node, jedisConsumer, getMaxRetries());
+    acceptIfPresent(node, clientConsumer, getMaxRetries());
   }
 
-  default void acceptNodeIfPresent(final Node node,
-      final Consumer<RedisClient> jedisConsumer, final int maxRetries) {
+  default void acceptIfPresent(final Node node,
+      final Consumer<RedisClient> clientConsumer, final int maxRetries) {
 
-    applyNodeIfPresent(node, jedis -> {
-      jedisConsumer.accept(jedis);
+    applyIfPresent(node, client -> {
+      clientConsumer.accept(client);
       return null;
     }, maxRetries);
   }
 
-  default void acceptPipelinedNodeIfPresent(final Node node,
+  default void acceptPipelinedIfPresent(final Node node,
       final Consumer<RedisPipeline> pipelineConsumer) {
 
-    acceptPipelinedNodeIfPresent(node, pipelineConsumer, getMaxRetries());
+    acceptPipelinedIfPresent(node, pipelineConsumer, getMaxRetries());
   }
 
-  default void acceptPipelinedNodeIfPresent(final Node node,
+  default void acceptPipelinedIfPresent(final Node node,
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries) {
 
-    applyNodeIfPresent(node, jedis -> {
-      final RedisPipeline pipeline = jedis.createPipeline();
+    applyIfPresent(node, client -> {
+      final RedisPipeline pipeline = client.createPipeline();
       pipelineConsumer.accept(pipeline);
       return null;
     }, maxRetries);
   }
 
-  default void acceptPipelinedTransactionNodeIfPresent(final Node node,
+  default void acceptPipelinedTransactionIfPresent(final Node node,
       final Consumer<RedisPipeline> pipelineConsumer) {
 
-    acceptPipelinedTransactionNodeIfPresent(node, pipelineConsumer, getMaxRetries());
+    acceptPipelinedTransactionIfPresent(node, pipelineConsumer, getMaxRetries());
   }
 
-  default void acceptPipelinedTransactionNodeIfPresent(final Node node,
+  default void acceptPipelinedTransactionIfPresent(final Node node,
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries) {
 
-    applyNodeIfPresent(node, jedis -> {
-      final RedisPipeline pipeline = jedis.createPipeline();
+    applyIfPresent(node, client -> {
+      final RedisPipeline pipeline = client.createPipeline();
       pipeline.multi();
       pipelineConsumer.accept(pipeline);
       return null;
     }, maxRetries);
   }
 
-  default <R> R applyNodeIfPresent(final Node node,
-      final Function<RedisClient, R> jedisConsumer) {
+  default <R> R applyIfPresent(final Node node,
+      final Function<RedisClient, R> clientConsumer) {
 
-    return applyNodeIfPresent(node, jedisConsumer, getMaxRetries());
+    return applyIfPresent(node, clientConsumer, getMaxRetries());
   }
 
-  default <R> R applyPipelinedNodeIfPresent(final Node node,
+  default <R> R applyPipelinedIfPresent(final Node node,
       final Function<RedisPipeline, R> pipelineConsumer) {
 
-    return applyPipelinedNodeIfPresent(node, pipelineConsumer, getMaxRetries());
+    return applyPipelinedIfPresent(node, pipelineConsumer, getMaxRetries());
   }
 
-  default <R> R applyPipelinedNodeIfPresent(final Node node,
+  default <R> R applyPipelinedIfPresent(final Node node,
       final Function<RedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
-    return applyNodeIfPresent(node, jedis -> {
-      final RedisPipeline pipeline = jedis.createPipeline();
+    return applyIfPresent(node, client -> {
+      final RedisPipeline pipeline = client.createPipeline();
       return pipelineConsumer.apply(pipeline);
     }, maxRetries);
   }
 
-  default <R> R applyPipelinedTransasctionNodeIfPresent(final Node node,
+  default <R> R applyPipelinedTransasctionIfPresent(final Node node,
       final Function<RedisPipeline, R> pipelineConsumer) {
 
-    return applyPipelinedTransasctionNodeIfPresent(node, pipelineConsumer, getMaxRetries());
+    return applyPipelinedTransasctionIfPresent(node, pipelineConsumer, getMaxRetries());
   }
 
-  default <R> R applyPipelinedTransasctionNodeIfPresent(final Node node,
+  default <R> R applyPipelinedTransasctionIfPresent(final Node node,
       final Function<RedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
-    return applyNodeIfPresent(node, jedis -> {
-      final RedisPipeline pipeline = jedis.createPipeline();
+    return applyIfPresent(node, client -> {
+      final RedisPipeline pipeline = client.createPipeline();
       pipeline.multi();
       return pipelineConsumer.apply(pipeline);
     }, maxRetries);
   }
 
-  public <R> R applyNodeIfPresent(final Node node,
-      final Function<RedisClient, R> jedisConsumer, final int maxRetries);
+  public <R> R applyIfPresent(final Node node,
+      final Function<RedisClient, R> clientConsumer, final int maxRetries);
 
-  default void acceptUnknownNode(final Node node,
-      final Consumer<RedisClient> jedisConsumer) {
+  default void acceptUnknown(final Node node,
+      final Consumer<RedisClient> clientConsumer) {
 
-    acceptUnknownNode(node, jedisConsumer, getMaxRetries());
+    acceptUnknown(node, clientConsumer, getMaxRetries());
   }
 
-  default void acceptUnknownNode(final Node node, final Consumer<RedisClient> jedisConsumer,
+  default void acceptUnknown(final Node node, final Consumer<RedisClient> clientConsumer,
       final int maxRetries) {
 
-    applyUnknownNode(node, jedis -> {
-      jedisConsumer.accept(jedis);
+    applyUnknown(node, client -> {
+      clientConsumer.accept(client);
       return null;
     }, maxRetries);
   }
 
-  default void acceptPipelinedUnknownNode(final Node node,
+  default void acceptPipelinedUnknown(final Node node,
       final Consumer<RedisPipeline> pipelineConsumer) {
 
-    acceptPipelinedUnknownNode(node, pipelineConsumer, getMaxRetries());
+    acceptPipelinedUnknown(node, pipelineConsumer, getMaxRetries());
   }
 
-  default void acceptPipelinedUnknownNode(final Node node,
+  default void acceptPipelinedUnknown(final Node node,
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries) {
 
-    applyUnknownNode(node, jedis -> {
-      final RedisPipeline pipeline = jedis.createPipeline();
+    applyUnknown(node, client -> {
+      final RedisPipeline pipeline = client.createPipeline();
       pipelineConsumer.accept(pipeline);
       return null;
     }, maxRetries);
   }
 
-  default void acceptPipelinedTransactionUnknownNode(final Node node,
+  default void acceptPipelinedTransactionUnknown(final Node node,
       final Consumer<RedisPipeline> pipelineConsumer) {
 
-    acceptPipelinedTransactionUnknownNode(node, pipelineConsumer, getMaxRetries());
+    acceptPipelinedTransactionUnknown(node, pipelineConsumer, getMaxRetries());
   }
 
-  default void acceptPipelinedTransactionUnknownNode(final Node node,
+  default void acceptPipelinedTransactionUnknown(final Node node,
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries) {
 
-    applyUnknownNode(node, jedis -> {
-      final RedisPipeline pipeline = jedis.createPipeline();
+    applyUnknown(node, client -> {
+      final RedisPipeline pipeline = client.createPipeline();
       pipeline.multi();
       pipelineConsumer.accept(pipeline);
       return null;
     }, maxRetries);
   }
 
-  default <R> R applyUnknownNode(final Node node,
-      final Function<RedisClient, R> jedisConsumer) {
+  default <R> R applyUnknown(final Node node,
+      final Function<RedisClient, R> clientConsumer) {
 
-    return applyUnknownNode(node, jedisConsumer, getMaxRetries());
+    return applyUnknown(node, clientConsumer, getMaxRetries());
   }
 
-  default <R> R applyPipelinedUnknownNode(final Node node,
+  default <R> R applyPipelinedUnknown(final Node node,
       final Function<RedisPipeline, R> pipelineConsumer) {
 
-    return applyPipelinedUnknownNode(node, pipelineConsumer, getMaxRetries());
+    return applyPipelinedUnknown(node, pipelineConsumer, getMaxRetries());
   }
 
-  default <R> R applyPipelinedUnknownNode(final Node node,
+  default <R> R applyPipelinedUnknown(final Node node,
       final Function<RedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
-    return applyUnknownNode(node, jedis -> {
-      final RedisPipeline pipeline = jedis.createPipeline();
+    return applyUnknown(node, client -> {
+      final RedisPipeline pipeline = client.createPipeline();
       return pipelineConsumer.apply(pipeline);
     }, maxRetries);
   }
 
-  default <R> R applyPipelinedTransasctionUnknownNode(final Node node,
+  default <R> R applyPipelinedTransasctionUnknown(final Node node,
       final Function<RedisPipeline, R> pipelineConsumer) {
 
-    return applyPipelinedTransasctionUnknownNode(node, pipelineConsumer, getMaxRetries());
+    return applyPipelinedTransasctionUnknown(node, pipelineConsumer, getMaxRetries());
   }
 
-  default <R> R applyPipelinedTransasctionUnknownNode(final Node node,
+  default <R> R applyPipelinedTransasctionUnknown(final Node node,
       final Function<RedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
-    return applyUnknownNode(node, jedis -> {
-      final RedisPipeline pipeline = jedis.createPipeline();
+    return applyUnknown(node, client -> {
+      final RedisPipeline pipeline = client.createPipeline();
       pipeline.multi();
       return pipelineConsumer.apply(pipeline);
     }, maxRetries);
   }
 
-  public <R> R applyUnknownNode(final Node node,
-      final Function<RedisClient, R> jedisConsumer, final int maxRetries);
+  public <R> R applyUnknown(final Node node,
+      final Function<RedisClient, R> clientConsumer, final int maxRetries);
 
   public void refreshSlotCache();
 }

@@ -13,48 +13,48 @@ import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
-final class PrimJedis implements RedisClient {
+final class PrimRedisClient implements RedisClient {
 
-  private final PrimRedisConn primClient;
+  private final PrimRedisConn conn;
 
   private PrimPipeline pipeline = null;
 
-  PrimJedis(final Node node, final Function<Node, Node> hostPortMapper, final int connTimeout,
+  PrimRedisClient(final Node node, final Function<Node, Node> hostPortMapper, final int connTimeout,
       final int soTimeout) {
 
     this(node, hostPortMapper, connTimeout, soTimeout, false, null, null, null);
   }
 
-  PrimJedis(final Node node, final Function<Node, Node> hostPortMapper, final int connTimeout,
+  PrimRedisClient(final Node node, final Function<Node, Node> hostPortMapper, final int connTimeout,
       final int soTimeout, final boolean ssl, final SSLSocketFactory sslSocketFactory,
       final SSLParameters sslParameters, final HostnameVerifier hostnameVerifier) {
 
-    this.primClient = PrimRedisConn.create(node, hostPortMapper, connTimeout, soTimeout, ssl,
+    this.conn = PrimRedisConn.create(node, hostPortMapper, connTimeout, soTimeout, ssl,
         sslSocketFactory, sslParameters, hostnameVerifier);
   }
 
   @Override
   public HostPort getHostPort() {
 
-    return primClient.getNode().getHostPort();
+    return conn.getNode().getHostPort();
   }
 
   @Override
   public int getConnectionTimeout() {
 
-    return primClient.getConnectionTimeout();
+    return conn.getConnectionTimeout();
   }
 
   @Override
   public int getSoTimeout() {
 
-    return primClient.getSoTimeout();
+    return conn.getSoTimeout();
   }
 
   @Override
   public boolean isBroken() {
 
-    return primClient.isBroken();
+    return conn.isBroken();
   }
 
   @Override
@@ -64,7 +64,7 @@ final class PrimJedis implements RedisClient {
       pipeline.close();
     }
 
-    primClient.resetState();
+    conn.resetState();
 
     pipeline = null;
   }
@@ -72,14 +72,14 @@ final class PrimJedis implements RedisClient {
 
   public String watch(final byte[]... keys) {
 
-    primClient.watch(keys);
-    return RESP.toString(primClient.getReply(Cmds.WATCH));
+    conn.watch(keys);
+    return RESP.toString(conn.getReply(Cmds.WATCH));
   }
 
   public String unwatch() {
 
-    primClient.unwatch();
-    return RESP.toString(primClient.getReply(Cmds.UNWATCH));
+    conn.unwatch();
+    return RESP.toString(conn.getReply(Cmds.UNWATCH));
   }
 
   @Override
@@ -91,7 +91,7 @@ final class PrimJedis implements RedisClient {
       // closing anyways
     } finally {
       try {
-        primClient.close();
+        conn.close();
       } catch (final RuntimeException e) {
         // closing anyways
       }
@@ -99,15 +99,19 @@ final class PrimJedis implements RedisClient {
   }
 
   @Override
-  public Node getClusterNode() {
+  public Node getNode() {
 
-    return primClient.getNode();
+    return conn.getNode();
   }
 
   @Override
   public RedisPipeline createPipeline() {
 
-    this.pipeline = new PrimPipeline(primClient);
+    if (pipeline != null) {
+      throw new RedisUnhandledException(getNode(), "Pipeline has already been created.");
+    }
+
+    this.pipeline = new PrimPipeline(conn);
 
     return pipeline;
   }
@@ -124,14 +128,14 @@ final class PrimJedis implements RedisClient {
 
   protected void checkIsInMultiOrPipeline() {
 
-    if (primClient.isInMulti()) {
-      throw new RedisUnhandledException(getClusterNode(),
-          "Cannot use Jedis when in Multi. Please use Transation or reset jedis state.");
+    if (conn.isInMulti()) {
+      throw new RedisUnhandledException(getNode(),
+          "Cannot use RedisClient when in Multi. Please use Transation or reset client state.");
     }
 
     if (pipeline != null && pipeline.hasPipelinedResponse()) {
-      throw new RedisUnhandledException(getClusterNode(),
-          "Cannot use Jedis when in Pipeline. Please use Pipeline or reset jedis state .");
+      throw new RedisUnhandledException(getNode(),
+          "Cannot use RedisClient when in Pipeline. Please use Pipeline or reset client state .");
     }
   }
 
@@ -139,88 +143,88 @@ final class PrimJedis implements RedisClient {
   public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[]... args) {
 
     checkIsInMultiOrPipeline();
-    primClient.sendSubCommand(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
-    return primClient.getReply(subCmd);
+    conn.sendSubCommand(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    return conn.getReply(subCmd);
   }
 
   @Override
   public <T> T sendCmd(final Cmd<T> cmd) {
     checkIsInMultiOrPipeline();
-    primClient.sendCommand(cmd.getCmdBytes());
-    return primClient.getReply(cmd);
+    conn.sendCommand(cmd.getCmdBytes());
+    return conn.getReply(cmd);
   }
 
   @Override
   public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd) {
     checkIsInMultiOrPipeline();
-    primClient.sendSubCommand(cmd.getCmdBytes(), subCmd.getCmdBytes());
-    return primClient.getReply(subCmd);
+    conn.sendSubCommand(cmd.getCmdBytes(), subCmd.getCmdBytes());
+    return conn.getReply(subCmd);
   }
 
 
   @Override
   public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[] args) {
     checkIsInMultiOrPipeline();
-    primClient.sendSubCommand(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
-    return primClient.getReply(subCmd);
+    conn.sendSubCommand(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    return conn.getReply(subCmd);
   }
 
   @Override
   public <T> T sendCmd(final Cmd<T> cmd, final String... args) {
     checkIsInMultiOrPipeline();
-    primClient.sendCommand(cmd.getCmdBytes(), args);
-    return primClient.getReply(cmd);
+    conn.sendCommand(cmd.getCmdBytes(), args);
+    return conn.getReply(cmd);
   }
 
   @Override
   public <T> T sendCmd(final Cmd<T> cmd, final byte[]... args) {
     checkIsInMultiOrPipeline();
-    primClient.sendCommand(cmd.getCmdBytes(), args);
-    return primClient.getReply(cmd);
+    conn.sendCommand(cmd.getCmdBytes(), args);
+    return conn.getReply(cmd);
   }
 
   @Override
   public <T> T sendBlockingCmd(final Cmd<T> cmd) {
 
     checkIsInMultiOrPipeline();
-    primClient.setTimeoutInfinite();
+    conn.setTimeoutInfinite();
     try {
-      primClient.sendCommand(cmd.getCmdBytes());
+      conn.sendCommand(cmd.getCmdBytes());
     } finally {
-      primClient.rollbackTimeout();
+      conn.rollbackTimeout();
     }
-    return primClient.getReply(cmd);
+    return conn.getReply(cmd);
   }
 
   @Override
   public <T> T sendBlockingCmd(final Cmd<T> cmd, final String... args) {
 
     checkIsInMultiOrPipeline();
-    primClient.setTimeoutInfinite();
+    conn.setTimeoutInfinite();
     try {
-      primClient.sendCommand(cmd.getCmdBytes(), args);
+      conn.sendCommand(cmd.getCmdBytes(), args);
     } finally {
-      primClient.rollbackTimeout();
+      conn.rollbackTimeout();
     }
-    return primClient.getReply(cmd);
+    return conn.getReply(cmd);
   }
 
   @Override
   public <T> T sendBlockingCmd(final Cmd<T> cmd, final byte[]... args) {
 
     checkIsInMultiOrPipeline();
-    primClient.setTimeoutInfinite();
+    conn.setTimeoutInfinite();
     try {
-      primClient.sendCommand(cmd.getCmdBytes(), args);
+      conn.sendCommand(cmd.getCmdBytes(), args);
     } finally {
-      primClient.rollbackTimeout();
+      conn.rollbackTimeout();
     }
-    return primClient.getReply(cmd);
+    return conn.getReply(cmd);
   }
 
   @Override
   public String toString() {
 
-    return getClusterNode().toString();
+    return getNode().toString();
   }
 }

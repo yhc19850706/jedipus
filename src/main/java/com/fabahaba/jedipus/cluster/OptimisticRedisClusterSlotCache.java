@@ -8,13 +8,13 @@ import org.apache.commons.pool2.ObjectPool;
 
 import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.RedisClient;
-import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
+import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 
-class OptimisticJedisClusterSlotCache extends JedisClusterSlotCache {
+class OptimisticRedisClusterSlotCache extends RedisClusterSlotCache {
 
-  OptimisticJedisClusterSlotCache(final ReadMode defaultReadMode,
+  OptimisticRedisClusterSlotCache(final ReadMode defaultReadMode,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
       final Map<HostPort, Node> discoveryNodes,
       final Function<Node, Node> hostPortMapper,

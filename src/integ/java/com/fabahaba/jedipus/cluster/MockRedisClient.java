@@ -5,7 +5,7 @@ import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.primitive.Cmd;
 
-public class MockJedis implements RedisClient {
+public class MockRedisClient implements RedisClient {
 
   @Override
   public int getConnectionTimeout() {
@@ -38,7 +38,7 @@ public class MockJedis implements RedisClient {
   }
 
   @Override
-  public Node getClusterNode() {
+  public Node getNode() {
 
     return null;
   }

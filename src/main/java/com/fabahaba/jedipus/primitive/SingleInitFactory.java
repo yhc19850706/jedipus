@@ -10,7 +10,7 @@ import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.ClusterCmds;
 
-class SingleInitFactory extends JedisFactory {
+class SingleInitFactory extends RedisClientFactory {
 
   SingleInitFactory(final Node node, final Function<Node, Node> hostPortMapper,
       final int connTimeout, final int soTimeout, final String pass, final String clientName,
@@ -22,23 +22,23 @@ class SingleInitFactory extends JedisFactory {
   }
 
   @Override
-  protected void initJedis(final RedisClient jedis) {
+  protected void initClient(final RedisClient client) {
 
     if (pass != null) {
 
-      jedis.sendCmd(Cmds.AUTH, pass);
+      client.sendCmd(Cmds.AUTH, pass);
       return;
     }
 
     if (clientName != null) {
 
-      jedis.sendCmd(Cmds.CLIENT, Cmds.SETNAME.getCmdBytes(), clientName);
+      client.sendCmd(Cmds.CLIENT, Cmds.SETNAME, clientName);
       return;
     }
 
     if (initReadOnly) {
 
-      jedis.sendCmd(ClusterCmds.READONLY);
+      client.sendCmd(ClusterCmds.READONLY);
       return;
     }
   }

@@ -5,9 +5,9 @@ import java.util.function.Function;
 
 public class PrimQueable {
 
-  private final Queue<PrimResponse<?>> pipelinedResponses;
+  private final Queue<FutureResponse<?>> pipelinedResponses;
 
-  protected PrimQueable(final Queue<PrimResponse<?>> pipelinedResponses) {
+  protected PrimQueable(final Queue<FutureResponse<?>> pipelinedResponses) {
 
     this.pipelinedResponses = pipelinedResponses;
   }
@@ -17,20 +17,20 @@ public class PrimQueable {
     pipelinedResponses.clear();
   }
 
-  protected PrimResponse<?> generateResponse(final Object data) {
+  protected FutureResponse<?> generateResponse(final Object data) {
 
-    final PrimResponse<?> response = pipelinedResponses.poll();
+    final FutureResponse<?> response = pipelinedResponses.poll();
     if (response != null) {
-      response.set(data);
+      response.setResponse(data);
     }
     return response;
   }
 
-  protected <T> PrimResponse<T> getResponse(final Function<Object, T> builder) {
+  protected <T> FutureResponse<T> getResponse(final Function<Object, T> deserializer) {
 
-    final PrimResponse<T> lr = new PrimResponse<>(builder);
-    pipelinedResponses.add(lr);
-    return lr;
+    final FutureResponse<T> future = new FutureResponse<>(deserializer);
+    pipelinedResponses.add(future);
+    return future;
   }
 
   protected boolean hasPipelinedResponse() {

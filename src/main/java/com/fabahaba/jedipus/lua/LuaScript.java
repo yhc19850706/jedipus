@@ -19,11 +19,11 @@ import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cluster.CRC16;
-import com.fabahaba.jedipus.cluster.JedisClusterExecutor;
-import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
+import com.fabahaba.jedipus.cluster.RedisClusterExecutor;
+import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.cmds.ScriptingCmds;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
-import com.fabahaba.jedipus.primitive.PrimResponse;
+import com.fabahaba.jedipus.primitive.FutureResponse;
 
 public interface LuaScript<R> {
 
@@ -75,47 +75,47 @@ public interface LuaScript<R> {
 
   public byte[] getSha1HexBytes();
 
-  public static void loadMissingScripts(final JedisClusterExecutor jce,
+  public static void loadMissingScripts(final RedisClusterExecutor rce,
       final LuaScript<?>... luaScripts) {
 
     final byte[][] scriptSha1Bytes =
         Stream.of(luaScripts).map(LuaScript::getSha1HexBytes).toArray(byte[][]::new);
 
-    jce.acceptAllMasters(jedis -> loadIfNotExists(jedis, scriptSha1Bytes, luaScripts));
+    rce.acceptAllMasters(client -> loadIfNotExists(client, scriptSha1Bytes, luaScripts));
   }
 
-  default R eval(final RedisClient jedis, final int keyCount, final byte[]... params) {
+  default R eval(final RedisClient client, final int keyCount, final byte[]... params) {
 
     final byte[][] args =
         ScriptingCmds.createEvalArgs(getSha1HexBytes(), RESP.toBytes(keyCount), params);
 
-    return eval(jedis, args);
+    return eval(client, args);
   }
 
-  default R evalFill(final RedisClient jedis, final byte[][] params) {
+  default R evalFill(final RedisClient client, final byte[][] params) {
 
     params[0] = getSha1HexBytes();
 
-    return eval(jedis, params);
+    return eval(client, params);
   }
 
-  default R eval(final RedisClient jedis, final List<byte[]> keys, final List<byte[]> args) {
+  default R eval(final RedisClient client, final List<byte[]> keys, final List<byte[]> args) {
 
-    return eval(jedis, ScriptingCmds.createEvalArgs(getSha1HexBytes(), keys, args));
+    return eval(client, ScriptingCmds.createEvalArgs(getSha1HexBytes(), keys, args));
   }
 
   @SuppressWarnings("unchecked")
-  default R eval(final RedisClient jedis, final byte[][] args) {
+  default R eval(final RedisClient client, final byte[][] args) {
 
     try {
-      return (R) jedis.evalSha1Hex(args);
+      return (R) client.evalSha1Hex(args);
     } catch (final RedisUnhandledException jde) {
 
       if (jde.getMessage().startsWith("NOSCRIPT")) {
 
-        final RedisPipeline pipeline = jedis.createPipeline();
+        final RedisPipeline pipeline = client.createPipeline();
         pipeline.scriptLoad(RESP.toBytes(getLuaScript()));
-        final PrimResponse<Object> response = pipeline.evalSha1Hex(args);
+        final FutureResponse<Object> response = pipeline.evalSha1Hex(args);
         pipeline.sync();
         return (R) response.get();
       }
@@ -124,7 +124,7 @@ public interface LuaScript<R> {
     }
   }
 
-  default PrimResponse<R> eval(final RedisPipeline pipeline, final int keyCount,
+  default FutureResponse<R> eval(final RedisPipeline pipeline, final int keyCount,
       final byte[]... params) {
 
     final byte[][] args =
@@ -133,178 +133,178 @@ public interface LuaScript<R> {
     return eval(pipeline, args);
   }
 
-  default PrimResponse<R> evalFill(final RedisPipeline pipeline, final byte[][] params) {
+  default FutureResponse<R> evalFill(final RedisPipeline pipeline, final byte[][] params) {
 
     params[0] = getSha1HexBytes();
 
     return eval(pipeline, params);
   }
 
-  default PrimResponse<R> eval(final RedisPipeline pipeline, final List<byte[]> keys,
+  default FutureResponse<R> eval(final RedisPipeline pipeline, final List<byte[]> keys,
       final List<byte[]> args) {
 
     return eval(pipeline, ScriptingCmds.createEvalArgs(getSha1HexBytes(), keys, args));
   }
 
   @SuppressWarnings("unchecked")
-  default PrimResponse<R> eval(final RedisPipeline pipeline, final byte[][] args) {
+  default FutureResponse<R> eval(final RedisPipeline pipeline, final byte[][] args) {
 
-    return (PrimResponse<R>) pipeline.evalSha1Hex(args);
+    return (FutureResponse<R>) pipeline.evalSha1Hex(args);
   }
 
-  default R eval(final JedisClusterExecutor jce, final int keyCount, final byte[]... params) {
+  default R eval(final RedisClusterExecutor rce, final int keyCount, final byte[]... params) {
 
-    return eval(jce.getDefaultReadMode(), CRC16.getSlot(params), jce, jce.getMaxRetries(), keyCount,
+    return eval(rce.getDefaultReadMode(), CRC16.getSlot(params), rce, rce.getMaxRetries(), keyCount,
         params);
   }
 
-  default R eval(final ReadMode readMode, final JedisClusterExecutor jce, final int keyCount,
+  default R eval(final ReadMode readMode, final RedisClusterExecutor rce, final int keyCount,
       final byte[]... params) {
 
-    return eval(readMode, CRC16.getSlot(params), jce, jce.getMaxRetries(), keyCount, params);
+    return eval(readMode, CRC16.getSlot(params), rce, rce.getMaxRetries(), keyCount, params);
   }
 
-  default R eval(final JedisClusterExecutor jce, final int numRetries, final int keyCount,
+  default R eval(final RedisClusterExecutor rce, final int numRetries, final int keyCount,
       final byte[]... params) {
 
-    return eval(jce.getDefaultReadMode(), CRC16.getSlot(params), jce, numRetries, keyCount, params);
+    return eval(rce.getDefaultReadMode(), CRC16.getSlot(params), rce, numRetries, keyCount, params);
   }
 
-  default R eval(final ReadMode readMode, final JedisClusterExecutor jce, final int numRetries,
+  default R eval(final ReadMode readMode, final RedisClusterExecutor rce, final int numRetries,
       final int keyCount, final byte[]... params) {
 
-    return eval(readMode, CRC16.getSlot(params), jce, numRetries, keyCount, params);
+    return eval(readMode, CRC16.getSlot(params), rce, numRetries, keyCount, params);
   }
 
-  default R eval(final int slot, final JedisClusterExecutor jce, final int keyCount,
+  default R eval(final int slot, final RedisClusterExecutor rce, final int keyCount,
       final byte[]... params) {
 
-    return eval(jce.getDefaultReadMode(), slot, jce, jce.getMaxRetries(), keyCount, params);
+    return eval(rce.getDefaultReadMode(), slot, rce, rce.getMaxRetries(), keyCount, params);
   }
 
-  default R eval(final int slot, final JedisClusterExecutor jce, final int numRetries,
+  default R eval(final int slot, final RedisClusterExecutor rce, final int numRetries,
       final int keyCount, final byte[]... params) {
 
-    return eval(jce.getDefaultReadMode(), slot, jce, numRetries, keyCount, params);
+    return eval(rce.getDefaultReadMode(), slot, rce, numRetries, keyCount, params);
   }
 
-  default R eval(final ReadMode readMode, final int slot, final JedisClusterExecutor jce,
+  default R eval(final ReadMode readMode, final int slot, final RedisClusterExecutor rce,
       final int keyCount, final byte[]... params) {
 
-    return eval(readMode, slot, jce, jce.getMaxRetries(), keyCount, params);
+    return eval(readMode, slot, rce, rce.getMaxRetries(), keyCount, params);
   }
 
-  default R eval(final JedisClusterExecutor jce) {
+  default R eval(final RedisClusterExecutor rce) {
 
-    return eval(jce.getDefaultReadMode(), CRC16.getRandomSlot(), jce, jce.getMaxRetries(), 0);
+    return eval(rce.getDefaultReadMode(), CRC16.getRandomSlot(), rce, rce.getMaxRetries(), 0);
   }
 
-  default R eval(final JedisClusterExecutor jce, final int numRetries) {
+  default R eval(final RedisClusterExecutor rce, final int numRetries) {
 
-    return eval(jce.getDefaultReadMode(), CRC16.getRandomSlot(), jce, numRetries, 0);
+    return eval(rce.getDefaultReadMode(), CRC16.getRandomSlot(), rce, numRetries, 0);
   }
 
-  default R eval(final int slot, final JedisClusterExecutor jce) {
+  default R eval(final int slot, final RedisClusterExecutor rce) {
 
-    return eval(jce.getDefaultReadMode(), slot, jce, jce.getMaxRetries(), 0);
+    return eval(rce.getDefaultReadMode(), slot, rce, rce.getMaxRetries(), 0);
   }
 
-  default R eval(final int slot, final JedisClusterExecutor jce, final int numRetries) {
+  default R eval(final int slot, final RedisClusterExecutor rce, final int numRetries) {
 
-    return eval(jce.getDefaultReadMode(), slot, jce, numRetries, 0);
+    return eval(rce.getDefaultReadMode(), slot, rce, numRetries, 0);
   }
 
-  default R eval(final ReadMode readMode, final JedisClusterExecutor jce) {
+  default R eval(final ReadMode readMode, final RedisClusterExecutor rce) {
 
-    return eval(readMode, CRC16.getRandomSlot(), jce, jce.getMaxRetries(), 0);
+    return eval(readMode, CRC16.getRandomSlot(), rce, rce.getMaxRetries(), 0);
   }
 
-  default R eval(final ReadMode readMode, final int slot, final JedisClusterExecutor jce) {
+  default R eval(final ReadMode readMode, final int slot, final RedisClusterExecutor rce) {
 
-    return eval(readMode, slot, jce, jce.getMaxRetries(), 0);
+    return eval(readMode, slot, rce, rce.getMaxRetries(), 0);
   }
 
-  default R eval(final ReadMode readMode, final JedisClusterExecutor jce, final int numRetries) {
+  default R eval(final ReadMode readMode, final RedisClusterExecutor rce, final int numRetries) {
 
-    return eval(readMode, CRC16.getRandomSlot(), jce, numRetries, 0);
+    return eval(readMode, CRC16.getRandomSlot(), rce, numRetries, 0);
   }
 
-  default R eval(final ReadMode readMode, final int slot, final JedisClusterExecutor jce,
+  default R eval(final ReadMode readMode, final int slot, final RedisClusterExecutor rce,
       final int numRetries) {
 
-    return eval(readMode, slot, jce, numRetries, 0);
+    return eval(readMode, slot, rce, numRetries, 0);
   }
 
-  default R eval(final ReadMode readMode, final int slot, final JedisClusterExecutor jce,
+  default R eval(final ReadMode readMode, final int slot, final RedisClusterExecutor rce,
       final int numRetries, final int keyCount, final byte[]... params) {
 
-    return jce.applyJedis(readMode, slot, jedis -> eval(jedis, keyCount, params), numRetries);
+    return rce.apply(readMode, slot, client -> eval(client, keyCount, params), numRetries);
   }
 
-  default R eval(final ReadMode readMode, final int slot, final JedisClusterExecutor jce,
+  default R eval(final ReadMode readMode, final int slot, final RedisClusterExecutor rce,
       final int numRetries, final List<byte[]> keys, final List<byte[]> args) {
 
-    return jce.applyJedis(readMode, slot, jedis -> eval(jedis, keys, args), numRetries);
+    return rce.apply(readMode, slot, client -> eval(client, keys, args), numRetries);
   }
 
-  default R eval(final JedisClusterExecutor jce, final List<byte[]> keys, final List<byte[]> args) {
+  default R eval(final RedisClusterExecutor rce, final List<byte[]> keys, final List<byte[]> args) {
 
-    return eval(jce.getDefaultReadMode(), CRC16.getSlot(keys), jce, jce.getMaxRetries(), keys,
+    return eval(rce.getDefaultReadMode(), CRC16.getSlot(keys), rce, rce.getMaxRetries(), keys,
         args);
   }
 
-  default R eval(final ReadMode readMode, final JedisClusterExecutor jce, final List<byte[]> keys,
+  default R eval(final ReadMode readMode, final RedisClusterExecutor rce, final List<byte[]> keys,
       final List<byte[]> args) {
 
-    return eval(readMode, CRC16.getSlot(keys), jce, jce.getMaxRetries(), keys, args);
+    return eval(readMode, CRC16.getSlot(keys), rce, rce.getMaxRetries(), keys, args);
   }
 
-  default R eval(final JedisClusterExecutor jce, final int numRetries, final List<byte[]> keys,
+  default R eval(final RedisClusterExecutor rce, final int numRetries, final List<byte[]> keys,
       final List<byte[]> args) {
 
-    return eval(jce.getDefaultReadMode(), CRC16.getSlot(keys), jce, numRetries, keys, args);
+    return eval(rce.getDefaultReadMode(), CRC16.getSlot(keys), rce, numRetries, keys, args);
   }
 
-  default R eval(final ReadMode readMode, final JedisClusterExecutor jce, final int numRetries,
+  default R eval(final ReadMode readMode, final RedisClusterExecutor rce, final int numRetries,
       final List<byte[]> keys, final List<byte[]> args) {
 
-    return eval(readMode, CRC16.getSlot(keys), jce, numRetries, keys, args);
+    return eval(readMode, CRC16.getSlot(keys), rce, numRetries, keys, args);
   }
 
-  default R eval(final int slot, final JedisClusterExecutor jce, final List<byte[]> keys,
+  default R eval(final int slot, final RedisClusterExecutor rce, final List<byte[]> keys,
       final List<byte[]> args) {
 
-    return eval(jce.getDefaultReadMode(), slot, jce, jce.getMaxRetries(), keys, args);
+    return eval(rce.getDefaultReadMode(), slot, rce, rce.getMaxRetries(), keys, args);
   }
 
-  default R eval(final int slot, final JedisClusterExecutor jce, final int numRetries,
+  default R eval(final int slot, final RedisClusterExecutor rce, final int numRetries,
       final List<byte[]> keys, final List<byte[]> args) {
 
-    return eval(jce.getDefaultReadMode(), slot, jce, numRetries, keys, args);
+    return eval(rce.getDefaultReadMode(), slot, rce, numRetries, keys, args);
   }
 
-  public static void loadIfNotExists(final RedisClient jedis, final byte[] scriptSha1HexBytes,
+  public static void loadIfNotExists(final RedisClient client, final byte[] scriptSha1HexBytes,
       final LuaScript<?> luaScript) {
 
     final byte[] exists =
-        jedis.sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.EXISTS, scriptSha1HexBytes).get(0);
+        client.sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.EXISTS, scriptSha1HexBytes).get(0);
 
     if (RESP.toInt(exists) == 0) {
-      jedis.scriptLoad(RESP.toBytes(luaScript.getLuaScript()));
+      client.scriptLoad(RESP.toBytes(luaScript.getLuaScript()));
     }
   }
 
-  public static void loadIfNotExists(final RedisClient jedis, final byte[][] scriptSha1HexBytes,
+  public static void loadIfNotExists(final RedisClient client, final byte[][] scriptSha1HexBytes,
       final LuaScript<?>[] luaScripts) {
 
     if (scriptSha1HexBytes.length == 1) {
 
-      loadIfNotExists(jedis, scriptSha1HexBytes[0], luaScripts[0]);
+      loadIfNotExists(client, scriptSha1HexBytes[0], luaScripts[0]);
       return;
     }
 
     final List<byte[]> existResults =
-        jedis.sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.EXISTS, scriptSha1HexBytes);
+        client.sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.EXISTS, scriptSha1HexBytes);
 
     RedisPipeline pipeline = null;
     int index = 0;
@@ -313,7 +313,7 @@ public interface LuaScript<R> {
 
       if (RESP.toInt(exists) == 0) {
         if (pipeline == null) {
-          pipeline = jedis.createPipeline();
+          pipeline = client.createPipeline();
         }
         pipeline.scriptLoad(RESP.toBytes(luaScripts[index].getLuaScript()));
       }
@@ -349,49 +349,49 @@ public interface LuaScript<R> {
     }
   }
 
-  default R evalFill(final JedisClusterExecutor jce, final byte[][] params) {
+  default R evalFill(final RedisClusterExecutor rce, final byte[][] params) {
 
-    return evalFill(jce.getDefaultReadMode(), CRC16.getSlot(params), jce, jce.getMaxRetries(),
+    return evalFill(rce.getDefaultReadMode(), CRC16.getSlot(params), rce, rce.getMaxRetries(),
         params);
   }
 
-  default R evalFill(final ReadMode readMode, final JedisClusterExecutor jce,
+  default R evalFill(final ReadMode readMode, final RedisClusterExecutor rce,
       final byte[][] params) {
 
-    return evalFill(readMode, CRC16.getSlot(params), jce, jce.getMaxRetries(), params);
+    return evalFill(readMode, CRC16.getSlot(params), rce, rce.getMaxRetries(), params);
   }
 
-  default R evalFill(final JedisClusterExecutor jce, final int numRetries, final byte[][] params) {
+  default R evalFill(final RedisClusterExecutor rce, final int numRetries, final byte[][] params) {
 
-    return evalFill(jce.getDefaultReadMode(), CRC16.getSlot(params), jce, numRetries, params);
+    return evalFill(rce.getDefaultReadMode(), CRC16.getSlot(params), rce, numRetries, params);
   }
 
-  default R evalFill(final ReadMode readMode, final JedisClusterExecutor jce, final int numRetries,
+  default R evalFill(final ReadMode readMode, final RedisClusterExecutor rce, final int numRetries,
       final byte[][] params) {
 
-    return evalFill(readMode, CRC16.getSlot(params), jce, numRetries, params);
+    return evalFill(readMode, CRC16.getSlot(params), rce, numRetries, params);
   }
 
-  default R evalFill(final int slot, final JedisClusterExecutor jce, final byte[][] params) {
+  default R evalFill(final int slot, final RedisClusterExecutor rce, final byte[][] params) {
 
-    return evalFill(jce.getDefaultReadMode(), slot, jce, jce.getMaxRetries(), params);
+    return evalFill(rce.getDefaultReadMode(), slot, rce, rce.getMaxRetries(), params);
   }
 
-  default R evalFill(final int slot, final JedisClusterExecutor jce, final int numRetries,
+  default R evalFill(final int slot, final RedisClusterExecutor rce, final int numRetries,
       final byte[][] params) {
 
-    return evalFill(jce.getDefaultReadMode(), slot, jce, numRetries, params);
+    return evalFill(rce.getDefaultReadMode(), slot, rce, numRetries, params);
   }
 
-  default R evalFill(final ReadMode readMode, final int slot, final JedisClusterExecutor jce,
+  default R evalFill(final ReadMode readMode, final int slot, final RedisClusterExecutor rce,
       final byte[][] params) {
 
-    return evalFill(readMode, slot, jce, jce.getMaxRetries(), params);
+    return evalFill(readMode, slot, rce, rce.getMaxRetries(), params);
   }
 
-  default R evalFill(final ReadMode readMode, final int slot, final JedisClusterExecutor jce,
+  default R evalFill(final ReadMode readMode, final int slot, final RedisClusterExecutor rce,
       final int numRetries, final byte[][] params) {
 
-    return jce.applyJedis(readMode, slot, jedis -> evalFill(jedis, params), numRetries);
+    return rce.apply(readMode, slot, client -> evalFill(client, params), numRetries);
   }
 }

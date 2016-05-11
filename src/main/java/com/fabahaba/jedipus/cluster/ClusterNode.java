@@ -2,12 +2,12 @@ package com.fabahaba.jedipus.cluster;
 
 import com.fabahaba.jedipus.HostPort;
 
-class ClusterNodeImpl implements Node {
+class ClusterNode implements Node {
 
   private final HostPort hostPort;
   private String id;
 
-  ClusterNodeImpl(final HostPort hostPort, final String id) {
+  ClusterNode(final HostPort hostPort, final String id) {
 
     this.hostPort = hostPort;
     this.id = id;
@@ -55,7 +55,7 @@ class ClusterNodeImpl implements Node {
       return false;
     }
 
-    final ClusterNodeImpl castOther = (ClusterNodeImpl) other;
+    final ClusterNode castOther = (ClusterNode) other;
     if (hostPort.equals(castOther.hostPort)) {
       return id == null || castOther.id == null || id.equals(castOther.id);
     }

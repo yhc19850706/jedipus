@@ -12,11 +12,11 @@ public interface ClusterCmds extends DirectCmds {
     return RESP.toString(sendCmd(ClusterCmds.ASKING));
   }
 
-  public Node getClusterNode();
+  public Node getNode();
 
   default String getNodeId() {
 
-    final Node node = getClusterNode();
+    final Node node = getNode();
     String id = node.getId();
 
     if (id == null) {

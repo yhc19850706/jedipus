@@ -11,22 +11,21 @@ import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.ClusterCmds;
 
-class PipelinedInitFactory extends JedisFactory {
+class PipelinedInitFactory extends RedisClientFactory {
 
-  PipelinedInitFactory(final Node node,
-      final Function<Node, Node> hostPortMapper, final int connTimeout,
-      final int soTimeout, final String pass, final String clientName, final boolean initReadOnly,
-      final boolean ssl, final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
-      final HostnameVerifier hostnameVerifier) {
+  PipelinedInitFactory(final Node node, final Function<Node, Node> hostPortMapper,
+      final int connTimeout, final int soTimeout, final String pass, final String clientName,
+      final boolean initReadOnly, final boolean ssl, final SSLSocketFactory sslSocketFactory,
+      final SSLParameters sslParameters, final HostnameVerifier hostnameVerifier) {
 
     super(node, hostPortMapper, connTimeout, soTimeout, pass, clientName, initReadOnly, ssl,
         sslSocketFactory, sslParameters, hostnameVerifier);
   }
 
   @Override
-  protected void initJedis(final RedisClient jedis) {
+  protected void initClient(final RedisClient client) {
 
-    final RedisPipeline pipeline = jedis.createPipeline();
+    final RedisPipeline pipeline = client.createPipeline();
 
     if (pass != null) {
 
@@ -35,7 +34,7 @@ class PipelinedInitFactory extends JedisFactory {
 
     if (clientName != null) {
 
-      pipeline.sendCmd(Cmds.CLIENT, Cmds.SETNAME.getCmdBytes(), clientName);
+      pipeline.sendCmd(Cmds.CLIENT, Cmds.SETNAME, clientName);
     }
 
     if (initReadOnly) {

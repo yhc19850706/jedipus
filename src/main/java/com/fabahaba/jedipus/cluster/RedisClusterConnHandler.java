@@ -8,18 +8,18 @@ import java.util.function.Function;
 import org.apache.commons.pool2.ObjectPool;
 
 import com.fabahaba.jedipus.RedisClient;
-import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
+import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisException;
 import com.fabahaba.jedipus.primitive.Cmds;
 
-class JedisClusterConnHandler implements AutoCloseable {
+class RedisClusterConnHandler implements AutoCloseable {
 
-  private final JedisClusterSlotCache slotPoolCache;
+  private final RedisClusterSlotCache slotPoolCache;
 
-  JedisClusterConnHandler(final ReadMode defaultReadMode, final boolean optimisticReads,
+  RedisClusterConnHandler(final ReadMode defaultReadMode, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
       final Collection<Node> discoveryNodes, final Function<Node, Node> hostPortMapper,
       final Function<Node, ObjectPool<RedisClient>> masterPoolFactory,
@@ -28,7 +28,7 @@ class JedisClusterConnHandler implements AutoCloseable {
       final Function<ObjectPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> lbFactory,
       final ElementRetryDelay<Node> clusterNodeRetryDelay) {
 
-    this.slotPoolCache = JedisClusterSlotCache.create(defaultReadMode, optimisticReads,
+    this.slotPoolCache = RedisClusterSlotCache.create(defaultReadMode, optimisticReads,
         durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes, hostPortMapper,
         masterPoolFactory, slavePoolFactory, nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
   }
@@ -74,20 +74,20 @@ class JedisClusterConnHandler implements AutoCloseable {
 
     for (final ObjectPool<RedisClient> pool : pools) {
 
-      RedisClient jedis = null;
+      RedisClient client = null;
       try {
-        jedis = JedisPool.borrowObject(pool);
+        client = RedisClientPool.borrowClient(pool);
 
-        if (jedis == null) {
+        if (client == null) {
           continue;
         }
 
-        jedis.sendCmd(Cmds.PING);
+        client.sendCmd(Cmds.PING);
         return pool;
       } catch (final RedisException ex) {
         // try next pool...
       } finally {
-        JedisPool.returnJedis(pool, jedis);
+        RedisClientPool.returnClient(pool, client);
       }
     }
 
@@ -140,27 +140,27 @@ class JedisClusterConnHandler implements AutoCloseable {
 
     for (final ObjectPool<RedisClient> pool : slotPoolCache.getPools(readMode).values()) {
 
-      RedisClient jedis = null;
+      RedisClient client = null;
       try {
-        jedis = JedisPool.borrowObject(pool);
+        client = RedisClientPool.borrowClient(pool);
 
-        slotPoolCache.discoverClusterSlots(jedis);
+        slotPoolCache.discoverClusterSlots(client);
         return;
       } catch (final RedisConnectionException e) {
         // try next pool...
       } finally {
-        JedisPool.returnJedis(pool, jedis);
+        RedisClientPool.returnClient(pool, client);
       }
     }
 
     slotPoolCache.discoverClusterSlots();
   }
 
-  void renewSlotCache(final ReadMode readMode, final RedisClient jedis) {
+  void renewSlotCache(final ReadMode readMode, final RedisClient client) {
 
     try {
 
-      slotPoolCache.discoverClusterSlots(jedis);
+      slotPoolCache.discoverClusterSlots(client);
     } catch (final RedisConnectionException e) {
 
       renewSlotCache(readMode);

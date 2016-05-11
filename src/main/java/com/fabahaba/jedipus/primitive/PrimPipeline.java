@@ -11,14 +11,14 @@ import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 final class PrimPipeline extends PrimQueable implements RedisPipeline {
 
-  private final PrimRedisConn client;
+  private final PrimRedisConn conn;
   private MultiResponseBuilder currentMulti;
 
-  PrimPipeline(final PrimRedisConn client) {
+  PrimPipeline(final PrimRedisConn conn) {
 
     super(new ArrayDeque<>());
 
-    this.client = client;
+    this.conn = conn;
   }
 
   public boolean isInMulti() {
@@ -37,13 +37,13 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
   }
 
   @Override
-  public PrimResponse<String> discard() {
+  public FutureResponse<String> discard() {
 
     if (currentMulti == null) {
       throw new RedisUnhandledException(null, "DISCARD without MULTI");
     }
 
-    client.discard();
+    conn.discard();
     currentMulti = null;
     return getResponse(RESP::toString);
   }
@@ -56,48 +56,48 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
       throw new RedisUnhandledException(null, "EXEC your MULTI before calling SYNC.");
     }
 
-    if (getPipelinedResponseLength() > 0) {
-      for (final Object o : client.getMany(getPipelinedResponseLength())) {
+    if (hasPipelinedResponse()) {
+
+      for (final Object o : conn.getMany(getPipelinedResponseLength())) {
         generateResponse(o);
       }
     }
   }
 
   @Override
-  public PrimResponse<String> multi() {
+  public FutureResponse<String> multi() {
 
     if (currentMulti != null) {
       throw new RedisUnhandledException(null, "MULTI calls can not be nested.");
     }
 
-    client.multi();
-    final PrimResponse<String> response = getResponse(RESP::toString); // Expecting
+    conn.multi();
+    final FutureResponse<String> response = getResponse(RESP::toString); // Expecting
     currentMulti = new MultiResponseBuilder();
     return response;
   }
 
   @Override
-  public PrimResponse<List<Object>> exec() {
+  public FutureResponse<List<Object>> exec() {
 
     if (currentMulti == null) {
       throw new RedisUnhandledException(null, "EXEC without MULTI.");
     }
 
-    client.exec();
-    final PrimResponse<List<Object>> response = super.getResponse(currentMulti);
+    conn.exec();
+    final FutureResponse<List<Object>> response = super.getResponse(currentMulti);
     currentMulti.setResponseDependency(response);
     currentMulti = null;
     return response;
   }
 
-
   @Override
-  protected <T> PrimResponse<T> getResponse(final Function<Object, T> builder) {
+  protected <T> FutureResponse<T> getResponse(final Function<Object, T> builder) {
 
     if (currentMulti != null) {
       super.getResponse(RESP::toString); // Expected QUEUED
 
-      final PrimResponse<T> lr = new PrimResponse<>(builder);
+      final FutureResponse<T> lr = new FutureResponse<>(builder);
       currentMulti.addResponse(lr);
       return lr;
     }
@@ -106,29 +106,44 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
   }
 
   @Override
-  public <T> PrimResponse<T> sendCmd(final Cmd<T> cmd) {
+  public <T> FutureResponse<T> sendCmd(final Cmd<T> cmd) {
 
-    client.sendCommand(cmd.getCmdBytes());
+    conn.sendCommand(cmd.getCmdBytes());
     return getResponse(cmd);
   }
 
   @Override
-  public <T> PrimResponse<T> sendCmd(final Cmd<T> cmd, final byte[]... args) {
+  public <T> FutureResponse<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd) {
 
-    client.sendCommand(cmd.getCmdBytes(), args);
+    conn.sendSubCommand(cmd.getCmdBytes(), subCmd.getCmdBytes());
+    return getResponse(subCmd);
+  }
+
+
+  @Override
+  public <T> FutureResponse<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[] args) {
+
+    conn.sendSubCommand(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    return getResponse(subCmd);
+  }
+
+  @Override
+  public <T> FutureResponse<T> sendCmd(final Cmd<T> cmd, final byte[]... args) {
+
+    conn.sendCommand(cmd.getCmdBytes(), args);
     return getResponse(cmd);
   }
 
   @Override
-  public <T> PrimResponse<T> sendCmd(final Cmd<T> cmd, final String... args) {
+  public <T> FutureResponse<T> sendCmd(final Cmd<T> cmd, final String... args) {
 
-    client.sendCommand(cmd.getCmdBytes(), args);
+    conn.sendCommand(cmd.getCmdBytes(), args);
     return getResponse(cmd);
   }
 
   private static class MultiResponseBuilder implements Function<Object, List<Object>> {
 
-    private final List<PrimResponse<?>> responses = new ArrayList<>();
+    private final List<FutureResponse<?>> responses = new ArrayList<>();
 
     @Override
     public List<Object> apply(final Object data) {
@@ -144,8 +159,8 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
 
       for (int i = 0; i < list.size(); i++) {
 
-        final PrimResponse<?> response = responses.get(i);
-        response.set(list.get(i));
+        final FutureResponse<?> response = responses.get(i);
+        response.setResponse(list.get(i));
         Object builtResponse;
         try {
           builtResponse = response.get();
@@ -158,13 +173,15 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
       return values;
     }
 
-    public void setResponseDependency(final PrimResponse<?> dependency) {
-      for (final PrimResponse<?> response : responses) {
+    public void setResponseDependency(final FutureResponse<?> dependency) {
+
+      for (final FutureResponse<?> response : responses) {
         response.setDependency(dependency);
       }
     }
 
-    public void addResponse(final PrimResponse<?> response) {
+    public void addResponse(final FutureResponse<?> response) {
+
       responses.add(response);
     }
   }

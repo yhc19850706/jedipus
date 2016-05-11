@@ -54,17 +54,17 @@ final class RedisOutputStream extends OutputStream {
   }
 
   @Override
-  public void write(final int b) throws IOException {
-    writeIntCRLF(b);
+  public void write(final int data) throws IOException {
+    writeIntCRLF(data);
   }
 
-  public void write(final byte bite) throws IOException {
+  public void write(final byte data) throws IOException {
 
     if (count == buf.length) {
       flushBuffer();
     }
 
-    buf[count++] = bite;
+    buf[count++] = data;
   }
 
   @Override

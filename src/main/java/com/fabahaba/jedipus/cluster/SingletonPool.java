@@ -6,32 +6,32 @@ import com.fabahaba.jedipus.RedisClient;
 
 class SingletonPool implements ObjectPool<RedisClient> {
 
-  private volatile RedisClient jedis;
+  private volatile RedisClient client;
 
-  SingletonPool(final RedisClient jedis) {
+  SingletonPool(final RedisClient client) {
 
-    this.jedis = jedis;
+    this.client = client;
   }
 
   @Override
   public synchronized RedisClient borrowObject() {
 
-    final RedisClient borrowed = jedis;
-    jedis = null;
+    final RedisClient borrowed = client;
+    client = null;
 
     return borrowed;
   }
 
   @Override
-  public void returnObject(final RedisClient jedis) {
+  public void returnObject(final RedisClient client) {
 
-    this.jedis = jedis;
+    this.client = client;
   }
 
   @Override
-  public void invalidateObject(final RedisClient jedis) throws Exception {
+  public void invalidateObject(final RedisClient client) throws Exception {
 
-    jedis.close();
+    client.close();
   }
 
   @Override
@@ -40,13 +40,13 @@ class SingletonPool implements ObjectPool<RedisClient> {
   @Override
   public int getNumIdle() {
 
-    return jedis == null ? 0 : 1;
+    return client == null ? 0 : 1;
   }
 
   @Override
   public int getNumActive() {
 
-    return jedis == null ? 1 : 0;
+    return client == null ? 1 : 0;
   }
 
   @Override
@@ -58,9 +58,9 @@ class SingletonPool implements ObjectPool<RedisClient> {
   @Override
   public void close() {
 
-    final RedisClient close = jedis;
+    final RedisClient close = client;
     if (close != null) {
-      jedis = null;
+      client = null;
       close.close();
     }
   }

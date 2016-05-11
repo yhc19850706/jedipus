@@ -9,7 +9,7 @@ public interface Node extends HostPort {
 
   public static Node create(final HostPort hostPort) {
 
-    return new ClusterNodeImpl(hostPort, null);
+    return new ClusterNode(hostPort, null);
   }
 
   public static Node create(final String host, final String port) {
@@ -19,7 +19,7 @@ public interface Node extends HostPort {
 
   public static Node create(final HostPort hostPort, final String nodeId) {
 
-    return new ClusterNodeImpl(hostPort, nodeId);
+    return new ClusterNode(hostPort, nodeId);
   }
 
   public static Node create(final String host, final int port) {

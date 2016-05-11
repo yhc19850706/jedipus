@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.pool2.ObjectPool;
 
-import com.fabahaba.jedipus.cluster.JedisClusterExecutor.ReadMode;
+import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 
 class RoundRobinPools<T> implements LoadBalancedPools<T, ReadMode> {

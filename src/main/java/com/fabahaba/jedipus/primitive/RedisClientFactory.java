@@ -16,7 +16,7 @@ import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.ClusterCmds;
 
-public class JedisFactory extends BasePooledObjectFactory<RedisClient> {
+public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
 
   private final Node node;
   private final Function<Node, Node> hostPortMapper;
@@ -32,10 +32,10 @@ public class JedisFactory extends BasePooledObjectFactory<RedisClient> {
   private final SSLParameters sslParameters;
   private final HostnameVerifier hostnameVerifier;
 
-  JedisFactory(final Node node, final Function<Node, Node> hostPortMapper, final int connTimeout,
-      final int soTimeout, final String pass, final String clientName, final boolean initReadOnly,
-      final boolean ssl, final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
-      final HostnameVerifier hostnameVerifier) {
+  RedisClientFactory(final Node node, final Function<Node, Node> hostPortMapper,
+      final int connTimeout, final int soTimeout, final String pass, final String clientName,
+      final boolean initReadOnly, final boolean ssl, final SSLSocketFactory sslSocketFactory,
+      final SSLParameters sslParameters, final HostnameVerifier hostnameVerifier) {
 
     this.node = node;
     this.hostPortMapper = hostPortMapper;
@@ -56,36 +56,36 @@ public class JedisFactory extends BasePooledObjectFactory<RedisClient> {
     return new Builder();
   }
 
-  protected void initJedis(final RedisClient jedis) {}
+  protected void initClient(final RedisClient client) {}
 
   @Override
   public RedisClient create() throws Exception {
 
-    final PrimJedis jedis = new PrimJedis(node, hostPortMapper, connTimeout, soTimeout, ssl,
-        sslSocketFactory, sslParameters, hostnameVerifier);
+    final PrimRedisClient client = new PrimRedisClient(node, hostPortMapper, connTimeout, soTimeout,
+        ssl, sslSocketFactory, sslParameters, hostnameVerifier);
 
-    initJedis(jedis);
+    initClient(client);
 
-    return jedis;
+    return client;
   }
 
   @Override
-  public PooledObject<RedisClient> wrap(final RedisClient jedis) {
+  public PooledObject<RedisClient> wrap(final RedisClient client) {
 
-    return new DefaultPooledObject<>(jedis);
+    return new DefaultPooledObject<>(client);
   }
 
   @Override
-  public void destroyObject(final PooledObject<RedisClient> pooledJedis) throws Exception {
+  public void destroyObject(final PooledObject<RedisClient> pooledClient) throws Exception {
 
-    pooledJedis.getObject().close();
+    pooledClient.getObject().close();
   }
 
   @Override
-  public boolean validateObject(final PooledObject<RedisClient> pooledJedis) {
+  public boolean validateObject(final PooledObject<RedisClient> pooledClient) {
 
     try {
-      pooledJedis.getObject().sendCmd(Cmds.PING);
+      pooledClient.getObject().sendCmd(Cmds.PING);
       return true;
     } catch (final RuntimeException e) {
       return false;
@@ -95,7 +95,7 @@ public class JedisFactory extends BasePooledObjectFactory<RedisClient> {
   @Override
   public String toString() {
 
-    return new StringBuilder("JedisFactory [node=").append(node).append(", connTimeout=")
+    return new StringBuilder("RedisClientFactory [node=").append(node).append(", connTimeout=")
         .append(connTimeout).append(", soTimeout=").append(soTimeout).append(", clientName=")
         .append(RESP.toString(clientName)).append(", initReadOnly=").append(initReadOnly)
         .append(", ssl=").append(ssl).append(", sslSocketFactory=").append(sslSocketFactory)
@@ -162,8 +162,8 @@ public class JedisFactory extends BasePooledObjectFactory<RedisClient> {
 
       if (numInits == 0) {
 
-        return new JedisFactory(node, hostPortMapper, connTimeout, soTimeout, pass, clientName,
-            initReadOnly, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
+        return new RedisClientFactory(node, hostPortMapper, connTimeout, soTimeout, pass,
+            clientName, initReadOnly, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
       }
 
       if (numInits == 1) {
@@ -183,25 +183,25 @@ public class JedisFactory extends BasePooledObjectFactory<RedisClient> {
 
     public RedisClient create(final Node node, final boolean initReadOnly) {
 
-      final PrimJedis jedis = new PrimJedis(node, hostPortMapper, connTimeout, soTimeout, ssl,
-          sslSocketFactory, sslParameters, hostnameVerifier);
+      final PrimRedisClient client = new PrimRedisClient(node, hostPortMapper, connTimeout,
+          soTimeout, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
 
       if (pass != null) {
 
-        jedis.sendCmd(Cmds.AUTH, RESP.toBytes(pass));
+        client.sendCmd(Cmds.AUTH, RESP.toBytes(pass));
       }
 
       if (clientName != null) {
 
-        jedis.sendCmd(Cmds.CLIENT, Cmds.SETNAME.getCmdBytes(), RESP.toBytes(clientName));
+        client.sendCmd(Cmds.CLIENT, Cmds.SETNAME, RESP.toBytes(clientName));
       }
 
       if (initReadOnly) {
 
-        jedis.sendCmd(ClusterCmds.READONLY);
+        client.sendCmd(ClusterCmds.READONLY);
       }
 
-      return jedis;
+      return client;
     }
 
     public String getHost() {
@@ -315,7 +315,7 @@ public class JedisFactory extends BasePooledObjectFactory<RedisClient> {
     @Override
     public String toString() {
 
-      return new StringBuilder("JedisFactory.Builder [host=").append(host).append(", port=")
+      return new StringBuilder("RedisClientFactory.Builder [host=").append(host).append(", port=")
           .append(port).append(", connTimeout=").append(connTimeout).append(", soTimeout=")
           .append(soTimeout).append(", pass=").append(pass).append(", clientName=")
           .append(clientName).append(", initReadOnly=").append(initReadOnly).append(", ssl=")

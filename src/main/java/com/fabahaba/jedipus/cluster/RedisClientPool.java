@@ -5,11 +5,11 @@ import org.apache.commons.pool2.ObjectPool;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.exceptions.RedisException;
 
-final class JedisPool {
+final class RedisClientPool {
 
-  private JedisPool() {}
+  private RedisClientPool() {}
 
-  static RedisClient borrowObject(final ObjectPool<RedisClient> pool) {
+  static RedisClient borrowClient(final ObjectPool<RedisClient> pool) {
 
     try {
       return pool.borrowObject();
@@ -20,43 +20,43 @@ final class JedisPool {
     }
   }
 
-  static void returnJedis(final ObjectPool<RedisClient> pool, final RedisClient jedis) {
+  static void returnClient(final ObjectPool<RedisClient> pool, final RedisClient client) {
 
-    if (jedis == null || pool == null) {
+    if (client == null || pool == null) {
       return;
     }
 
-    if (jedis.isBroken()) {
+    if (client.isBroken()) {
       try {
-        pool.invalidateObject(jedis);
+        pool.invalidateObject(client);
       } catch (final RuntimeException re) {
         throw re;
       } catch (final Exception e) {
-        throw new RedisException("Could not return broken jedis to its pool.", e);
+        throw new RedisException("Could not return broken client to its pool.", e);
       }
       return;
     }
 
     try {
-      jedis.resetState();
+      client.resetState();
     } catch (final RuntimeException re) {
       try {
-        pool.invalidateObject(jedis);
+        pool.invalidateObject(client);
       } catch (final RuntimeException re2) {
         throw re2;
       } catch (final Exception e) {
-        throw new RedisException("Could not return broken jedis to its pool.", e);
+        throw new RedisException("Could not return broken client to its pool.", e);
       }
 
       throw re;
     }
 
     try {
-      pool.returnObject(jedis);
+      pool.returnObject(client);
     } catch (final RuntimeException re) {
       throw re;
     } catch (final Exception e) {
-      throw new RedisException("Could not return jedis to its pool.", e);
+      throw new RedisException("Could not return client to its pool.", e);
     }
   }
 }
