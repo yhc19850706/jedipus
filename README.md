@@ -40,13 +40,13 @@ dependencies {
 
 #####Basic Usage Demos
 ```java
-try (final JedisClusterExecutor jce =
-      JedisClusterExecutor.startBuilding(ClusterNode.create("localhost", 7000)).create()) {
+try (final RedisClusterExecutor rce = RedisClusterExecuto
+      r.startBuilding(Node.create("localhost", 7000)).create()) {
 
    final String key = "42";
-   jce.acceptJedis(key, jedis -> jedis.set(key, "107.6"));
+   rce.accept(key, client -> client.sendCmd(Cmds.SET, key, "107.6"));
 
-   final String temp = jce.applyJedis(key, jedis -> jedis.get(key));
+   final String temp = rce.apply(key, client -> client.sendCmd(Cmds.GET, key));
    if (temp.equals("107.6")) {
       System.out.println("Showers' ready, don't forget your towel.");
    }
@@ -54,14 +54,14 @@ try (final JedisClusterExecutor jce =
 ```
 
 ```java
-try (final JedisClusterExecutor jce =
-      JedisClusterExecutor.startBuilding(ClusterNode.create("localhost", 7000)).create()) {
+try (final RedisClusterExecutor rce = RedisClusterExecutor
+      .startBuilding(Node.create("localhost", 7000)).create()) {
 
    final String skey = "skey";
 
-   final long numMembers = jce.applyPipeline(skey, pipeline -> {
-      pipeline.sadd(skey, "member");
-      final Response<Long> response = pipeline.scard(skey);
+   final Long numMembers = rce.applyPipeline(skey, pipeline -> {
+      pipeline.sendCmd(Cmds.SADD, skey, "member");
+      final FutureResponse<Long> response = pipeline.sendCmd(Cmds.SCARD, skey);
       pipeline.sync();
       return response.get();
    });
@@ -72,7 +72,7 @@ try (final JedisClusterExecutor jce =
 
 ```java
 try (final JedisClusterExecutor jce =
-      JedisClusterExecutor.startBuilding(ClusterNode.create("localhost", 7000))
+      JedisClusterExecutor.startBuilding(Node.create("localhost", 7000))
          .withReadMode(ReadMode.MIXED_SLAVES).create()) {
 
    // Hash tagged pipelined transaction.
@@ -126,15 +126,16 @@ try (final JedisClusterExecutor jce =
 ```
 
 ```java
-try (final JedisClusterExecutor jce =
-      JedisClusterExecutor.startBuilding(ClusterNode.create("localhost", 7000))
-         .withReadMode(ReadMode.MIXED_SLAVES).create()) {
+try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(Node.create("localhost", 7000))
+      .withReadMode(ReadMode.MIXED_SLAVES).create()) {
 
    // Ping-Pong all masters.
-   jce.acceptAllMasters(master -> System.out.format("%s %s%n", master, master.ping()));
+   rce.acceptAllMasters(
+      master -> System.out.format("%s %s%n", master, RESP.toString(master.sendCmd(Cmds.PING))));
 
    // Ping-Pong all slaves concurrently.
-   jce.applyAllSlaves(slave -> String.format("%s %s%n", slave, slave.ping()), 1,
+   rce.applyAllSlaves(
+      slave -> String.format("%s %s%n", slave, RESP.toString(slave.sendCmd(Cmds.PING))), 1,
       ForkJoinPool.commonPool()).stream().map(CompletableFuture::join)
       .forEach(System.out::print);
 }
