@@ -2,19 +2,19 @@
 
 >Jedipus is a Redis Cluster Java client that manages Redis client object pools and command execution.
 
-######Features 
+######Features
 * Execute `Consumer<RedisClient>` and `Function<RedisClient, R>` lambas.
 * Perfomance focused
   * Direct O(1) primitive array access to a corresponding `RedisClient` pool.
-  * Minimal enforced serialization.  Writes directly to socket output stream buffer, and raw responses can be retrieved. 
-  * Locking is only applied to threads that are accessing slots which are migrating; there is no known node; or for which a client connection continually cannot be established; all of which will trigger a slot cache refresh.
+  * Minimal enforced (de)serialization.  Write directly to the socket output stream buffer, and retrieve raw responses.
+  * Locking is only applied to threads which are accessing slots that are migrating; there is no known node; or for which a client connection continually cannot be established; all of which will trigger a slot cache refresh.
   * Reuse known slot integers.
-* Minimal dependencies, only org.apache.commons:commons-pool2.
+* Minimal dependencies, only `org.apache.commons:commons-pool2`.
 * Optional user supplied [`Node`](src/main/java/com/fabahaba/jedipus/cluster/Node.java) -> `ObjectPool<RedisClient>` factories.
 * Load balance read-only requests across pools.  Optional user supplied `ObjectPool<RedisClient>[]` -> [`LoadBalancedPools`](src/main/java/com/fabahaba/jedipus/concurrent/LoadBalancedPools.java) factories.  By default, a [round robin strategy](src/main/java/com/fabahaba/jedipus/cluster/RoundRobinPools.java) is used.
 * [Client side HostPort mapping to internally networked clusters](https://gist.github.com/jamespedwards42/5037cf03768280ab1d81a88e7929c608).
 * Configurable [retry delays](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java) per cluster node for `RedisConnectionException's`.  By default, an [exponential backoff delay](src/main/java/com/fabahaba/jedipus/concurrent/SemaphoredRetryDelay.java) is used.
-* Execute against known or random nodes.
+* Execute directly against known or random nodes.
 * Utilities to manage and execute Lua scripts, see this [RedisLock Gist](https://gist.github.com/jamespedwards42/46bc6fcd6e2c81315d2d63a4e80b527f).
 
 ######Read Modes
@@ -33,7 +33,7 @@ repositories {
 
 dependencies {
    // Needed if supplying your own pool factories.
-   // compile 'org.apache.commons:commons-pool2:+' 
+   // compile 'org.apache.commons:commons-pool2:+'
    compile 'com.fabahaba:jedipus:+'
 }
 ```
@@ -71,62 +71,67 @@ try (final RedisClusterExecutor rce = RedisClusterExecutor
 ```
 
 ```java
-try (final JedisClusterExecutor jce =
-      JedisClusterExecutor.startBuilding(Node.create("localhost", 7000))
-         .withReadMode(ReadMode.MIXED_SLAVES).create()) {
+try (final RedisClusterExecutor rce =
+    RedisClusterExecutor.startBuilding(Node.create("localhost", 7000))
+        .withReadMode(ReadMode.MIXED_SLAVES).create()) {
 
-   // Hash tagged pipelined transaction.
-   final String hashTag = RCUtils.createNameSpacedHashTag("HT");
-   final int slot = CRC16.getSlot(hashTag);
+  // Hash tagged pipelined transaction.
+  final String hashTag = RCUtils.createNameSpacedHashTag("HT");
+  final int slot = CRC16.getSlot(hashTag);
 
-   final String hashTaggedKey = hashTag + "key";
-   final String fooKey = hashTag + "foo";
+  final String hashTaggedKey = hashTag + "key";
+  final String fooKey = hashTag + "foo";
 
-   final Set<Tuple> zrangeResult = jce.applyPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
+  final Object[] sortedBars = rce.applyPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
+ 
+    pipeline.sendCmd(Cmds.SET, hashTaggedKey, "value");
 
-      // Direct command execution.
-      pipeline.sendCmd(Cmd.SET, hashTaggedKey, "value");
+    pipeline.sendCmd(Cmds.ZADD, fooKey, "-1", "barowitch");
+    pipeline.sendCmd(Cmds.ZADD, fooKey, ".37", "barinsky");
+    pipeline.sendCmd(Cmds.ZADD, fooKey, "42", "barikoviev");
 
-      pipeline.zadd(fooKey, -1, "barowitch");
-      pipeline.zadd(fooKey, .37, "barinsky");
-      pipeline.zadd(fooKey, 42, "barikoviev");
+    final FutureResponse<String> valueResponse = pipeline.sendCmd(Cmds.GET, hashTaggedKey);
+    final FutureResponse<Object[]> barsResponse =
+        pipeline.sendCmd(Cmds.ZRANGE, fooKey, "0", "-1", "WITHSCORES");
 
-      final Response<String> valueResponse = pipeline.get(hashTaggedKey);
-      final Response<Set<Tuple>> bars = pipeline.zrangeWithScores(fooKey, 0, -1);
+    // Note: Pipelines and transactions are merely started by the the library.
+    // 'exec' and 'sync' must be called by the user.
+    pipeline.exec();
+    pipeline.sync();
 
-      // Note: Pipelines and transactions are merely started by the the library.
-      // 'exec' and 'sync' must be called by the user.
-      pipeline.exec();
-      pipeline.sync();
+    // Note: Responses must be captured within this lambda closure in order to properly
+    // leverage error handling.
 
-      // Note: Responses must be captured within this lambda closure in order to properly
-      // leverage error handling.
+    // '{HT}:key': value
+    System.out.format("'%s': %s%n", hashTaggedKey, valueResponse.get());
 
-      // '{HT}:key': value
-      System.out.format("%n'%s': %s%n", hashTaggedKey, valueResponse.get());
+    return barsResponse.get();
+  });
 
-      return bars.get();
-   });
 
-   final String values = zrangeResult.stream()
-      .map(tuple -> String.format("%s (%s)", tuple.getElement(), tuple.getScore()))
-      .collect(Collectors.joining(", "));
+  // '{HT}:foo': [barowitch (-1.0), barinsky (0.37), barikoviev (42.0)]
+  System.out.format("%n'%s':", fooKey);
 
-   // '{HT}:foo': [barowitch (-1.0), barinsky (0.37), barikoviev (42.0)]
-   System.out.format("%n'%s': [%s]%n", fooKey, values);
+  for (int i = 0; i < sortedBars.length;) {
+    System.out.format(" %s (%s)", RESP.toString(sortedBars[i++]),
+        RESP.toDouble(sortedBars[i++]));
+  }
 
-   // Read from load balanced slave.
-   final String roResult = jce.applyJedis(ReadMode.SLAVES, slot, jedis -> jedis.get(hashTaggedKey));
-   System.out.format("%n'%s': %s%n", hashTaggedKey, roResult);
+  // Read from load balanced slave.
+  final String roResult =
+      rce.apply(ReadMode.SLAVES, slot, client -> client.sendCmd(Cmds.GET, hashTaggedKey));
+  System.out.format("%n'%s': %s%n", hashTaggedKey, roResult);
 
-   // cleanup
-   final long numRemoved = jce.applyJedis(ReadMode.MASTER, slot, jedis -> jedis.del(hashTaggedKey, fooKey));
-   System.out.format("%nRemoved %d keys.%n", numRemoved);
+  // cleanup
+  final Long numRemoved = rce.apply(ReadMode.MASTER, slot,
+      client -> client.sendCmd(Cmds.DEL, hashTaggedKey, fooKey));
+  System.out.format("%nRemoved %d keys.%n", numRemoved);
 }
 ```
 
 ```java
-try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(Node.create("localhost", 7000))
+try (final RedisClusterExecutor rce = RedisClusterExecutor
+      .startBuilding(Node.create("localhost", 7000))
       .withReadMode(ReadMode.MIXED_SLAVES).create()) {
 
    // Ping-Pong all masters.
@@ -135,8 +140,8 @@ try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(Node.cr
 
    // Ping-Pong all slaves concurrently.
    rce.applyAllSlaves(
-      slave -> String.format("%s %s%n", slave, RESP.toString(slave.sendCmd(Cmds.PING))), 1,
+      slave -> String.format("%s %s", slave, RESP.toString(slave.sendCmd(Cmds.PING))), 1,
       ForkJoinPool.commonPool()).stream().map(CompletableFuture::join)
-      .forEach(System.out::print);
+      .forEach(System.out::println);
 }
 ```

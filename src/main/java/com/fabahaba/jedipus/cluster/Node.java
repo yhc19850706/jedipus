@@ -32,7 +32,7 @@ public interface Node extends HostPort {
     return create(HostPort.create(host, port), nodeId);
   }
 
-  public static final Function<Node, Node> DEFAULT_HOSTPORT_MAPPER = node -> node;
+  public static final Function<Node, Node> DEFAULT_HOSTPORT_MAPPER = Function.identity();
 
   static Node create(final Object[] hostInfos) {
 

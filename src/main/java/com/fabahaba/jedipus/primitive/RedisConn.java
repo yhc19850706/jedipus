@@ -85,56 +85,56 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
-  public void sendCommand(final byte[] cmd) {
+  public void sendCmd(final byte[] cmd) {
 
     try {
-      Protocol.sendCommand(outputStream, cmd);
+      Protocol.sendCmd(outputStream, cmd);
     } catch (final RuntimeException | IOException jcex) {
       handleWriteException(jcex);
     }
   }
 
 
-  public void sendCommand(final byte[] cmd, final byte[][] args) {
+  public void sendCmd(final byte[] cmd, final byte[][] args) {
 
     try {
-      Protocol.sendCommand(outputStream, cmd, args);
+      Protocol.sendCmd(outputStream, cmd, args);
     } catch (final RuntimeException | IOException jcex) {
       handleWriteException(jcex);
     }
   }
 
-  public void sendSubCommand(final byte[] cmd, final byte[] args) {
+  public void sendSubCmd(final byte[] cmd, final byte[] args) {
 
     try {
-      Protocol.sendSubCommand(outputStream, cmd, args);
+      Protocol.sendSubCmd(outputStream, cmd, args);
     } catch (final RuntimeException | IOException jcex) {
       handleWriteException(jcex);
     }
   }
 
-  public void sendSubCommand(final byte[] cmd, final byte[] subcmd, final byte[] args) {
+  public void sendSubCmd(final byte[] cmd, final byte[] subcmd, final byte[] args) {
 
     try {
-      Protocol.sendSubCommand(outputStream, cmd, subcmd, args);
+      Protocol.sendSubCmd(outputStream, cmd, subcmd, args);
     } catch (final RuntimeException | IOException jcex) {
       handleWriteException(jcex);
     }
   }
 
-  public void sendSubCommand(final byte[] cmd, final byte[] subcmd, final byte[][] args) {
+  public void sendSubCmd(final byte[] cmd, final byte[] subcmd, final byte[][] args) {
 
     try {
-      Protocol.sendSubCommand(outputStream, cmd, subcmd, args);
+      Protocol.sendSubCmd(outputStream, cmd, subcmd, args);
     } catch (final RuntimeException | IOException jcex) {
       handleWriteException(jcex);
     }
   }
 
-  public void sendCommand(final byte[] cmd, final String[] args) {
+  public void sendCmd(final byte[] cmd, final String[] args) {
 
     try {
-      Protocol.sendCommand(outputStream, cmd, args);
+      Protocol.sendCmd(outputStream, cmd, args);
     } catch (final RuntimeException | IOException jcex) {
       handleWriteException(jcex);
     }

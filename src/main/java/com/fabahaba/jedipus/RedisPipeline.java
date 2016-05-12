@@ -1,7 +1,5 @@
 package com.fabahaba.jedipus;
 
-import java.util.List;
-
 import com.fabahaba.jedipus.cmds.pipeline.PipelineClusterCmds;
 import com.fabahaba.jedipus.cmds.pipeline.PipelineDirectCmds;
 import com.fabahaba.jedipus.cmds.pipeline.PipelineScriptingCmds;
@@ -14,7 +12,10 @@ public interface RedisPipeline
 
   public FutureResponse<String> multi();
 
-  public FutureResponse<List<Object>> exec();
+  public FutureResponse<Object[]> exec();
 
   public FutureResponse<String> discard();
+
+  @Override
+  public void close();
 }

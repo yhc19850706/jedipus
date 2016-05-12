@@ -18,10 +18,10 @@ final class PrimRedisConn extends RedisConn {
   private boolean isInMulti;
   private boolean isInWatch;
 
-  public static PrimRedisConn create(final Node node,
-      final Function<Node, Node> hostPortMapper, final int connTimeout,
-      final int soTimeout, final boolean ssl, final SSLSocketFactory sslSocketFactory,
-      final SSLParameters sslParameters, final HostnameVerifier hostnameVerifier) {
+  public static PrimRedisConn create(final Node node, final Function<Node, Node> hostPortMapper,
+      final int connTimeout, final int soTimeout, final boolean ssl,
+      final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
+      final HostnameVerifier hostnameVerifier) {
 
     Socket socket = null;
     try {
@@ -65,9 +65,8 @@ final class PrimRedisConn extends RedisConn {
     }
   }
 
-  private PrimRedisConn(final Node node,
-      final Function<Node, Node> hostPortMapper, final int connTimeout,
-      final int soTimeout, final Socket socket) {
+  private PrimRedisConn(final Node node, final Function<Node, Node> hostPortMapper,
+      final int connTimeout, final int soTimeout, final Socket socket) {
 
     super(node, hostPortMapper, connTimeout, soTimeout, socket);
   }
@@ -81,29 +80,29 @@ final class PrimRedisConn extends RedisConn {
   }
 
   public void multi() {
-    sendCommand(Cmds.MULTI.getCmdBytes());
+    sendCmd(Cmds.MULTI.getCmdBytes());
     isInMulti = true;
   }
 
   public void discard() {
-    sendCommand(Cmds.DISCARD.getCmdBytes());
+    sendCmd(Cmds.DISCARD.getCmdBytes());
     isInMulti = false;
     isInWatch = false;
   }
 
   public void exec() {
-    sendCommand(Cmds.EXEC.getCmdBytes());
+    sendCmd(Cmds.EXEC.getCmdBytes());
     isInMulti = false;
     isInWatch = false;
   }
 
   public void watch(final byte[]... keys) {
-    sendCommand(Cmds.WATCH.getCmdBytes(), keys);
+    sendCmd(Cmds.WATCH.getCmdBytes(), keys);
     isInWatch = true;
   }
 
   public void unwatch() {
-    sendCommand(Cmds.UNWATCH.getCmdBytes());
+    sendCmd(Cmds.UNWATCH.getCmdBytes());
     isInWatch = false;
   }
 

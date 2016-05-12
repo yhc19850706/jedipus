@@ -31,13 +31,13 @@ final class Protocol {
   private static final byte[] TWO_CMD = RESP.toBytes(2);
   private static final byte[] THREE_CMD = RESP.toBytes(3);
 
-  static void sendCommand(final RedisOutputStream os, final byte[] cmd) throws IOException {
+  static void sendCmd(final RedisOutputStream os, final byte[] cmd) throws IOException {
 
     startWrite(os, ONE_CMD);
     writeArg(os, cmd);
   }
 
-  static void sendCommand(final RedisOutputStream os, final byte[] cmd, final byte[][] args)
+  static void sendCmd(final RedisOutputStream os, final byte[] cmd, final byte[][] args)
       throws IOException {
 
     startWrite(os, args.length + 1);
@@ -45,7 +45,7 @@ final class Protocol {
     writeArgs(os, args);
   }
 
-  static void sendSubCommand(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
+  static void sendSubCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
       final byte[][] args) throws IOException {
 
     startWrite(os, args.length + 2);
@@ -55,7 +55,7 @@ final class Protocol {
     writeArgs(os, args);
   }
 
-  static void sendSubCommand(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
+  static void sendSubCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
       final byte[] arg) throws IOException {
 
     startWrite(os, THREE_CMD);
@@ -64,7 +64,7 @@ final class Protocol {
     writeArg(os, arg);
   }
 
-  static void sendSubCommand(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd)
+  static void sendSubCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd)
       throws IOException {
 
     startWrite(os, TWO_CMD);
@@ -75,10 +75,10 @@ final class Protocol {
   static void sendCommand(final RedisOutputStream os, final String cmd, final String[] args)
       throws IOException {
 
-    sendCommand(os, RESP.toBytes(cmd), args);
+    sendCmd(os, RESP.toBytes(cmd), args);
   }
 
-  static void sendCommand(final RedisOutputStream os, final byte[] cmd, final String[] args)
+  static void sendCmd(final RedisOutputStream os, final byte[] cmd, final String[] args)
       throws IOException {
 
     startWrite(os, args.length + 1);

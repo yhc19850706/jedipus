@@ -1,5 +1,7 @@
 package com.fabahaba.jedipus.primitive;
 
+import java.util.ArrayDeque;
+import java.util.Queue;
 import java.util.function.Function;
 
 import javax.net.ssl.HostnameVerifier;
@@ -17,6 +19,8 @@ final class PrimRedisClient implements RedisClient {
 
   private final PrimRedisConn conn;
 
+  private Queue<FutureResponse<?>> pipelinedResponses;
+  private MultiResponseHandler multiResponseHandler;
   private PrimPipeline pipeline = null;
 
   PrimRedisClient(final Node node, final Function<Node, Node> hostPortMapper, final int connTimeout,
@@ -31,6 +35,20 @@ final class PrimRedisClient implements RedisClient {
 
     this.conn = PrimRedisConn.create(node, hostPortMapper, connTimeout, soTimeout, ssl,
         sslSocketFactory, sslParameters, hostnameVerifier);
+  }
+
+  PrimRedisConn getConn() {
+
+    return conn;
+  }
+
+  public MultiResponseHandler getMultiResponseHandler() {
+
+    if (multiResponseHandler == null) {
+      multiResponseHandler = new MultiResponseHandler(new ArrayDeque<>());
+    }
+
+    return multiResponseHandler;
   }
 
   @Override
@@ -111,7 +129,11 @@ final class PrimRedisClient implements RedisClient {
       throw new RedisUnhandledException(getNode(), "Pipeline has already been created.");
     }
 
-    this.pipeline = new PrimPipeline(conn);
+    if (pipelinedResponses == null) {
+      pipelinedResponses = new ArrayDeque<>();
+    }
+
+    this.pipeline = new PrimPipeline(this, pipelinedResponses);
 
     return pipeline;
   }
@@ -143,21 +165,21 @@ final class PrimRedisClient implements RedisClient {
   public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[]... args) {
 
     checkIsInMultiOrPipeline();
-    conn.sendSubCommand(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
     return conn.getReply(subCmd);
   }
 
   @Override
   public <T> T sendCmd(final Cmd<T> cmd) {
     checkIsInMultiOrPipeline();
-    conn.sendCommand(cmd.getCmdBytes());
+    conn.sendCmd(cmd.getCmdBytes());
     return conn.getReply(cmd);
   }
 
   @Override
   public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd) {
     checkIsInMultiOrPipeline();
-    conn.sendSubCommand(cmd.getCmdBytes(), subCmd.getCmdBytes());
+    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes());
     return conn.getReply(subCmd);
   }
 
@@ -165,21 +187,21 @@ final class PrimRedisClient implements RedisClient {
   @Override
   public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[] args) {
     checkIsInMultiOrPipeline();
-    conn.sendSubCommand(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
     return conn.getReply(subCmd);
   }
 
   @Override
   public <T> T sendCmd(final Cmd<T> cmd, final String... args) {
     checkIsInMultiOrPipeline();
-    conn.sendCommand(cmd.getCmdBytes(), args);
+    conn.sendCmd(cmd.getCmdBytes(), args);
     return conn.getReply(cmd);
   }
 
   @Override
   public <T> T sendCmd(final Cmd<T> cmd, final byte[]... args) {
     checkIsInMultiOrPipeline();
-    conn.sendCommand(cmd.getCmdBytes(), args);
+    conn.sendCmd(cmd.getCmdBytes(), args);
     return conn.getReply(cmd);
   }
 
@@ -189,7 +211,7 @@ final class PrimRedisClient implements RedisClient {
     checkIsInMultiOrPipeline();
     conn.setTimeoutInfinite();
     try {
-      conn.sendCommand(cmd.getCmdBytes());
+      conn.sendCmd(cmd.getCmdBytes());
     } finally {
       conn.rollbackTimeout();
     }
@@ -202,7 +224,7 @@ final class PrimRedisClient implements RedisClient {
     checkIsInMultiOrPipeline();
     conn.setTimeoutInfinite();
     try {
-      conn.sendCommand(cmd.getCmdBytes(), args);
+      conn.sendCmd(cmd.getCmdBytes(), args);
     } finally {
       conn.rollbackTimeout();
     }
@@ -215,7 +237,7 @@ final class PrimRedisClient implements RedisClient {
     checkIsInMultiOrPipeline();
     conn.setTimeoutInfinite();
     try {
-      conn.sendCommand(cmd.getCmdBytes(), args);
+      conn.sendCmd(cmd.getCmdBytes(), args);
     } finally {
       conn.rollbackTimeout();
     }

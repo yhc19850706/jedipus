@@ -26,7 +26,7 @@ public class PrimQueable {
     return response;
   }
 
-  protected <T> FutureResponse<T> getResponse(final Function<Object, T> deserializer) {
+  protected <T> FutureResponse<T> getFutureResponse(final Function<Object, T> deserializer) {
 
     final FutureResponse<T> future = new FutureResponse<>(deserializer);
     pipelinedResponses.add(future);

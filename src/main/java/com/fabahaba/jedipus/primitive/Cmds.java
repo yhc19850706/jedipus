@@ -25,7 +25,7 @@ public final class Cmds {
   public static final Cmd<Object> PING = Cmd.create("PING");
   public static final Cmd<Object> QUIT = Cmd.create("QUIT");
   public static final Cmd<Object> SELECT = Cmd.create("SELECT");
-  public static final Cmd<Object> DEL = Cmd.create("DEL");
+  public static final Cmd<Long> DEL = Cmd.create("DEL", d -> (Long) d);
   public static final Cmd<Object> EXISTS = Cmd.create("EXISTS");
   public static final Cmd<Object> KEYS = Cmd.create("KEYS");
   public static final Cmd<Object> SORT = Cmd.create("SORT");
@@ -122,7 +122,7 @@ public final class Cmds {
   public static final Cmd<Object> SREM = Cmd.create("SREM");
   public static final Cmd<Object> SPOP = Cmd.create("SPOP");
   public static final Cmd<Object> SMOVE = Cmd.create("SMOVE");
-  public static final Cmd<Object> SCARD = Cmd.create("SCARD");
+  public static final Cmd<Long> SCARD = Cmd.create("SCARD", d -> (Long) d);
   public static final Cmd<Object> SISMEMBER = Cmd.create("SISMEMBER");
   public static final Cmd<Object> SRANDMEMBER = Cmd.create("SRANDMEMBER");
   public static final Cmd<Object> SINTER = Cmd.create("SINTER");

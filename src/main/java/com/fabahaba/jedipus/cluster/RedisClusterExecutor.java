@@ -325,8 +325,11 @@ public interface RedisClusterExecutor extends AutoCloseable {
   default <R> R applyPipeline(final ReadMode readMode, final int slot,
       final Function<RedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
-    return apply(readMode, slot, client -> pipelineConsumer.apply(client.createPipeline()),
-        maxRetries);
+    return apply(readMode, slot, client -> {
+      try (final RedisPipeline pipeline = client.createPipeline()) {
+        return pipelineConsumer.apply(pipeline);
+      }
+    }, maxRetries);
   }
 
   default void acceptPipeline(final Consumer<RedisPipeline> pipelineConsumer) {
@@ -421,8 +424,10 @@ public interface RedisClusterExecutor extends AutoCloseable {
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries) {
 
     apply(readMode, slot, client -> {
-      pipelineConsumer.accept(client.createOrUseExistingPipeline());
-      return null;
+      try (final RedisPipeline pipeline = client.createOrUseExistingPipeline()) {
+        pipelineConsumer.accept(pipeline);
+        return null;
+      }
     }, maxRetries, true);
   }
 
@@ -530,9 +535,10 @@ public interface RedisClusterExecutor extends AutoCloseable {
       final Function<RedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
     return apply(readMode, slot, client -> {
-      final RedisPipeline pipeline = client.createOrUseExistingPipeline();
-      pipeline.multi();
-      return pipelineConsumer.apply(pipeline);
+      try (final RedisPipeline pipeline = client.createOrUseExistingPipeline()) {
+        pipeline.multi();
+        return pipelineConsumer.apply(pipeline);
+      }
     }, maxRetries, true);
   }
 
@@ -635,9 +641,10 @@ public interface RedisClusterExecutor extends AutoCloseable {
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries) {
 
     apply(readMode, slot, client -> {
-      final RedisPipeline pipeline = client.createOrUseExistingPipeline();
-      pipeline.multi();
-      pipelineConsumer.accept(pipeline);
+      try (final RedisPipeline pipeline = client.createOrUseExistingPipeline()) {
+        pipeline.multi();
+        pipelineConsumer.accept(pipeline);
+      }
       return null;
     }, maxRetries, true);
   }
@@ -693,8 +700,9 @@ public interface RedisClusterExecutor extends AutoCloseable {
       final ExecutorService executor) {
 
     return acceptAllMasters(client -> {
-      final RedisPipeline pipeline = client.createPipeline();
-      pipelineConsumer.accept(pipeline);
+      try (final RedisPipeline pipeline = client.createPipeline()) {
+        pipelineConsumer.accept(pipeline);
+      }
     }, maxRetries, executor);
   }
 
@@ -721,9 +729,10 @@ public interface RedisClusterExecutor extends AutoCloseable {
       final ExecutorService executor) {
 
     return acceptAllMasters(client -> {
-      final RedisPipeline pipeline = client.createPipeline();
-      pipeline.multi();
-      pipelineConsumer.accept(pipeline);
+      try (final RedisPipeline pipeline = client.createPipeline()) {
+        pipeline.multi();
+        pipelineConsumer.accept(pipeline);
+      }
     }, maxRetries, executor);
   }
 
@@ -752,8 +761,9 @@ public interface RedisClusterExecutor extends AutoCloseable {
     }, maxRetries, executor);
   }
 
-  public <R> List<CompletableFuture<R>> applyAllSlaves(final Function<RedisClient, R> clientConsumer,
-      final int maxRetries, final ExecutorService executor);
+  public <R> List<CompletableFuture<R>> applyAllSlaves(
+      final Function<RedisClient, R> clientConsumer, final int maxRetries,
+      final ExecutorService executor);
 
   default void acceptAllPipelinedSlaves(final Consumer<RedisPipeline> pipelineConsumer) {
 
@@ -777,8 +787,9 @@ public interface RedisClusterExecutor extends AutoCloseable {
       final ExecutorService executor) {
 
     return acceptAllSlaves(client -> {
-      final RedisPipeline pipeline = client.createPipeline();
-      pipelineConsumer.accept(pipeline);
+      try (final RedisPipeline pipeline = client.createPipeline()) {
+        pipelineConsumer.accept(pipeline);
+      }
     }, maxRetries, executor);
   }
 
@@ -804,9 +815,10 @@ public interface RedisClusterExecutor extends AutoCloseable {
       final ExecutorService executor) {
 
     return acceptAllSlaves(client -> {
-      final RedisPipeline pipeline = client.createPipeline();
-      pipeline.multi();
-      pipelineConsumer.accept(pipeline);
+      try (final RedisPipeline pipeline = client.createPipeline()) {
+        pipeline.multi();
+        pipelineConsumer.accept(pipeline);
+      }
     }, maxRetries, executor);
   }
 
@@ -860,8 +872,9 @@ public interface RedisClusterExecutor extends AutoCloseable {
       final ExecutorService executor) {
 
     return acceptAll(client -> {
-      final RedisPipeline pipeline = client.createPipeline();
-      pipelineConsumer.accept(pipeline);
+      try (final RedisPipeline pipeline = client.createPipeline()) {
+        pipelineConsumer.accept(pipeline);
+      }
     }, maxRetries, executor);
   }
 
@@ -887,20 +900,20 @@ public interface RedisClusterExecutor extends AutoCloseable {
       final ExecutorService executor) {
 
     return acceptAll(client -> {
-      final RedisPipeline pipeline = client.createPipeline();
-      pipeline.multi();
-      pipelineConsumer.accept(pipeline);
+      try (final RedisPipeline pipeline = client.createPipeline()) {
+        pipeline.multi();
+        pipelineConsumer.accept(pipeline);
+      }
     }, maxRetries, executor);
   }
 
-  default void acceptIfPresent(final Node node,
-      final Consumer<RedisClient> clientConsumer) {
+  default void acceptIfPresent(final Node node, final Consumer<RedisClient> clientConsumer) {
 
     acceptIfPresent(node, clientConsumer, getMaxRetries());
   }
 
-  default void acceptIfPresent(final Node node,
-      final Consumer<RedisClient> clientConsumer, final int maxRetries) {
+  default void acceptIfPresent(final Node node, final Consumer<RedisClient> clientConsumer,
+      final int maxRetries) {
 
     applyIfPresent(node, client -> {
       clientConsumer.accept(client);
@@ -918,9 +931,10 @@ public interface RedisClusterExecutor extends AutoCloseable {
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries) {
 
     applyIfPresent(node, client -> {
-      final RedisPipeline pipeline = client.createPipeline();
-      pipelineConsumer.accept(pipeline);
-      return null;
+      try (final RedisPipeline pipeline = client.createPipeline()) {
+        pipelineConsumer.accept(pipeline);
+        return null;
+      }
     }, maxRetries);
   }
 
@@ -934,15 +948,15 @@ public interface RedisClusterExecutor extends AutoCloseable {
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries) {
 
     applyIfPresent(node, client -> {
-      final RedisPipeline pipeline = client.createPipeline();
-      pipeline.multi();
-      pipelineConsumer.accept(pipeline);
-      return null;
+      try (final RedisPipeline pipeline = client.createPipeline()) {
+        pipeline.multi();
+        pipelineConsumer.accept(pipeline);
+        return null;
+      }
     }, maxRetries);
   }
 
-  default <R> R applyIfPresent(final Node node,
-      final Function<RedisClient, R> clientConsumer) {
+  default <R> R applyIfPresent(final Node node, final Function<RedisClient, R> clientConsumer) {
 
     return applyIfPresent(node, clientConsumer, getMaxRetries());
   }
@@ -957,8 +971,9 @@ public interface RedisClusterExecutor extends AutoCloseable {
       final Function<RedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
     return applyIfPresent(node, client -> {
-      final RedisPipeline pipeline = client.createPipeline();
-      return pipelineConsumer.apply(pipeline);
+      try (final RedisPipeline pipeline = client.createPipeline()) {
+        return pipelineConsumer.apply(pipeline);
+      }
     }, maxRetries);
   }
 
@@ -972,17 +987,17 @@ public interface RedisClusterExecutor extends AutoCloseable {
       final Function<RedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
     return applyIfPresent(node, client -> {
-      final RedisPipeline pipeline = client.createPipeline();
-      pipeline.multi();
-      return pipelineConsumer.apply(pipeline);
+      try (final RedisPipeline pipeline = client.createPipeline()) {
+        pipeline.multi();
+        return pipelineConsumer.apply(pipeline);
+      }
     }, maxRetries);
   }
 
-  public <R> R applyIfPresent(final Node node,
-      final Function<RedisClient, R> clientConsumer, final int maxRetries);
+  public <R> R applyIfPresent(final Node node, final Function<RedisClient, R> clientConsumer,
+      final int maxRetries);
 
-  default void acceptUnknown(final Node node,
-      final Consumer<RedisClient> clientConsumer) {
+  default void acceptUnknown(final Node node, final Consumer<RedisClient> clientConsumer) {
 
     acceptUnknown(node, clientConsumer, getMaxRetries());
   }
@@ -1006,9 +1021,10 @@ public interface RedisClusterExecutor extends AutoCloseable {
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries) {
 
     applyUnknown(node, client -> {
-      final RedisPipeline pipeline = client.createPipeline();
-      pipelineConsumer.accept(pipeline);
-      return null;
+      try (final RedisPipeline pipeline = client.createPipeline()) {
+        pipelineConsumer.accept(pipeline);
+        return null;
+      }
     }, maxRetries);
   }
 
@@ -1022,15 +1038,15 @@ public interface RedisClusterExecutor extends AutoCloseable {
       final Consumer<RedisPipeline> pipelineConsumer, final int maxRetries) {
 
     applyUnknown(node, client -> {
-      final RedisPipeline pipeline = client.createPipeline();
-      pipeline.multi();
-      pipelineConsumer.accept(pipeline);
-      return null;
+      try (final RedisPipeline pipeline = client.createPipeline()) {
+        pipeline.multi();
+        pipelineConsumer.accept(pipeline);
+        return null;
+      }
     }, maxRetries);
   }
 
-  default <R> R applyUnknown(final Node node,
-      final Function<RedisClient, R> clientConsumer) {
+  default <R> R applyUnknown(final Node node, final Function<RedisClient, R> clientConsumer) {
 
     return applyUnknown(node, clientConsumer, getMaxRetries());
   }
@@ -1045,8 +1061,9 @@ public interface RedisClusterExecutor extends AutoCloseable {
       final Function<RedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
     return applyUnknown(node, client -> {
-      final RedisPipeline pipeline = client.createPipeline();
-      return pipelineConsumer.apply(pipeline);
+      try (final RedisPipeline pipeline = client.createPipeline()) {
+        return pipelineConsumer.apply(pipeline);
+      }
     }, maxRetries);
   }
 
@@ -1060,14 +1077,15 @@ public interface RedisClusterExecutor extends AutoCloseable {
       final Function<RedisPipeline, R> pipelineConsumer, final int maxRetries) {
 
     return applyUnknown(node, client -> {
-      final RedisPipeline pipeline = client.createPipeline();
-      pipeline.multi();
-      return pipelineConsumer.apply(pipeline);
+      try (final RedisPipeline pipeline = client.createPipeline()) {
+        pipeline.multi();
+        return pipelineConsumer.apply(pipeline);
+      }
     }, maxRetries);
   }
 
-  public <R> R applyUnknown(final Node node,
-      final Function<RedisClient, R> clientConsumer, final int maxRetries);
+  public <R> R applyUnknown(final Node node, final Function<RedisClient, R> clientConsumer,
+      final int maxRetries);
 
   public void refreshSlotCache();
 }

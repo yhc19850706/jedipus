@@ -525,7 +525,7 @@ public class RedisClusterTest {
         // Forced asking pending feedback on the following:
         // https://github.com/antirez/redis/issues/3203
         client.asking();
-        final FutureResponse<Object> response = client.sendCmd(Cmds.SCARD, key);
+        final FutureResponse<Long> response = client.sendCmd(Cmds.SCARD, key);
         client.sync();
         assertEquals(1, RESP.longToInt(response.get()));
       });

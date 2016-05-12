@@ -4,48 +4,48 @@ import java.util.function.Function;
 
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
-public class FutureResponse<T> {
+public final class FutureResponse<T> {
 
-  protected T deserialized = null;
-  protected RedisUnhandledException exception = null;
+  private static enum State {
+    EMPTY, PENDING, BUILDING, BUILT;
+  }
 
-  private boolean built = false;
+  private T deserialized = null;
+  private RedisUnhandledException exception = null;
 
-  private final Function<Object, T> builder;
+  private State state = State.EMPTY;
+
+  private final Function<Object, T> deserializer;
   private Object response;
   private FutureResponse<?> dependency = null;
 
-  FutureResponse(final Function<Object, T> builder) {
+  FutureResponse(final Function<Object, T> deserializer) {
 
-    this.builder = builder;
+    this.deserializer = deserializer;
   }
 
   void setResponse(final Object response) {
 
     if (response == null) {
-      built = true;
+      state = State.BUILT;
       return;
     }
 
     this.response = response;
+    state = State.PENDING;
   }
 
-  private boolean isSet() {
+  void setDependency(final FutureResponse<?> dependency) {
 
-    return response != null || built;
+    this.dependency = dependency;
   }
 
   public T get() {
 
     // if response has dependency response and dependency is not built,
     // build it first and no more!!
-    if (dependency != null && isSet() && !dependency.built) {
+    if (dependency != null) {
       dependency.build();
-    }
-
-    if (!isSet()) {
-      throw new RedisUnhandledException(null,
-          "Please close pipeline or multi block before calling this method.");
     }
 
     build();
@@ -57,29 +57,32 @@ public class FutureResponse<T> {
     return deserialized;
   }
 
-  public void setDependency(final FutureResponse<?> dependency) {
-
-    this.dependency = dependency;
-  }
-
   private void build() {
 
-    if (built) {
-      return;
-    }
+    switch (state) {
+      case PENDING:
+        state = State.BUILDING;
+        try {
+          if (response != null) {
+            if (response instanceof RedisUnhandledException) {
+              exception = (RedisUnhandledException) response;
+            } else {
+              deserialized = deserializer.apply(response);
+            }
+          }
 
-    try {
-      if (response != null) {
-        if (response instanceof RedisUnhandledException) {
-          exception = (RedisUnhandledException) response;
-        } else {
-          deserialized = builder.apply(response);
+          response = null;
+        } finally {
+          state = State.BUILT;
         }
-      }
-
-      response = null;
-    } finally {
-      built = true;
+        return;
+      case EMPTY:
+        throw new RedisUnhandledException(null,
+            "Close your pipeline or multi block before calling this method.");
+      case BUILDING:
+      case BUILT:
+      default:
+        return;
     }
   }
 }
