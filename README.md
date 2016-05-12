@@ -4,6 +4,7 @@
 
 ######Features
 * Execute `Consumer<RedisClient>` and `Function<RedisClient, R>` lambas.
+* Flexible interface allows for custom commands and return types, great for calling [Modules](https://github.com/antirez/redis/blob/unstable/src/modules/API.md).
 * Performance focused:
   * Reuse known slot integers for direct O(1) primitive array access to a corresponding `RedisClient` pool.
   * Minimal enforced (de)serialization.  Write directly to the socket output stream buffer, and retrieve raw responses.
@@ -111,8 +112,7 @@ try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(Node.cr
     return barsResponse.get();
   });
 
-
-  // '{HT}:foo': [barowitch (-1.0), barinsky (0.37), barikoviev (42.0)]
+  // '{HT}:foo': barowitch (-3.0) barinsky (0.37) barikoviev (42.0)
   System.out.format("%n'%s':", fooKey);
 
   for (int i = 0; i < sortedBars.length;) {
