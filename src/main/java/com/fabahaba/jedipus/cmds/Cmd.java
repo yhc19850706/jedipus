@@ -7,8 +7,14 @@ import com.fabahaba.jedipus.RESP;
 public interface Cmd<R> extends Function<Object, R> {
 
   static final Function<Object, String> STRING_REPLY = RESP::toString;
-  static final Function<Object, Object[]> ARRAY_REPLY = obj -> ((Object[]) obj);
-  static final Function<Object, Long> LONG_REPLY = obj -> ((Long) obj);
+
+  static final Function<Object, String[]> STRING_ARRAY_REPLY = obj -> {
+    final Object[] array = (Object[]) obj;
+    for (int i = 0; i < array.length; i++) {
+      array[i] = RESP.toString(array[i]);
+    }
+    return (String[]) obj;
+  };
 
   public static <R> Cmd<R> create(final String name, final Function<Object, R> responseHandler) {
 
@@ -20,26 +26,32 @@ public interface Cmd<R> extends Function<Object, R> {
     return new HandledResponseCmd<>(name, STRING_REPLY);
   }
 
-  public static Cmd<Long> createLongReply(final String name) {
-
-    return new HandledResponseCmd<>(name, LONG_REPLY);
-  }
-
-  public static Cmd<Object[]> createArrayReply(final String name) {
-
-    return new HandledResponseCmd<>(name, ARRAY_REPLY);
-  }
-
   public static Cmd<Object> create(final String name) {
+
+    return new RawCmd(name);
+  }
+
+  public static <R> Cmd<R> createCast(final String name) {
 
     return new DirectRespCmd<>(name);
   }
 
   public Cmd<Object> raw();
 
-  public String name();
+  default PrimCmd prim() {
 
-  public byte[] getCmdBytes();
+    return raw().prim();
+  }
+
+  default String name() {
+
+    return raw().name();
+  }
+
+  default byte[] getCmdBytes() {
+
+    return raw().getCmdBytes();
+  }
 
   @Override
   @SuppressWarnings("unchecked")

@@ -10,18 +10,6 @@ class DirectRespCmd<R> implements Cmd<R> {
   }
 
   @Override
-  public String name() {
-
-    return rawCmd.name();
-  }
-
-  @Override
-  public byte[] getCmdBytes() {
-
-    return rawCmd.getCmdBytes();
-  }
-
-  @Override
   public Cmd<Object> raw() {
 
     return rawCmd;

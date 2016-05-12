@@ -1,21 +1,19 @@
 package com.fabahaba.jedipus.primitive;
 
-import java.util.Queue;
 import java.util.function.Function;
 
+import com.fabahaba.jedipus.FutureResponse;
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
-final class PrimPipeline extends PrimQueable implements RedisPipeline {
+final class PrimPipeline implements RedisPipeline {
 
   private final PrimRedisClient client;
 
-  PrimPipeline(final PrimRedisClient client, final Queue<FutureResponse<?>> pipelinedResponses) {
-
-    super(pipelinedResponses);
+  PrimPipeline(final PrimRedisClient client) {
 
     this.client = client;
   }
@@ -23,7 +21,7 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
   @Override
   public void close() {
 
-    clear();
+    client.getPipelinedResponses().clear();
     client.getMultiResponseHandler().clear();
 
     if (client.getConn().isInMulti()) {
@@ -40,9 +38,11 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
     }
 
     client.getConn().discard();
-    return super.getFutureResponse(RESP::toString);
+    final SettableFutureResponse<String> futureResponse =
+        new DeserializedFutureResponse<>(RESP::toString);
+    client.getPipelinedResponses().add(futureResponse);
+    return futureResponse;
   }
-
 
   @Override
   public void sync() {
@@ -51,10 +51,18 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
       throw new RedisUnhandledException(null, "EXEC your MULTI before calling SYNC.");
     }
 
-    if (hasPipelinedResponse()) {
+    client.getConn().flush();
 
-      for (final Object o : client.getConn().getMany(getPipelinedResponseLength())) {
-        generateResponse(o);
+    for (;;) {
+      final SettableFutureResponse<?> response = client.getPipelinedResponses().poll();
+      if (response == null) {
+        return;
+      }
+
+      try {
+        response.setResponse(client.getConn().getOneNoFlush());
+      } catch (final RedisUnhandledException re) {
+        response.setException(re);
       }
     }
   }
@@ -67,7 +75,10 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
     }
 
     client.getConn().multi();
-    return super.getFutureResponse(RESP::toString); // Expecting
+    final SettableFutureResponse<String> futureResponse =
+        new DeserializedFutureResponse<>(RESP::toString);
+    client.getPipelinedResponses().add(futureResponse);
+    return futureResponse;
   }
 
   @Override
@@ -78,63 +89,67 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
     }
 
     client.getConn().exec();
-    final FutureResponse<Object[]> response =
-        super.getFutureResponse(client.getMultiResponseHandler());
-    client.getMultiResponseHandler().setResponseDependency(response);
-    return response;
+
+    final DeserializedFutureResponse<Object[]> futureMultiResponse =
+        client.getMultiResponseHandler().createResponseDependency();
+    client.getPipelinedResponses().add(futureMultiResponse);
+
+    return futureMultiResponse;
   }
 
-  @Override
-  protected <T> FutureResponse<T> getFutureResponse(final Function<Object, T> builder) {
+  protected <T> SettableFutureResponse<T> getFutureResponse(final Function<Object, T> builder) {
 
     if (!client.getConn().isInMulti()) {
-      return super.getFutureResponse(builder);
+      final SettableFutureResponse<T> futureResponse = new DeserializedFutureResponse<>(builder);
+      client.getPipelinedResponses().add(futureResponse);
+      return futureResponse;
     }
 
-    super.getFutureResponse(Function.identity()); // Expected QUEUED
+    client.getPipelinedResponses().add(new DeserializedFutureResponse<>(Function.identity()));
 
-    final FutureResponse<T> futureResponse = new FutureResponse<>(builder);
+    final SettableFutureResponse<T> futureResponse = new DeserializedFutureResponse<>(builder);
     client.getMultiResponseHandler().addResponse(futureResponse);
     return futureResponse;
   }
 
   @Override
-  public <T> FutureResponse<T> sendCmd(final Cmd<T> cmd) {
+  public <T> SettableFutureResponse<T> sendCmd(final Cmd<T> cmd) {
 
     client.getConn().sendCmd(cmd.getCmdBytes());
     return getFutureResponse(cmd);
   }
 
   @Override
-  public <T> FutureResponse<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd) {
+  public <T> SettableFutureResponse<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd) {
 
     client.getConn().sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes());
     return getFutureResponse(subCmd);
   }
 
   @Override
-  public <T> FutureResponse<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[] args) {
+  public <T> SettableFutureResponse<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd,
+      final byte[] args) {
 
     client.getConn().sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
     return getFutureResponse(subCmd);
   }
 
   @Override
-  public <T> FutureResponse<T> sendCmd(final Cmd<T> cmd, final byte[]... args) {
+  public <T> SettableFutureResponse<T> sendCmd(final Cmd<T> cmd, final byte[]... args) {
 
     client.getConn().sendCmd(cmd.getCmdBytes(), args);
     return getFutureResponse(cmd);
   }
 
   @Override
-  public <T> FutureResponse<T> sendCmd(final Cmd<T> cmd, final byte[] arg) {
+  public <T> SettableFutureResponse<T> sendCmd(final Cmd<T> cmd, final byte[] arg) {
 
     client.getConn().sendSubCmd(cmd.getCmdBytes(), arg);
     return getFutureResponse(cmd);
   }
 
   @Override
-  public <T> FutureResponse<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd,
+  public <T> SettableFutureResponse<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd,
       final byte[]... args) {
 
     client.getConn().sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
@@ -143,7 +158,8 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
 
 
   @Override
-  public <T> FutureResponse<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final String arg) {
+  public <T> SettableFutureResponse<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd,
+      final String arg) {
 
     client.getConn().sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), RESP.toBytes(arg));
     return getFutureResponse(subCmd);
@@ -151,14 +167,14 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
 
 
   @Override
-  public <T> FutureResponse<T> sendCmd(final Cmd<T> cmd, final String... args) {
+  public <T> SettableFutureResponse<T> sendCmd(final Cmd<T> cmd, final String... args) {
 
     client.getConn().sendCmd(cmd.getCmdBytes(), args);
     return getFutureResponse(cmd);
   }
 
   @Override
-  public <T> FutureResponse<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd,
+  public <T> SettableFutureResponse<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd,
       final String... args) {
 
     client.getConn().sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
@@ -166,26 +182,26 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
   }
 
   @Override
-  public <T> FutureResponse<T> sendCmd(final Cmd<T> cmd, final String arg) {
+  public <T> SettableFutureResponse<T> sendCmd(final Cmd<T> cmd, final String arg) {
 
     client.getConn().sendSubCmd(cmd.getCmdBytes(), RESP.toBytes(arg));
     return getFutureResponse(cmd);
   }
 
   @Override
-  public <T> FutureResponse<T> sendBlockingCmd(final Cmd<T> cmd) {
+  public <T> SettableFutureResponse<T> sendBlockingCmd(final Cmd<T> cmd) {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public <T> FutureResponse<T> sendBlockingCmd(final Cmd<T> cmd, final byte[]... args) {
+  public <T> SettableFutureResponse<T> sendBlockingCmd(final Cmd<T> cmd, final byte[]... args) {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public <T> FutureResponse<T> sendBlockingCmd(final Cmd<T> cmd, final String... args) {
+  public <T> SettableFutureResponse<T> sendBlockingCmd(final Cmd<T> cmd, final String... args) {
     // TODO Auto-generated method stub
     return null;
   }

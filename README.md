@@ -137,11 +137,10 @@ try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(Node.cr
 
    // Ping-Pong all masters.
    rce.acceptAllMasters(
-      master -> System.out.format("%s %s%n", master, RESP.toString(master.sendCmd(Cmds.PING))));
+      master -> System.out.format("%s %s%n", master, master.sendCmd(Cmds.PING)));
 
    // Ping-Pong all slaves concurrently.
-   rce.applyAllSlaves(
-      slave -> String.format("%s %s", slave, RESP.toString(slave.sendCmd(Cmds.PING))), 1,
+   rce.applyAllSlaves(slave -> String.format("%s %s", slave, slave.sendCmd(Cmds.PING)), 1,
       ForkJoinPool.commonPool()).stream().map(CompletableFuture::join)
       .forEach(System.out::println);
 }

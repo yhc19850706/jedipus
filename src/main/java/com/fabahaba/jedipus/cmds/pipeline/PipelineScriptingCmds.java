@@ -1,7 +1,7 @@
 package com.fabahaba.jedipus.cmds.pipeline;
 
+import com.fabahaba.jedipus.FutureResponse;
 import com.fabahaba.jedipus.cmds.ScriptingCmds;
-import com.fabahaba.jedipus.primitive.FutureResponse;
 
 public interface PipelineScriptingCmds extends PipelineDirectCmds {
 

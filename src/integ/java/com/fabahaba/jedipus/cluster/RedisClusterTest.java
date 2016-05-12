@@ -35,18 +35,19 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.fabahaba.jedipus.FutureResponse;
 import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.cmds.ClusterCmds;
 import com.fabahaba.jedipus.cmds.Cmds;
+import com.fabahaba.jedipus.cmds.SCmds;
 import com.fabahaba.jedipus.exceptions.AskNodeException;
 import com.fabahaba.jedipus.exceptions.MaxRedirectsExceededException;
 import com.fabahaba.jedipus.exceptions.RedisClusterDownException;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.SlotMovedException;
-import com.fabahaba.jedipus.primitive.FutureResponse;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
 public class RedisClusterTest {
@@ -521,11 +522,11 @@ public class RedisClusterTest {
       jce.accept(slot, client -> client.clusterSetSlotMigrating(slot, importing));
 
       jce.acceptPipeline(slot, client -> {
-        client.sendCmd(Cmds.SADD.raw(), key, "107.6");
+        client.sendCmd(SCmds.SADD.raw(), key, "107.6");
         // Forced asking pending feedback on the following:
         // https://github.com/antirez/redis/issues/3203
         client.asking();
-        final FutureResponse<Long> response = client.sendCmd(Cmds.SCARD, key);
+        final FutureResponse<Long> response = client.sendCmd(SCmds.SCARD, key);
         client.sync();
         assertEquals(1, RESP.longToInt(response.get()));
       });

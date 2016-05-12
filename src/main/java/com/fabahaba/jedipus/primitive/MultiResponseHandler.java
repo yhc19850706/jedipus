@@ -7,9 +7,9 @@ import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 class MultiResponseHandler implements Function<Object, Object[]> {
 
-  private final Queue<FutureResponse<?>> responses;
+  private final Queue<SettableFutureResponse<?>> responses;
 
-  MultiResponseHandler(final Queue<FutureResponse<?>> responses) {
+  MultiResponseHandler(final Queue<SettableFutureResponse<?>> responses) {
 
     this.responses = responses;
   }
@@ -22,37 +22,49 @@ class MultiResponseHandler implements Function<Object, Object[]> {
   @Override
   public Object[] apply(final Object data) {
 
-    final Object[] adapatedResponses = (Object[]) data;
+    final Object[] inPlaceAdaptedResponses = (Object[]) data;
 
-    for (int index = 0;; index++) {
-      final FutureResponse<?> response = responses.poll();
+    if (inPlaceAdaptedResponses.length < responses.size()) {
+      throw new RedisUnhandledException(null,
+          String.format("Expected to only have %d responses, but was %d.",
+              inPlaceAdaptedResponses.length, responses.size()));
+    }
 
-      if (response == null) {
+    try {
+      for (int index = 0;; index++) {
+        final SettableFutureResponse<?> response = responses.poll();
 
-        if (index != adapatedResponses.length) {
-          throw new RedisUnhandledException(null,
-              "Expected data size " + adapatedResponses.length + " but was " + index);
+        if (response == null) {
+
+          if (index != inPlaceAdaptedResponses.length) {
+            throw new RedisUnhandledException(null,
+                String.format("Expected to have %d responses, but was only %d.",
+                    inPlaceAdaptedResponses.length, index));
+          }
+
+          return inPlaceAdaptedResponses;
         }
 
-        return adapatedResponses;
+        response.setResponse(inPlaceAdaptedResponses[index]);
+        inPlaceAdaptedResponses[index] = response.get();
       }
-      response.setResponse(adapatedResponses[index]);
-      try {
-        adapatedResponses[index] = response.get();
-      } catch (final RedisUnhandledException e) {
-        adapatedResponses[index] = e;
-      }
+    } finally {
+      responses.clear();
     }
   }
 
-  void setResponseDependency(final FutureResponse<?> dependency) {
+  DeserializedFutureResponse<Object[]> createResponseDependency() {
 
-    for (final FutureResponse<?> response : responses) {
+    final DeserializedFutureResponse<Object[]> dependency = new DeserializedFutureResponse<>(this);
+
+    for (final SettableFutureResponse<?> response : responses) {
       response.setDependency(dependency);
     }
+
+    return dependency;
   }
 
-  void addResponse(final FutureResponse<?> response) {
+  void addResponse(final SettableFutureResponse<?> response) {
 
     responses.add(response);
   }

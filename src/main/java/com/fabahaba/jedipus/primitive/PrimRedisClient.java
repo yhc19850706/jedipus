@@ -14,7 +14,7 @@ import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 final class PrimRedisClient extends BaseRedisClient {
 
-  private Queue<FutureResponse<?>> pipelinedResponses;
+  private Queue<SettableFutureResponse<?>> pipelinedResponses;
   private MultiResponseHandler multiResponseHandler;
   private PrimPipeline pipeline = null;
 
@@ -41,6 +41,11 @@ final class PrimRedisClient extends BaseRedisClient {
     return multiResponseHandler;
   }
 
+  Queue<SettableFutureResponse<?>> getPipelinedResponses() {
+
+    return pipelinedResponses;
+  }
+
   @Override
   public void resetState() {
 
@@ -64,7 +69,7 @@ final class PrimRedisClient extends BaseRedisClient {
       pipelinedResponses = new ArrayDeque<>();
     }
 
-    this.pipeline = new PrimPipeline(this, pipelinedResponses);
+    this.pipeline = new PrimPipeline(this);
 
     return pipeline;
   }

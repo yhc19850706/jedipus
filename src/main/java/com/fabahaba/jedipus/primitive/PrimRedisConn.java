@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.function.Function;
+import java.util.function.LongUnaryOperator;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLParameters;
@@ -121,5 +122,10 @@ final class PrimRedisConn extends RedisConn {
   public <T> T getReply(final Function<Object, T> responseHandler) {
 
     return responseHandler.apply(getOne());
+  }
+
+  public long getReply(final LongUnaryOperator responseHandler) {
+
+    return responseHandler.applyAsLong(getOneLong());
   }
 }

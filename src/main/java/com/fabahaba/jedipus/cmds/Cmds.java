@@ -50,12 +50,12 @@ public final class Cmds {
   public static final Cmd<Object> FLUSHDB = Cmd.create("FLUSHDB");
   public static final Cmd<Object> FLUSHALL = Cmd.create("FLUSHALL");
 
-  public static final Cmd<Long> EXPIRE = Cmd.createLongReply("EXPIRE");
-  public static final Cmd<Long> EXPIREAT = Cmd.createLongReply("EXPIREAT");
-  public static final Cmd<Long> TTL = Cmd.createLongReply("TTL");
-  public static final Cmd<Long> PEXPIRE = Cmd.createLongReply("PEXPIRE");
-  public static final Cmd<Long> PEXPIREAT = Cmd.createLongReply("PEXPIREAT");
-  public static final Cmd<Long> PTTL = Cmd.createLongReply("PTTL");
+  public static final Cmd<Long> EXPIRE = Cmd.createCast("EXPIRE");
+  public static final Cmd<Long> EXPIREAT = Cmd.createCast("EXPIREAT");
+  public static final Cmd<Long> TTL = Cmd.createCast("TTL");
+  public static final Cmd<Long> PEXPIRE = Cmd.createCast("PEXPIRE");
+  public static final Cmd<Long> PEXPIREAT = Cmd.createCast("PEXPIREAT");
+  public static final Cmd<Long> PTTL = Cmd.createCast("PTTL");
 
   public static final Cmd<Object> BITCOUNT = Cmd.create("BITCOUNT");
   public static final Cmd<Object> BITOP = Cmd.create("BITOP");
@@ -114,24 +114,10 @@ public final class Cmds {
   public static final Cmd<Object> BRPOP = Cmd.create("BRPOP");
   public static final Cmd<Object> BRPOPLPUSH = Cmd.create("BRPOPLPUSH");
 
-  public static final Cmd<Object> SADD = Cmd.create("SADD");
-  public static final Cmd<Object> SMEMBERS = Cmd.create("SMEMBERS");
-  public static final Cmd<Object> SREM = Cmd.create("SREM");
-  public static final Cmd<Object> SPOP = Cmd.create("SPOP");
-  public static final Cmd<Object> SMOVE = Cmd.create("SMOVE");
-  public static final Cmd<Long> SCARD = Cmd.createLongReply("SCARD");
-  public static final Cmd<Object> SISMEMBER = Cmd.create("SISMEMBER");
-  public static final Cmd<Object> SRANDMEMBER = Cmd.create("SRANDMEMBER");
-  public static final Cmd<Object> SINTER = Cmd.create("SINTER");
-  public static final Cmd<Object> SINTERSTORE = Cmd.create("SINTERSTORE");
-  public static final Cmd<Object> SUNION = Cmd.create("SUNION");
-  public static final Cmd<Object> SUNIONSTORE = Cmd.create("SUNIONSTORE");
-  public static final Cmd<Object> SDIFF = Cmd.create("SDIFF");
-  public static final Cmd<Object> SDIFFSTORE = Cmd.create("SDIFFSTORE");
 
   public static final Cmd<String> MULTI = Cmd.createStringReply("MULTI");
   public static final Cmd<String> DISCARD = Cmd.createStringReply("DISCARD");
-  public static final Cmd<Object[]> EXEC = Cmd.createArrayReply("EXEC");
+  public static final Cmd<Object[]> EXEC = Cmd.createCast("EXEC");
   public static final Cmd<String> WATCH = Cmd.createStringReply("WATCH");
   public static final Cmd<String> UNWATCH = Cmd.createStringReply("UNWATCH");
 
@@ -146,7 +132,6 @@ public final class Cmds {
 
   public static final Cmd<Object> SCAN = Cmd.create("SCAN");
   public static final Cmd<Object> HSCAN = Cmd.create("HSCAN");
-  public static final Cmd<Object> SSCAN = Cmd.create("SSCAN");
 
   public static final Cmd<Object> PFADD = Cmd.create("PFADD");
   public static final Cmd<Object> PFCOUNT = Cmd.create("PFCOUNT");

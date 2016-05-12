@@ -128,8 +128,8 @@ final class Protocol {
     }
   }
 
-  private static void processError(final Node node, final Function<Node, Node> hostPortMapper,
-      final RedisInputStream is) {
+  private static RuntimeException processError(final Node node,
+      final Function<Node, Node> hostPortMapper, final RedisInputStream is) {
 
     final String message = is.readLine();
 
@@ -138,7 +138,7 @@ final class Protocol {
       final String[] movedInfo = parseTargetHostAndSlot(message, 6);
       final Node targetNode = hostPortMapper.apply(Node.create(movedInfo[1], movedInfo[2]));
 
-      throw new SlotMovedException(node, message, targetNode, Integer.parseInt(movedInfo[0]));
+      return new SlotMovedException(node, message, targetNode, Integer.parseInt(movedInfo[0]));
     }
 
     if (message.startsWith(ASK_RESPONSE)) {
@@ -146,27 +146,25 @@ final class Protocol {
       final String[] askInfo = parseTargetHostAndSlot(message, 4);
       final Node targetNode = hostPortMapper.apply(Node.create(askInfo[1], askInfo[2]));
 
-      throw new AskNodeException(node, message, targetNode, Integer.parseInt(askInfo[0]));
+      return new AskNodeException(node, message, targetNode, Integer.parseInt(askInfo[0]));
     }
 
     if (message.startsWith(CLUSTERDOWN_RESPONSE)) {
 
-      throw new RedisClusterDownException(node, message);
+      return new RedisClusterDownException(node, message);
     }
 
     if (message.startsWith(BUSY_RESPONSE)) {
 
-      throw new RedisBusyException(node, message);
+      return new RedisBusyException(node, message);
     }
 
-    throw new RedisUnhandledException(node, message);
+    return new RedisUnhandledException(node, message);
   }
 
   static String readErrorLineIfPossible(final RedisInputStream is) {
 
-    final byte bite = is.readByte();
-
-    return bite == MINUS_BYTE ? is.readLine() : null;
+    return is.readByte() == MINUS_BYTE ? is.readLine() : null;
   }
 
   private static String[] parseTargetHostAndSlot(final String clusterRedirectResponse,
@@ -199,10 +197,39 @@ final class Protocol {
       case COLON_BYTE:
         return is.readLongCrLf();
       case MINUS_BYTE:
-        processError(node, hostPortMapper, is);
-        return null;
+        throw processError(node, hostPortMapper, is);
       default:
-        throw new RedisConnectionException(node, "Unknown reply: " + (char) bite);
+        final String msg = String.format(
+            "Unknown reply where data type expected. Recieved '%s'. Supprted options are '+', '-', ':', '$' and '*'.",
+            (char) bite);
+        throw new RedisConnectionException(node, msg);
+    }
+  }
+
+  static long processLong(final Node node, final Function<Node, Node> hostPortMapper,
+      final RedisInputStream is) {
+
+    final byte bite = is.readByte();
+
+    switch (bite) {
+      case COLON_BYTE:
+        return is.readLongCrLf();
+      case MINUS_BYTE:
+        throw processError(node, hostPortMapper, is);
+      case PLUS_BYTE:
+        throw new RedisUnhandledException(null,
+            "Expected an Integer (:) response types, received a Simple String (+) response.");
+      case DOLLAR_BYTE:
+        throw new RedisUnhandledException(null,
+            "Expected an Integer (:) response types, received a Bulk String ($) response.");
+      case ASTERISK_BYTE:
+        throw new RedisUnhandledException(null,
+            "Expected an Integer (:) response types, received an Array (*) response.");
+      default:
+        final String msg = String.format(
+            "Unknown reply where data type expected. Recieved '%s'. Supprted options are '+', '-', ':', '$' and '*'.",
+            (char) bite);
+        throw new RedisConnectionException(node, msg);
     }
   }
 

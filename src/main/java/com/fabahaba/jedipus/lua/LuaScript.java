@@ -15,6 +15,7 @@ import java.util.stream.Stream;
 
 import javax.xml.bind.DatatypeConverter;
 
+import com.fabahaba.jedipus.FutureResponse;
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.RedisPipeline;
@@ -23,7 +24,7 @@ import com.fabahaba.jedipus.cluster.RedisClusterExecutor;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.cmds.ScriptingCmds;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
-import com.fabahaba.jedipus.primitive.FutureResponse;
+import com.fabahaba.jedipus.primitive.DeserializedFutureResponse;
 
 public interface LuaScript<R> {
 
@@ -124,7 +125,7 @@ public interface LuaScript<R> {
     }
   }
 
-  default FutureResponse<R> eval(final RedisPipeline pipeline, final int keyCount,
+  default DeserializedFutureResponse<R> eval(final RedisPipeline pipeline, final int keyCount,
       final byte[]... params) {
 
     final byte[][] args =
@@ -133,23 +134,24 @@ public interface LuaScript<R> {
     return eval(pipeline, args);
   }
 
-  default FutureResponse<R> evalFill(final RedisPipeline pipeline, final byte[][] params) {
+  default DeserializedFutureResponse<R> evalFill(final RedisPipeline pipeline,
+      final byte[][] params) {
 
     params[0] = getSha1HexBytes();
 
     return eval(pipeline, params);
   }
 
-  default FutureResponse<R> eval(final RedisPipeline pipeline, final List<byte[]> keys,
+  default DeserializedFutureResponse<R> eval(final RedisPipeline pipeline, final List<byte[]> keys,
       final List<byte[]> args) {
 
     return eval(pipeline, ScriptingCmds.createEvalArgs(getSha1HexBytes(), keys, args));
   }
 
   @SuppressWarnings("unchecked")
-  default FutureResponse<R> eval(final RedisPipeline pipeline, final byte[][] args) {
+  default DeserializedFutureResponse<R> eval(final RedisPipeline pipeline, final byte[][] args) {
 
-    return (FutureResponse<R>) pipeline.evalSha1Hex(args);
+    return (DeserializedFutureResponse<R>) pipeline.evalSha1Hex(args);
   }
 
   default R eval(final RedisClusterExecutor rce, final int keyCount, final byte[]... params) {

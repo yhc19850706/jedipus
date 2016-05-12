@@ -7,7 +7,6 @@ import java.util.function.Function;
 
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
-import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 abstract class RedisConn implements AutoCloseable {
 
@@ -156,7 +155,6 @@ abstract class RedisConn implements AutoCloseable {
     final String errorMessage = Protocol.readErrorLineIfPossible(inputStream);
 
     if (errorMessage != null && errorMessage.length() > 0) {
-      System.out.println(errorMessage);
 
       throw new RedisConnectionException(getNode(), errorMessage, ioEx);
     }
@@ -164,16 +162,25 @@ abstract class RedisConn implements AutoCloseable {
     throw new RedisConnectionException(getNode(), ioEx);
   }
 
-  public Object getOne() {
+  Object getOne() {
     flush();
-    return readProtocolWithCheckingBroken();
+    return readObjBrokenChecked();
+  }
+
+  Object getOneNoFlush() {
+    return readObjBrokenChecked();
+  }
+
+  long getOneLong() {
+    flush();
+    return readLongBrokenChecked();
   }
 
   public boolean isBroken() {
     return broken;
   }
 
-  protected void flush() {
+  void flush() {
     try {
       outputStream.flush();
     } catch (final IOException ex) {
@@ -182,7 +189,7 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
-  protected Object readProtocolWithCheckingBroken() {
+  protected Object readObjBrokenChecked() {
 
     try {
       return Protocol.read(getNode(), hostPortMapper, inputStream);
@@ -192,18 +199,14 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
-  public Object[] getMany(final int count) {
+  protected long readLongBrokenChecked() {
 
-    flush();
-    final Object[] responses = new Object[count];
-    for (int i = 0; i < count; i++) {
-      try {
-        responses[i] = readProtocolWithCheckingBroken();
-      } catch (final RedisUnhandledException e) {
-        responses[i] = e;
-      }
+    try {
+      return Protocol.processLong(getNode(), hostPortMapper, inputStream);
+    } catch (final RedisConnectionException exc) {
+      broken = true;
+      throw exc;
     }
-    return responses;
   }
 
   @Override

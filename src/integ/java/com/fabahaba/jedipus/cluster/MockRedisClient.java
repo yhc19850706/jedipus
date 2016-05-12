@@ -4,6 +4,7 @@ import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cmds.Cmd;
+import com.fabahaba.jedipus.cmds.PrimCmd;
 
 public class MockRedisClient implements RedisClient {
 
@@ -136,5 +137,83 @@ public class MockRedisClient implements RedisClient {
   public <T> T sendCmd(final Cmd<T> cmd, final String arg) {
 
     return null;
+  }
+
+  @Override
+  public long sendCmd(final PrimCmd cmd) {
+
+    return 0;
+  }
+
+  @Override
+  public long sendCmd(final Cmd<?> cmd, final PrimCmd subCmd) {
+
+    return 0;
+  }
+
+  @Override
+  public long sendCmd(final Cmd<?> cmd, final PrimCmd subCmd, final byte[] arg) {
+
+    return 0;
+  }
+
+  @Override
+  public long sendCmd(final Cmd<?> cmd, final PrimCmd subCmd, final byte[]... args) {
+
+    return 0;
+  }
+
+  @Override
+  public long sendCmd(final PrimCmd cmd, final byte[] arg) {
+
+    return 0;
+  }
+
+  @Override
+  public long sendCmd(final PrimCmd cmd, final byte[]... args) {
+
+    return 0;
+  }
+
+  @Override
+  public long sendCmd(final Cmd<?> cmd, final PrimCmd subCmd, final String arg) {
+
+    return 0;
+  }
+
+  @Override
+  public long sendCmd(final Cmd<?> cmd, final PrimCmd subCmd, final String... args) {
+
+    return 0;
+  }
+
+  @Override
+  public long sendCmd(final PrimCmd cmd, final String arg) {
+
+    return 0;
+  }
+
+  @Override
+  public long sendCmd(final PrimCmd cmd, final String... args) {
+
+    return 0;
+  }
+
+  @Override
+  public long sendBlockingCmd(final PrimCmd cmd) {
+
+    return 0;
+  }
+
+  @Override
+  public long sendBlockingCmd(final PrimCmd cmd, final byte[]... args) {
+
+    return 0;
+  }
+
+  @Override
+  public long sendBlockingCmd(final PrimCmd cmd, final String... args) {
+
+    return 0;
   }
 }

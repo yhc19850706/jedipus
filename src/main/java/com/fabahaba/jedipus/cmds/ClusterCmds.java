@@ -167,10 +167,10 @@ public interface ClusterCmds extends DirectCmds {
   static final Cmd<String> ASKING = Cmd.createStringReply("ASKING");
   static final Cmd<String> READONLY = Cmd.createStringReply("READONLY");
   static final Cmd<String> READWRITE = Cmd.createStringReply("READWRITE");
-  static final Cmd<Long> KEYSLOT = Cmd.createLongReply("KEYSLOT");
-  static final Cmd<Object[]> SLOTS = Cmd.createArrayReply("SLOTS");
-  static final Cmd<Object[]> GETKEYSINSLOT = Cmd.createArrayReply("GETKEYSINSLOT");
-  static final Cmd<Long> COUNTKEYSINSLOT = Cmd.createLongReply("COUNTKEYSINSLOT");
+  static final Cmd<Long> KEYSLOT = Cmd.createCast("KEYSLOT");
+  static final Cmd<Object[]> SLOTS = Cmd.createCast("SLOTS");
+  static final Cmd<Object[]> GETKEYSINSLOT = Cmd.createCast("GETKEYSINSLOT");
+  static final Cmd<Long> COUNTKEYSINSLOT = Cmd.createCast("COUNTKEYSINSLOT");
 
   static final Cmd<String> SETSLOT = Cmd.createStringReply("SETSLOT");
   static final Cmd<Object> IMPORTING = Cmd.create("IMPORTING");
@@ -180,7 +180,7 @@ public interface ClusterCmds extends DirectCmds {
 
   static final Cmd<String> FORGET = Cmd.createStringReply("FORGET");
   static final Cmd<String> NODES = Cmd.createStringReply("NODES");
-  static final Cmd<Object[]> SLAVES = Cmd.createArrayReply("SLAVES");
+  static final Cmd<Object[]> SLAVES = Cmd.createCast("SLAVES");
   static final Cmd<String> MEET = Cmd.createStringReply("MEET");
   static final Cmd<String> INFO = Cmd.createStringReply("INFO");
   static final Cmd<String> SAVECONFIG = Cmd.createStringReply("SAVECONFIG");
