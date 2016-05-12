@@ -15,7 +15,7 @@ public interface HostPort {
 
   public static HostPort create(final String host, final int port) {
 
-    return new HostPortImpl(host, port);
+    return new FinalHashHostPort(host, port);
   }
 
   public String getHost();

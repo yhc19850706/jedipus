@@ -1,13 +1,13 @@
 package com.fabahaba.jedipus;
 
-public final class HostPortImpl implements HostPort {
+final class FinalHashHostPort implements HostPort {
 
   private final String host;
   private final int port;
 
   private final int hashCode;
 
-  HostPortImpl(final String host, final int port) {
+  FinalHashHostPort(final String host, final int port) {
 
     this.host = host;
     this.port = port;
@@ -44,7 +44,7 @@ public final class HostPortImpl implements HostPort {
       return false;
     }
 
-    final HostPortImpl castOther = (HostPortImpl) other;
+    final FinalHashHostPort castOther = (FinalHashHostPort) other;
     return port == castOther.port && host.equals(castOther.host);
   }
 
