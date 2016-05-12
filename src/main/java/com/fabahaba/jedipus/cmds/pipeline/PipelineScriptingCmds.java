@@ -18,6 +18,6 @@ public interface PipelineScriptingCmds extends PipelineDirectCmds {
 
   default FutureResponse<Object> scriptLoad(final byte[] script) {
 
-    return sendCmd(ScriptingCmds.EVALSHA, script);
+    return sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.LOAD, script);
   }
 }

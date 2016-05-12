@@ -52,12 +52,13 @@ public interface ScriptingCmds extends DirectCmds {
 
   default Object scriptLoad(final byte[] script) {
 
-    return sendCmd(ScriptingCmds.EVALSHA, script);
+    return sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.LOAD, script);
   }
 
   public static final Cmd<Object> EVAL = Cmd.create("EVAL");
   public static final Cmd<Object> EVALSHA = Cmd.create("EVALSHA");
   public static final Cmd<Object> SCRIPT = Cmd.create("SCRIPT");
+  public static final Cmd<Object> LOAD = Cmd.create("LOAD");
   public static final Cmd<Object[]> EXISTS = Cmd.create("EXISTS", data -> (Object[]) data);
 
   public static final Cmd<Object> FLUSH = Cmd.create("FLUSH");

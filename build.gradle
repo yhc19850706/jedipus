@@ -89,6 +89,16 @@ task rmRedis(type:Exec) {
 test.dependsOn startRedis
 test.finalizedBy rmRedis
 
+task latestRedisModule(type:Exec) {
+
+   commandLine 'wget', '-O', 'src/integ/resources/redismodule.h', 'https://raw.githubusercontent.com/antirez/redis/unstable/src/redismodule.h'
+}
+
+task compileModules(type:Exec) {
+
+   commandLine './scripts/compileModules.sh', 'src/integ/resources/module'
+}
+
 task sourcesJar(type: Jar, dependsOn: classes) {
    from sourceSets.main.allSource
    classifier = 'sources'
