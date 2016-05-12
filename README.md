@@ -4,14 +4,13 @@
 
 ######Features
 * Execute `Consumer<RedisClient>` and `Function<RedisClient, R>` lambas.
-* Perfomance focused
-  * Direct O(1) primitive array access to a corresponding `RedisClient` pool.
+* Performance focused:
+  * Reuse known slot integers for direct O(1) primitive array access to a corresponding `RedisClient` pool.
   * Minimal enforced (de)serialization.  Write directly to the socket output stream buffer, and retrieve raw responses.
   * Locking is only applied to threads which are accessing slots that are migrating; there is no known node; or for which a client connection continually cannot be established; all of which will trigger a slot cache refresh.
-  * Reuse known slot integers.
 * Minimal dependencies, only `org.apache.commons:commons-pool2`.
 * Optional user supplied [`Node`](src/main/java/com/fabahaba/jedipus/cluster/Node.java) -> `ObjectPool<RedisClient>` factories.
-* Load balance read-only requests across pools.  Optional user supplied `ObjectPool<RedisClient>[]` -> [`LoadBalancedPools`](src/main/java/com/fabahaba/jedipus/concurrent/LoadBalancedPools.java) factories.  By default, a [round robin strategy](src/main/java/com/fabahaba/jedipus/cluster/RoundRobinPools.java) is used.
+* Load balance read-only requests across pools.  Optional user supplied [`LoadBalancedPools`](src/main/java/com/fabahaba/jedipus/concurrent/LoadBalancedPools.java) factories.  By default, a [round robin strategy](src/main/java/com/fabahaba/jedipus/cluster/RoundRobinPools.java) is used.
 * [Client side HostPort mapping to internally networked clusters](https://gist.github.com/jamespedwards42/5037cf03768280ab1d81a88e7929c608).
 * Configurable [retry delays](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java) per cluster node for `RedisConnectionException's`.  By default, an [exponential backoff delay](src/main/java/com/fabahaba/jedipus/concurrent/SemaphoredRetryDelay.java) is used.
 * Execute directly against known or random nodes.
@@ -83,7 +82,7 @@ try (final RedisClusterExecutor rce =
   final String fooKey = hashTag + "foo";
 
   final Object[] sortedBars = rce.applyPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
- 
+
     pipeline.sendCmd(Cmds.SET, hashTaggedKey, "value");
 
     pipeline.sendCmd(Cmds.ZADD, fooKey, "-1", "barowitch");
