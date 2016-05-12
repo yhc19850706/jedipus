@@ -31,7 +31,7 @@ repositories {
 }
 
 dependencies {
-   compile 'org.apache.commons:commons-pool2:+' 
+   compile 'org.apache.commons:commons-pool2:+'
 
    testCompile 'junit:junit:+'
 }
@@ -117,7 +117,7 @@ bintray {
     pkg {
         repo = 'libs'
         name = project.name
-        desc = 'Kills the cluster client and marries the command logic of Jedis.'
+        desc = 'Redis Cluster Java 8 Client Executors.'
         websiteUrl = 'https://github.com/jamespedwards42/jedipus'
         vcsUrl = 'https://github.com/jamespedwards42/jedipus'
         issueTrackerUrl = 'https://github.com/jamespedwards42/jedipus/issues'

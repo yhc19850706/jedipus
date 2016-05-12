@@ -54,7 +54,6 @@ model {
 
          dependencies {
             module 'org.apache.commons:commons-pool2:+'
-            module 'redis.clients:jedis:+'
          }
       }
    }
@@ -66,7 +65,6 @@ model {
 
          dependencies {
             module 'org.apache.commons:commons-pool2:+'
-            module 'redis.clients:jedis:+'
          }
 
          /*test {
@@ -129,7 +127,7 @@ bintray {
     pkg {
         repo = 'libs'
         name = project.name
-        desc = 'Kills the cluster client and marries the command logic of Jedis.'
+        desc = 'Redis Cluster Java 8 Client Executor.'
         websiteUrl = 'https://github.com/jamespedwards42/jedipus'
         vcsUrl = 'https://github.com/jamespedwards42/jedipus'
         issueTrackerUrl = 'https://github.com/jamespedwards42/jedipus/issues'
