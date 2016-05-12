@@ -1,6 +1,6 @@
 ##Jedipus [![Build Status](https://img.shields.io/travis/jamespedwards42/jedipus.svg?branch=master)](https://travis-ci.org/jamespedwards42/jedipus) [![Bintray](https://api.bintray.com/packages/jamespedwards42/libs/jedipus/images/download.svg) ](https://bintray.com/jamespedwards42/libs/jedipus/_latestVersion) [![license](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://raw.githubusercontent.com/jamespedwards42/jedipus/master/LICENSE) [![Gitter Chat](https://badges.gitter.im/jamespedwards42/jedipus.svg)](https://gitter.im/jamespedwards42/jedipus?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
->Jedipus is a Redis Cluster Java client that manages Redis client object pools and command execution.
+>Jedipus is a Redis Cluster Java client that manages client object pools and command execution.
 
 ######Features
 * Execute `Consumer<RedisClient>` and `Function<RedisClient, R>` lambas.
