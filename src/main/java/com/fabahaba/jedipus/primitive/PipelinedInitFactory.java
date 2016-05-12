@@ -10,6 +10,7 @@ import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.ClusterCmds;
+import com.fabahaba.jedipus.cmds.Cmds;
 
 class PipelinedInitFactory extends RedisClientFactory {
 

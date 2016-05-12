@@ -3,7 +3,6 @@ package com.fabahaba.jedipus.cmds;
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cluster.RCUtils;
-import com.fabahaba.jedipus.primitive.Cmd;
 
 public interface ClusterCmds extends DirectCmds {
 

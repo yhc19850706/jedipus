@@ -13,6 +13,8 @@ import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cluster.Node;
+import com.fabahaba.jedipus.cmds.Cmd;
+import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 final class PrimRedisClient implements RedisClient {

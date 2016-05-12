@@ -9,6 +9,7 @@ import javax.net.ssl.SSLSocketFactory;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.ClusterCmds;
+import com.fabahaba.jedipus.cmds.Cmds;
 
 class SingleInitFactory extends RedisClientFactory {
 

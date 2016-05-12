@@ -1,7 +1,5 @@
 package com.fabahaba.jedipus.cmds;
 
-import com.fabahaba.jedipus.primitive.Cmd;
-
 public interface DirectCmds {
 
   public <T> T sendCmd(final Cmd<T> cmd);

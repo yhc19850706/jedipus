@@ -15,6 +15,7 @@ import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.ClusterCmds;
+import com.fabahaba.jedipus.cmds.Cmds;
 
 public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
 

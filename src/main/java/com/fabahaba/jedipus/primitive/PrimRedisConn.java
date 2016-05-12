@@ -11,6 +11,7 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
 import com.fabahaba.jedipus.cluster.Node;
+import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 
 final class PrimRedisConn extends RedisConn {

@@ -3,7 +3,6 @@ package com.fabahaba.jedipus.cmds;
 import java.util.List;
 
 import com.fabahaba.jedipus.RESP;
-import com.fabahaba.jedipus.primitive.Cmd;
 
 public interface ScriptingCmds extends DirectCmds {
 

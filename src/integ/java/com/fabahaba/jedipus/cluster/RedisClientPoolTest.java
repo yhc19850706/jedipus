@@ -21,9 +21,9 @@ import org.junit.Test;
 
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
+import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.exceptions.RedisException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
-import com.fabahaba.jedipus.primitive.Cmds;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
 public class RedisClientPoolTest {

@@ -1,6 +1,6 @@
 package com.fabahaba.jedipus.cmds.pipeline;
 
-import com.fabahaba.jedipus.primitive.Cmd;
+import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.primitive.FutureResponse;
 
 public interface PipelineDirectCmds {

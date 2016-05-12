@@ -40,12 +40,12 @@ import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.cmds.ClusterCmds;
+import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.exceptions.AskNodeException;
 import com.fabahaba.jedipus.exceptions.MaxRedirectsExceededException;
 import com.fabahaba.jedipus.exceptions.RedisClusterDownException;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.SlotMovedException;
-import com.fabahaba.jedipus.primitive.Cmds;
 import com.fabahaba.jedipus.primitive.FutureResponse;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 

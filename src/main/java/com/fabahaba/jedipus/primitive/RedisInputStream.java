@@ -15,7 +15,7 @@ final class RedisInputStream extends InputStream {
   private int count;
   private int limit;
 
-  public RedisInputStream(final Node node, final InputStream in, final int size) {
+  RedisInputStream(final Node node, final InputStream in, final int size) {
 
     if (size <= 0) {
       throw new IllegalArgumentException("Buffer size <= 0");

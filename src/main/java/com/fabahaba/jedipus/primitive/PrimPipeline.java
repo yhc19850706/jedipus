@@ -5,6 +5,8 @@ import java.util.function.Function;
 
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisPipeline;
+import com.fabahaba.jedipus.cmds.Cmd;
+import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 final class PrimPipeline extends PrimQueable implements RedisPipeline {

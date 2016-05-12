@@ -3,7 +3,7 @@ package com.fabahaba.jedipus.primitive;
 import java.util.Queue;
 import java.util.function.Function;
 
-public class PrimQueable {
+class PrimQueable {
 
   private final Queue<FutureResponse<?>> pipelinedResponses;
 
