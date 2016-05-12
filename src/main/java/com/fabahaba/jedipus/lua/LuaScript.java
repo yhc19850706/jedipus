@@ -289,7 +289,7 @@ public interface LuaScript<R> {
     final Object exists =
         client.sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.EXISTS, scriptSha1HexBytes)[0];
 
-    if (RESP.toInt(exists) == 0) {
+    if (RESP.longToInt(exists) == 0) {
       client.scriptLoad(RESP.toBytes(luaScript.getLuaScript()));
     }
   }
@@ -311,7 +311,7 @@ public interface LuaScript<R> {
 
     for (final Object exists : existResults) {
 
-      if (RESP.toInt(exists) == 0) {
+      if (RESP.longToInt(exists) == 0) {
         if (pipeline == null) {
           pipeline = client.createPipeline();
         }
