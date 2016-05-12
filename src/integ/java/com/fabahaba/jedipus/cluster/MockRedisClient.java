@@ -113,4 +113,28 @@ public class MockRedisClient implements RedisClient {
 
     return null;
   }
+
+  @Override
+  public <T> T sendCmd(final Cmd<T> cmd, final byte[] arg) {
+
+    return null;
+  }
+
+  @Override
+  public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final String arg) {
+
+    return null;
+  }
+
+  @Override
+  public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final String... args) {
+
+    return null;
+  }
+
+  @Override
+  public <T> T sendCmd(final Cmd<T> cmd, final String arg) {
+
+    return null;
+  }
 }

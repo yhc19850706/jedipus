@@ -86,7 +86,7 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
   public boolean validateObject(final PooledObject<RedisClient> pooledClient) {
 
     try {
-      pooledClient.getObject().sendCmd(Cmds.PING);
+      pooledClient.getObject().sendCmd(Cmds.PING.raw());
       return true;
     } catch (final RuntimeException e) {
       return false;
@@ -189,17 +189,17 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
 
       if (pass != null) {
 
-        client.sendCmd(Cmds.AUTH, RESP.toBytes(pass));
+        client.sendCmd(Cmds.AUTH.raw(), pass);
       }
 
       if (clientName != null) {
 
-        client.sendCmd(Cmds.CLIENT, Cmds.SETNAME, RESP.toBytes(clientName));
+        client.sendCmd(Cmds.CLIENT, Cmds.SETNAME.raw(), RESP.toBytes(clientName));
       }
 
       if (initReadOnly) {
 
-        client.sendCmd(ClusterCmds.READONLY);
+        client.sendCmd(ClusterCmds.READONLY.raw());
       }
 
       return client;

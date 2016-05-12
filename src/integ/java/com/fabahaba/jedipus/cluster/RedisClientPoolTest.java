@@ -55,8 +55,8 @@ public class RedisClientPoolTest {
 
     final RedisClient client = RedisClientPool.borrowClient(pool);
 
-    client.sendCmd(Cmds.SET, "foo", "bar");
-    assertEquals("bar", RESP.toString(client.sendCmd(Cmds.GET_RAW, "foo")));
+    client.sendCmd(Cmds.SET.raw(), "foo", "bar");
+    assertEquals("bar", client.sendCmd(Cmds.GET, "foo"));
 
     RedisClientPool.returnClient(pool, client);
 
@@ -69,11 +69,11 @@ public class RedisClientPoolTest {
 
     RedisClient client = RedisClientPool.borrowClient(pool);
 
-    client.sendCmd(Cmds.SET, "foo", "0");
+    client.sendCmd(Cmds.SET.raw(), "foo", "0");
     RedisClientPool.returnClient(pool, client);
 
     client = RedisClientPool.borrowClient(pool);
-    client.sendCmd(Cmds.INCR, "foo");
+    client.sendCmd(Cmds.INCR.raw(), "foo");
     RedisClientPool.returnClient(pool, client);
 
     pool.close();
@@ -88,7 +88,7 @@ public class RedisClientPoolTest {
     RedisClientPool.returnClient(pool, client);
 
     client = RedisClientPool.borrowClient(pool);
-    client.sendCmd(Cmds.INCR, "foo");
+    client.sendCmd(Cmds.INCR.raw(), "foo");
     RedisClientPool.returnClient(pool, client);
 
     pool.close();
@@ -105,10 +105,10 @@ public class RedisClientPoolTest {
         new GenericObjectPool<>(defaultRedisFactory, config);
 
     final RedisClient client = RedisClientPool.borrowClient(pool);
-    client.sendCmd(Cmds.SET, "foo", "0");
+    client.sendCmd(Cmds.SET.raw(), "foo", "0");
 
     final RedisClient newClient = RedisClientPool.borrowClient(pool);
-    newClient.sendCmd(Cmds.INCR, "foo");
+    newClient.sendCmd(Cmds.INCR.raw(), "foo");
   }
 
   @Test(timeout = 1000)
@@ -119,7 +119,7 @@ public class RedisClientPoolTest {
         new GenericObjectPool<>(defaultRedisFactory, config);
 
     final RedisClient client = RedisClientPool.borrowClient(pool);
-    client.sendCmd(Cmds.SET, "foo", "bar");
+    client.sendCmd(Cmds.SET.raw(), "foo", "bar");
     RedisClientPool.returnClient(pool, client);
 
     pool.close();
@@ -130,15 +130,15 @@ public class RedisClientPoolTest {
   public void nonDefaultDatabase() {
 
     final RedisClient client0 = RedisClientPool.borrowClient(pool);
-    client0.sendCmd(Cmds.SET, "foo", "bar");
-    assertEquals("bar", RESP.toString(client0.sendCmd(Cmds.GET_RAW, "foo")));
+    client0.sendCmd(Cmds.SET.raw(), "foo", "bar");
+    assertEquals("bar", client0.sendCmd(Cmds.GET, "foo"));
     RedisClientPool.returnClient(pool, client0);
 
     final RedisClient client1 = RedisClientPool.borrowClient(pool);
-    client1.sendCmd(Cmds.SELECT, RESP.toBytes(1));
-    assertNull(client1.sendCmd(Cmds.GET_RAW, "foo"));
-    client1.sendCmd(Cmds.SELECT, RESP.toBytes(0));
-    assertEquals("bar", RESP.toString(client1.sendCmd(Cmds.GET_RAW, "foo")));
+    client1.sendCmd(Cmds.SELECT.raw(), RESP.toBytes(1));
+    assertNull(client1.sendCmd(Cmds.GET.raw(), "foo"));
+    client1.sendCmd(Cmds.SELECT.raw(), RESP.toBytes(0));
+    assertEquals("bar", client1.sendCmd(Cmds.GET, "foo"));
     RedisClientPool.returnClient(pool, client1);
 
     pool.close();
@@ -253,7 +253,7 @@ public class RedisClientPoolTest {
 
     final RedisClient client = RedisClientPool.borrowClient(pool);
     try {
-      client.sendCmd(Cmds.SET, "hello", "client");
+      client.sendCmd(Cmds.SET.raw(), "hello", "client");
     } finally {
       RedisClientPool.returnClient(pool, client);
     }
@@ -281,13 +281,13 @@ public class RedisClientPoolTest {
   public void getNumActiveReturnsTheCorrectNumber() {
 
     final RedisClient client = RedisClientPool.borrowClient(pool);
-    client.sendCmd(Cmds.SET, "foo", "bar");
-    assertEquals("bar", RESP.toString(client.sendCmd(Cmds.GET_RAW, "foo")));
+    client.sendCmd(Cmds.SET.raw(), "foo", "bar");
+    assertEquals("bar", client.sendCmd(Cmds.GET, "foo"));
 
     assertEquals(1, pool.getNumActive());
 
     final RedisClient client2 = RedisClientPool.borrowClient(pool);
-    client.sendCmd(Cmds.SET, "foo", "bar");
+    client.sendCmd(Cmds.SET.raw(), "foo", "bar");
 
     assertEquals(2, pool.getNumActive());
 

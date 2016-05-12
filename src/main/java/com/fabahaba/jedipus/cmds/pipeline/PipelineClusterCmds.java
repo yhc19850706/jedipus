@@ -5,12 +5,12 @@ import com.fabahaba.jedipus.primitive.FutureResponse;
 
 public interface PipelineClusterCmds extends PipelineDirectCmds {
 
-  default FutureResponse<Object> asking() {
+  default FutureResponse<String> asking() {
 
     return sendCmd(ClusterCmds.ASKING);
   }
 
-  default FutureResponse<Object> readonly() {
+  default FutureResponse<String> readonly() {
 
     return sendCmd(ClusterCmds.READONLY);
   }

@@ -9,6 +9,7 @@ class HandledResponseCmd<R> extends DirectRespCmd<R> {
   HandledResponseCmd(final String cmd, final Function<Object, R> responseHandler) {
 
     super(cmd);
+
     this.responseHandler = responseHandler;
   }
 

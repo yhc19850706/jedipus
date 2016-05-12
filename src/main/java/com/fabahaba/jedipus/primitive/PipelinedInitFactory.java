@@ -30,17 +30,17 @@ class PipelinedInitFactory extends RedisClientFactory {
 
     if (pass != null) {
 
-      pipeline.sendCmd(Cmds.AUTH, pass);
+      pipeline.sendCmd(Cmds.AUTH.raw(), pass);
     }
 
     if (clientName != null) {
 
-      pipeline.sendCmd(Cmds.CLIENT, Cmds.SETNAME, clientName);
+      pipeline.sendCmd(Cmds.CLIENT, Cmds.SETNAME.raw(), clientName);
     }
 
     if (initReadOnly) {
 
-      pipeline.sendCmd(ClusterCmds.READONLY);
+      pipeline.sendCmd(ClusterCmds.READONLY.raw());
     }
 
     pipeline.sync();

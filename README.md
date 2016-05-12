@@ -84,13 +84,18 @@ try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(Node.cr
 
     pipeline.sendCmd(Cmds.SET, hashTaggedKey, "value");
 
-    pipeline.sendCmd(Cmds.ZADD, fooKey, "-1", "barowitch");
-    pipeline.sendCmd(Cmds.ZADD, fooKey, ".37", "barinsky");
-    pipeline.sendCmd(Cmds.ZADD, fooKey, "42", "barikoviev");
+    pipeline.sendCmd(ZCmds.ZADD, fooKey, "NX", "-1", "barowitch");
+    pipeline.sendCmd(ZCmds.ZADD, fooKey, "XX", "-2", "barowitch");
+    // Handle different ZADD return types with flexible command design.
+    pipeline.sendCmd(ZCmds.ZADD_INCR, fooKey, "XX", "INCR", "-1", "barowitch");
+    // Utilities to avoid extra array creation.
+    pipeline.sendCmd(ZCmds.ZADD, ZAddParams.fillNX(new byte[][] {RESP.toBytes(fooKey), null,
+        RESP.toBytes(.37), RESP.toBytes("barinsky")}));
+    pipeline.sendCmd(ZCmds.ZADD, fooKey, "42", "barikoviev");
 
     final FutureResponse<String> valueResponse = pipeline.sendCmd(Cmds.GET, hashTaggedKey);
     final FutureResponse<Object[]> barsResponse =
-        pipeline.sendCmd(Cmds.ZRANGE, fooKey, "0", "-1", "WITHSCORES");
+        pipeline.sendCmd(ZCmds.ZRANGE, fooKey, "0", "-1", "WITHSCORES");
 
     // Note: Pipelines and transactions (multi) are merely started by the the library.
     // 'exec' and 'sync' must be called by the user.

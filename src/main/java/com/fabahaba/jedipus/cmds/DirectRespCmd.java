@@ -1,29 +1,29 @@
 package com.fabahaba.jedipus.cmds;
 
-import java.util.Locale;
-
-import com.fabahaba.jedipus.RESP;
-
 class DirectRespCmd<R> implements Cmd<R> {
 
-  private final String cmd;
-  private final byte[] bytes;
+  private final RawCmd rawCmd;
 
   DirectRespCmd(final String cmd) {
 
-    this.cmd = cmd.toLowerCase(Locale.ENGLISH);
-    this.bytes = RESP.toBytes(this.cmd);
+    this.rawCmd = new RawCmd(cmd);
   }
 
   @Override
   public String name() {
 
-    return cmd;
+    return rawCmd.name();
   }
 
   @Override
   public byte[] getCmdBytes() {
 
-    return bytes;
+    return rawCmd.getCmdBytes();
+  }
+
+  @Override
+  public Cmd<Object> raw() {
+
+    return rawCmd;
   }
 }

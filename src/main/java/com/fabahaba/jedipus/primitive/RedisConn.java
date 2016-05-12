@@ -140,6 +140,15 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
+  public void sendSubCmd(final byte[] cmd, final byte[] subcmd, final String[] args) {
+
+    try {
+      Protocol.sendSubCmd(outputStream, cmd, subcmd, args);
+    } catch (final RuntimeException | IOException jcex) {
+      handleWriteException(jcex);
+    }
+  }
+
   private void handleWriteException(final Exception ioEx) {
 
     broken = true;

@@ -82,7 +82,7 @@ class RedisClusterConnHandler implements AutoCloseable {
           continue;
         }
 
-        client.sendCmd(Cmds.PING);
+        client.sendCmd(Cmds.PING.raw());
         return pool;
       } catch (final RedisException ex) {
         // try next pool...

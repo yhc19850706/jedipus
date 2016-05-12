@@ -1,19 +1,17 @@
 package com.fabahaba.jedipus.cmds;
 
-import com.fabahaba.jedipus.RESP;
-
 public final class Cmds {
 
-  public static final Cmd<Object> AUTH = Cmd.create("AUTH");
+  public static final Cmd<String> AUTH = Cmd.createStringReply("AUTH");
 
   public static final Cmd<Object> CLIENT = Cmd.create("CLIENT");
-  public static final Cmd<String> GETNAME = Cmd.create("GETNAME", RESP::toString);
+  public static final Cmd<String> GETNAME = Cmd.createStringReply("GETNAME");
   public static final Cmd<Object> KILL = Cmd.create("KILL");
   public static final Cmd<Object> ID = Cmd.create("ID");
   public static final Cmd<Object> TYPE = Cmd.create("TYPE");
   public static final Cmd<Object> ADDR = Cmd.create("ADDR");
   public static final Cmd<Object> SKIPME = Cmd.create("SKIPME");
-  public static final Cmd<String> LIST = Cmd.create("LIST", RESP::toString);
+  public static final Cmd<String> LIST = Cmd.createStringReply("LIST");
   public static final Cmd<Object> PAUSE = Cmd.create("PAUSE");
   public static final Cmd<Object> REPLY = Cmd.create("REPLY");
   public static final Cmd<Object> ON = Cmd.create("ON");
@@ -21,8 +19,8 @@ public final class Cmds {
   public static final Cmd<Object> SKIP = Cmd.create("SKIP");
   public static final Cmd<Object> SETNAME = Cmd.create("SETNAME");
 
-  public static final Cmd<Object> ECHO = Cmd.create("ECHO");
-  public static final Cmd<Object> PING = Cmd.create("PING");
+  public static final Cmd<String> ECHO = Cmd.createStringReply("ECHO");
+  public static final Cmd<String> PING = Cmd.createStringReply("PING");
   public static final Cmd<Object> QUIT = Cmd.create("QUIT");
   public static final Cmd<Object> SELECT = Cmd.create("SELECT");
   public static final Cmd<Long> DEL = Cmd.create("DEL", d -> (Long) d);
@@ -52,12 +50,12 @@ public final class Cmds {
   public static final Cmd<Object> FLUSHDB = Cmd.create("FLUSHDB");
   public static final Cmd<Object> FLUSHALL = Cmd.create("FLUSHALL");
 
-  public static final Cmd<Object> EXPIRE = Cmd.create("EXPIRE");
-  public static final Cmd<Object> EXPIREAT = Cmd.create("EXPIREAT");
-  public static final Cmd<Object> TTL = Cmd.create("TTL");
-  public static final Cmd<Object> PEXPIRE = Cmd.create("PEXPIRE");
-  public static final Cmd<Object> PEXPIREAT = Cmd.create("PEXPIREAT");
-  public static final Cmd<Object> PTTL = Cmd.create("PTTL");
+  public static final Cmd<Long> EXPIRE = Cmd.createLongReply("EXPIRE");
+  public static final Cmd<Long> EXPIREAT = Cmd.createLongReply("EXPIREAT");
+  public static final Cmd<Long> TTL = Cmd.createLongReply("TTL");
+  public static final Cmd<Long> PEXPIRE = Cmd.createLongReply("PEXPIRE");
+  public static final Cmd<Long> PEXPIREAT = Cmd.createLongReply("PEXPIREAT");
+  public static final Cmd<Long> PTTL = Cmd.createLongReply("PTTL");
 
   public static final Cmd<Object> BITCOUNT = Cmd.create("BITCOUNT");
   public static final Cmd<Object> BITOP = Cmd.create("BITOP");
@@ -66,10 +64,9 @@ public final class Cmds {
   public static final Cmd<Object> BITPOS = Cmd.create("BITPOS");
   public static final Cmd<Object> BITFIELD = Cmd.create("BITFIELD");
 
-  public static final Cmd<Object> SET = Cmd.create("SET");
-  public static final Cmd<Object> GET_RAW = Cmd.create("GET");
-  public static final Cmd<String> GET = Cmd.create("GET", RESP::toString);
-  public static final Cmd<Object> GETSET = Cmd.create("GETSET");
+  public static final Cmd<String> SET = Cmd.createStringReply("SET");
+  public static final Cmd<String> GET = Cmd.createStringReply("GET");
+  public static final Cmd<String> GETSET = Cmd.createStringReply("GETSET");
   public static final Cmd<Object> MGET = Cmd.create("MGET");
   public static final Cmd<Object> MSET = Cmd.create("MSET");
   public static final Cmd<Object> MSETNX = Cmd.create("MSETNX");
@@ -122,7 +119,7 @@ public final class Cmds {
   public static final Cmd<Object> SREM = Cmd.create("SREM");
   public static final Cmd<Object> SPOP = Cmd.create("SPOP");
   public static final Cmd<Object> SMOVE = Cmd.create("SMOVE");
-  public static final Cmd<Long> SCARD = Cmd.create("SCARD", d -> (Long) d);
+  public static final Cmd<Long> SCARD = Cmd.createLongReply("SCARD");
   public static final Cmd<Object> SISMEMBER = Cmd.create("SISMEMBER");
   public static final Cmd<Object> SRANDMEMBER = Cmd.create("SRANDMEMBER");
   public static final Cmd<Object> SINTER = Cmd.create("SINTER");
@@ -132,32 +129,11 @@ public final class Cmds {
   public static final Cmd<Object> SDIFF = Cmd.create("SDIFF");
   public static final Cmd<Object> SDIFFSTORE = Cmd.create("SDIFFSTORE");
 
-  public static final Cmd<Object> ZADD = Cmd.create("ZADD");
-  public static final Cmd<Object> ZCOUNT = Cmd.create("ZCOUNT");
-  public static final Cmd<Object> ZLEXCOUNT = Cmd.create("ZLEXCOUNT");
-  public static final Cmd<Object> ZCARD = Cmd.create("ZCARD");
-  public static final Cmd<Object> ZSCORE = Cmd.create("ZSCORE");
-  public static final Cmd<Object[]> ZRANGE = Cmd.create("ZRANGE", d -> (Object[]) d);
-  public static final Cmd<Object> ZREVRANGE = Cmd.create("ZREVRANGE");
-  public static final Cmd<Object> ZREM = Cmd.create("ZREM");
-  public static final Cmd<Object> ZRANK = Cmd.create("ZRANK");
-  public static final Cmd<Object> ZREMRANGEBYRANK = Cmd.create("ZREMRANGEBYRANK");
-  public static final Cmd<Object> ZREVRANK = Cmd.create("ZREVRANK");
-  public static final Cmd<Object> ZRANGEBYSCORE = Cmd.create("ZRANGEBYSCORE");
-  public static final Cmd<Object> ZREVRANGEBYSCORE = Cmd.create("ZREVRANGEBYSCORE");
-  public static final Cmd<Object> ZREMRANGEBYSCORE = Cmd.create("ZREMRANGEBYSCORE");
-  public static final Cmd<Object> ZRANGEBYLEX = Cmd.create("ZRANGEBYLEX");
-  public static final Cmd<Object> ZREVRANGEBYLEX = Cmd.create("ZREVRANGEBYLEX");
-  public static final Cmd<Object> ZREMRANGEBYLEX = Cmd.create("ZREMRANGEBYLEX");
-  public static final Cmd<Object> ZUNIONSTORE = Cmd.create("ZUNIONSTORE");
-  public static final Cmd<Object> ZINTERSTORE = Cmd.create("ZINTERSTORE");
-
-  public static final Cmd<Object> MULTI = Cmd.create("MULTI");
-  public static final Cmd<Object> DISCARD = Cmd.create("DISCARD");
-  public static final Cmd<Object> EXEC = Cmd.create("EXEC");
-  public static final Cmd<Object> WATCH = Cmd.create("WATCH");
-  public static final Cmd<Object> UNWATCH = Cmd.create("UNWATCH");
-  public static final Cmd<Object> SYNC = Cmd.create("SYNC");
+  public static final Cmd<String> MULTI = Cmd.createStringReply("MULTI");
+  public static final Cmd<String> DISCARD = Cmd.createStringReply("DISCARD");
+  public static final Cmd<Object[]> EXEC = Cmd.createArrayReply("EXEC");
+  public static final Cmd<String> WATCH = Cmd.createStringReply("WATCH");
+  public static final Cmd<String> UNWATCH = Cmd.createStringReply("UNWATCH");
 
   public static final Cmd<Object> SUBSCRIBE = Cmd.create("SUBSCRIBE");
   public static final Cmd<Object> PUBLISH = Cmd.create("PUBLISH");
@@ -171,7 +147,6 @@ public final class Cmds {
   public static final Cmd<Object> SCAN = Cmd.create("SCAN");
   public static final Cmd<Object> HSCAN = Cmd.create("HSCAN");
   public static final Cmd<Object> SSCAN = Cmd.create("SSCAN");
-  public static final Cmd<Object> ZSCAN = Cmd.create("ZSCAN");
 
   public static final Cmd<Object> PFADD = Cmd.create("PFADD");
   public static final Cmd<Object> PFCOUNT = Cmd.create("PFCOUNT");

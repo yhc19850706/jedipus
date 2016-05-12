@@ -112,7 +112,6 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
     return getFutureResponse(subCmd);
   }
 
-
   @Override
   public <T> FutureResponse<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[] args) {
 
@@ -128,9 +127,66 @@ final class PrimPipeline extends PrimQueable implements RedisPipeline {
   }
 
   @Override
+  public <T> FutureResponse<T> sendCmd(final Cmd<T> cmd, final byte[] arg) {
+
+    client.getConn().sendSubCmd(cmd.getCmdBytes(), arg);
+    return getFutureResponse(cmd);
+  }
+
+  @Override
+  public <T> FutureResponse<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd,
+      final byte[]... args) {
+
+    client.getConn().sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    return getFutureResponse(subCmd);
+  }
+
+
+  @Override
+  public <T> FutureResponse<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final String arg) {
+
+    client.getConn().sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), RESP.toBytes(arg));
+    return getFutureResponse(subCmd);
+  }
+
+
+  @Override
   public <T> FutureResponse<T> sendCmd(final Cmd<T> cmd, final String... args) {
 
     client.getConn().sendCmd(cmd.getCmdBytes(), args);
     return getFutureResponse(cmd);
+  }
+
+  @Override
+  public <T> FutureResponse<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd,
+      final String... args) {
+
+    client.getConn().sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    return getFutureResponse(subCmd);
+  }
+
+  @Override
+  public <T> FutureResponse<T> sendCmd(final Cmd<T> cmd, final String arg) {
+
+    client.getConn().sendSubCmd(cmd.getCmdBytes(), RESP.toBytes(arg));
+    return getFutureResponse(cmd);
+  }
+
+  @Override
+  public <T> FutureResponse<T> sendBlockingCmd(final Cmd<T> cmd) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public <T> FutureResponse<T> sendBlockingCmd(final Cmd<T> cmd, final byte[]... args) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public <T> FutureResponse<T> sendBlockingCmd(final Cmd<T> cmd, final String... args) {
+    // TODO Auto-generated method stub
+    return null;
   }
 }

@@ -27,19 +27,19 @@ class SingleInitFactory extends RedisClientFactory {
 
     if (pass != null) {
 
-      client.sendCmd(Cmds.AUTH, pass);
+      client.sendCmd(Cmds.AUTH.raw(), pass);
       return;
     }
 
     if (clientName != null) {
 
-      client.sendCmd(Cmds.CLIENT, Cmds.SETNAME, clientName);
+      client.sendCmd(Cmds.CLIENT, Cmds.SETNAME.raw(), clientName);
       return;
     }
 
     if (initReadOnly) {
 
-      client.sendCmd(ClusterCmds.READONLY);
+      client.sendCmd(ClusterCmds.READONLY.raw());
       return;
     }
   }

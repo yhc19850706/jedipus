@@ -72,10 +72,14 @@ final class Protocol {
     writeArg(os, subcmd);
   }
 
-  static void sendCommand(final RedisOutputStream os, final String cmd, final String[] args)
-      throws IOException {
+  static void sendSubCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
+      final String[] args) throws IOException {
 
-    sendCmd(os, RESP.toBytes(cmd), args);
+    startWrite(os, args.length + 2);
+    writeArg(os, cmd);
+    writeArg(os, subcmd);
+
+    writeArgs(os, args);
   }
 
   static void sendCmd(final RedisOutputStream os, final byte[] cmd, final String[] args)
