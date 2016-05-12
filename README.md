@@ -39,8 +39,8 @@ dependencies {
 
 #####Basic Usage Demos
 ```java
-try (final RedisClusterExecutor rce = RedisClusterExecuto
-      r.startBuilding(Node.create("localhost", 7000)).create()) {
+try (final RedisClusterExecutor rce = RedisClusterExecutor
+      .startBuilding(Node.create("localhost", 7000)).create()) {
 
    final String key = "42";
    rce.accept(key, client -> client.sendCmd(Cmds.SET, key, "107.6"));
@@ -70,9 +70,8 @@ try (final RedisClusterExecutor rce = RedisClusterExecutor
 ```
 
 ```java
-try (final RedisClusterExecutor rce =
-    RedisClusterExecutor.startBuilding(Node.create("localhost", 7000))
-        .withReadMode(ReadMode.MIXED_SLAVES).create()) {
+try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(Node.create("localhost", 7000))
+      .withReadMode(ReadMode.MIXED_SLAVES).create()) {
 
   // Hash tagged pipelined transaction.
   final String hashTag = RCUtils.createNameSpacedHashTag("HT");
@@ -112,13 +111,12 @@ try (final RedisClusterExecutor rce =
   System.out.format("%n'%s':", fooKey);
 
   for (int i = 0; i < sortedBars.length;) {
-    System.out.format(" %s (%s)", RESP.toString(sortedBars[i++]),
-        RESP.toDouble(sortedBars[i++]));
+    System.out.format(" %s (%s)", RESP.toString(sortedBars[i++]), RESP.toDouble(sortedBars[i++]));
   }
 
   // Read from load balanced slave.
-  final String roResult =
-      rce.apply(ReadMode.SLAVES, slot, client -> client.sendCmd(Cmds.GET, hashTaggedKey));
+  final String roResult = rce.apply(ReadMode.SLAVES, slot,
+      client -> client.sendCmd(Cmds.GET, hashTaggedKey));
   System.out.format("%n'%s': %s%n", hashTaggedKey, roResult);
 
   // cleanup
@@ -129,8 +127,7 @@ try (final RedisClusterExecutor rce =
 ```
 
 ```java
-try (final RedisClusterExecutor rce = RedisClusterExecutor
-      .startBuilding(Node.create("localhost", 7000))
+try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(Node.create("localhost", 7000))
       .withReadMode(ReadMode.MIXED_SLAVES).create()) {
 
    // Ping-Pong all masters.
