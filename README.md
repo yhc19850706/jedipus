@@ -92,7 +92,7 @@ try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(Node.cr
     final FutureResponse<Object[]> barsResponse =
         pipeline.sendCmd(Cmds.ZRANGE, fooKey, "0", "-1", "WITHSCORES");
 
-    // Note: Pipelines and transactions are merely started by the the library.
+    // Note: Pipelines and transactions (multi) are merely started by the the library.
     // 'exec' and 'sync' must be called by the user.
     pipeline.exec();
     pipeline.sync();
