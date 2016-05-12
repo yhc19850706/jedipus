@@ -286,8 +286,8 @@ public interface LuaScript<R> {
   public static void loadIfNotExists(final RedisClient client, final byte[] scriptSha1HexBytes,
       final LuaScript<?> luaScript) {
 
-    final byte[] exists =
-        client.sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.EXISTS, scriptSha1HexBytes).get(0);
+    final Object exists =
+        client.sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.EXISTS, scriptSha1HexBytes)[0];
 
     if (RESP.toInt(exists) == 0) {
       client.scriptLoad(RESP.toBytes(luaScript.getLuaScript()));
@@ -303,13 +303,13 @@ public interface LuaScript<R> {
       return;
     }
 
-    final List<byte[]> existResults =
+    final Object[] existResults =
         client.sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.EXISTS, scriptSha1HexBytes);
 
     RedisPipeline pipeline = null;
     int index = 0;
 
-    for (final byte[] exists : existResults) {
+    for (final Object exists : existResults) {
 
       if (RESP.toInt(exists) == 0) {
         if (pipeline == null) {
@@ -344,7 +344,6 @@ public interface LuaScript<R> {
             .filter(line -> !line.isEmpty()).collect(Collectors.joining(newline));
       }
     } catch (final IOException e) {
-
       throw new UncheckedIOException(e);
     }
   }

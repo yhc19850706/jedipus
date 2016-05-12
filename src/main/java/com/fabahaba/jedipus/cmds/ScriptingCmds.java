@@ -58,8 +58,7 @@ public interface ScriptingCmds extends DirectCmds {
   public static final Cmd<Object> EVAL = Cmd.create("EVAL");
   public static final Cmd<Object> EVALSHA = Cmd.create("EVALSHA");
   public static final Cmd<Object> SCRIPT = Cmd.create("SCRIPT");
-  @SuppressWarnings("unchecked")
-  public static final Cmd<List<byte[]>> EXISTS = Cmd.create("EXISTS", data -> (List<byte[]>) data);
+  public static final Cmd<Object[]> EXISTS = Cmd.create("EXISTS", data -> (Object[]) data);
 
   public static final Cmd<Object> FLUSH = Cmd.create("FLUSH");
   public static final Cmd<Object> DEBUG = Cmd.create("DEBUG");
