@@ -22,6 +22,7 @@ import org.junit.Test;
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cmds.Cmds;
+import com.fabahaba.jedipus.cmds.ConnCmds;
 import com.fabahaba.jedipus.exceptions.RedisException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
@@ -135,9 +136,9 @@ public class RedisClientPoolTest {
     RedisClientPool.returnClient(pool, client0);
 
     final RedisClient client1 = RedisClientPool.borrowClient(pool);
-    client1.sendCmd(Cmds.SELECT.raw(), RESP.toBytes(1));
+    client1.sendCmd(ConnCmds.SELECT.raw(), RESP.toBytes(1));
     assertNull(client1.sendCmd(Cmds.GET.raw(), "foo"));
-    client1.sendCmd(Cmds.SELECT.raw(), RESP.toBytes(0));
+    client1.sendCmd(ConnCmds.SELECT.raw(), RESP.toBytes(0));
     assertEquals("bar", client1.sendCmd(Cmds.GET, "foo"));
     RedisClientPool.returnClient(pool, client1);
 

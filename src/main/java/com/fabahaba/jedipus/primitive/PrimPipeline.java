@@ -8,7 +8,6 @@ import com.fabahaba.jedipus.FutureLongReply;
 import com.fabahaba.jedipus.FutureReply;
 import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cmds.Cmd;
-import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.PrimCmd;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
@@ -29,7 +28,7 @@ final class PrimPipeline implements RedisPipeline {
 
     if (client.getConn().isInMulti()) {
       client.getConn().discard();
-      client.getConn().getReply(Cmds.DISCARD.raw());
+      client.getConn().getReply(MultiCmds.DISCARD.raw());
     }
   }
 
@@ -148,8 +147,7 @@ final class PrimPipeline implements RedisPipeline {
   }
 
   @Override
-  public <T> FutureReply<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd,
-      final byte[]... args) {
+  public <T> FutureReply<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[]... args) {
     client.getConn().sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
     return getFutureResponse(subCmd);
   }
@@ -161,8 +159,7 @@ final class PrimPipeline implements RedisPipeline {
   }
 
   @Override
-  public <T> FutureReply<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd,
-      final String... args) {
+  public <T> FutureReply<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final String... args) {
     client.getConn().sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
     return getFutureResponse(subCmd);
   }

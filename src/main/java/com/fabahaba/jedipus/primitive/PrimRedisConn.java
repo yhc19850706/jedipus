@@ -12,7 +12,6 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
 import com.fabahaba.jedipus.cluster.Node;
-import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 
 final class PrimRedisConn extends RedisConn {
@@ -82,29 +81,29 @@ final class PrimRedisConn extends RedisConn {
   }
 
   public void multi() {
-    sendCmd(Cmds.MULTI.getCmdBytes());
+    sendCmd(MultiCmds.MULTI.getCmdBytes());
     isInMulti = true;
   }
 
   public void discard() {
-    sendCmd(Cmds.DISCARD.getCmdBytes());
+    sendCmd(MultiCmds.DISCARD.getCmdBytes());
     isInMulti = false;
     isInWatch = false;
   }
 
   public void exec() {
-    sendCmd(Cmds.EXEC.getCmdBytes());
+    sendCmd(MultiCmds.EXEC.getCmdBytes());
     isInMulti = false;
     isInWatch = false;
   }
 
   public void watch(final byte[]... keys) {
-    sendCmd(Cmds.WATCH.getCmdBytes(), keys);
+    sendCmd(MultiCmds.WATCH.getCmdBytes(), keys);
     isInWatch = true;
   }
 
   public void unwatch() {
-    sendCmd(Cmds.UNWATCH.getCmdBytes());
+    sendCmd(MultiCmds.UNWATCH.getCmdBytes());
     isInWatch = false;
   }
 

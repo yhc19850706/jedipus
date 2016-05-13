@@ -16,6 +16,7 @@ import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.ClusterCmds;
 import com.fabahaba.jedipus.cmds.Cmds;
+import com.fabahaba.jedipus.cmds.ConnCmds;
 
 public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
 
@@ -86,7 +87,7 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
   public boolean validateObject(final PooledObject<RedisClient> pooledClient) {
 
     try {
-      pooledClient.getObject().sendCmd(Cmds.PING.raw());
+      pooledClient.getObject().sendCmd(ConnCmds.PING.raw());
       return true;
     } catch (final RuntimeException e) {
       return false;
@@ -189,7 +190,7 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
 
       if (pass != null) {
 
-        client.sendCmd(Cmds.AUTH.raw(), pass);
+        client.sendCmd(ConnCmds.AUTH.raw(), pass);
       }
 
       if (clientName != null) {

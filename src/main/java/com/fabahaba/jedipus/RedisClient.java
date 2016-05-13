@@ -1,9 +1,8 @@
 package com.fabahaba.jedipus;
 
-import com.fabahaba.jedipus.cmds.ClusterCmds;
-import com.fabahaba.jedipus.cmds.ScriptingCmds;
+import com.fabahaba.jedipus.cmds.Cmds;
 
-public interface RedisClient extends ClusterCmds, ScriptingCmds, AutoCloseable {
+public interface RedisClient extends Cmds, AutoCloseable {
 
   public int getConnectionTimeout();
 

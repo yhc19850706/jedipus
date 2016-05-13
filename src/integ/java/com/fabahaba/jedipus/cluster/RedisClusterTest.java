@@ -42,6 +42,7 @@ import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.cmds.ClusterCmds;
 import com.fabahaba.jedipus.cmds.Cmds;
+import com.fabahaba.jedipus.cmds.ConnCmds;
 import com.fabahaba.jedipus.cmds.SCmds;
 import com.fabahaba.jedipus.exceptions.AskNodeException;
 import com.fabahaba.jedipus.exceptions.MaxRedirectsExceededException;
@@ -679,7 +680,7 @@ public class RedisClusterTest {
 
     final RedisClusterExecutor jce = RedisClusterExecutor.startBuilding(discoveryNodes).create();
     try {
-      jce.acceptAll(client -> assertEquals("PONG", client.sendCmd(Cmds.PING)),
+      jce.acceptAll(client -> assertEquals("PONG", client.sendCmd(ConnCmds.PING)),
           ForkJoinPool.commonPool()).forEach(CompletableFuture::join);
     } finally {
       jce.close();
@@ -688,7 +689,7 @@ public class RedisClusterTest {
     jce.acceptAll(client -> fail("All pools should have been closed."));
 
     try {
-      jce.accept(client -> client.sendCmd(Cmds.PING.raw()));
+      jce.accept(client -> client.sendCmd(ConnCmds.PING.raw()));
       fail("All pools should have been closed.");
     } catch (final RedisConnectionException jcex) {
       // expected
@@ -794,7 +795,7 @@ public class RedisClusterTest {
         }
       });
 
-      assertEquals("PONG", jce.apply(slot, client -> client.sendCmd(Cmds.PING)));
+      assertEquals("PONG", jce.apply(slot, client -> client.sendCmd(ConnCmds.PING)));
     }
   }
 

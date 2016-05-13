@@ -1,8 +1,7 @@
 package com.fabahaba.jedipus.cmds;
 
-public final class Cmds {
-
-  public static final Cmd<String> AUTH = Cmd.createStringReply("AUTH");
+public interface Cmds extends LCmds, SCmds, HCmds, ZCmds, PFCmds, GeoCmds, ClusterCmds,
+    ScriptingCmds, ServerCmds, PubSubCmds, ConnCmds {
 
   public static final Cmd<Object> CLIENT = Cmd.create("CLIENT");
   public static final Cmd<String> GETNAME = Cmd.createStringReply("GETNAME");
@@ -19,11 +18,7 @@ public final class Cmds {
   public static final Cmd<Object> SKIP = Cmd.create("SKIP");
   public static final Cmd<Object> SETNAME = Cmd.create("SETNAME");
 
-  public static final Cmd<String> ECHO = Cmd.createStringReply("ECHO");
-  public static final Cmd<String> PING = Cmd.createStringReply("PING");
-  public static final Cmd<Object> QUIT = Cmd.create("QUIT");
-  public static final Cmd<Object> SELECT = Cmd.create("SELECT");
-  public static final Cmd<Long> DEL = Cmd.create("DEL", d -> (Long) d);
+  public static final Cmd<Long> DEL = Cmd.createCast("DEL");
   public static final Cmd<Object> EXISTS = Cmd.create("EXISTS");
   public static final Cmd<Object> KEYS = Cmd.create("KEYS");
   public static final Cmd<Object> SORT = Cmd.create("SORT");
@@ -81,66 +76,7 @@ public final class Cmds {
   public static final Cmd<Object> SETRANGE = Cmd.create("SETRANGE");
   public static final Cmd<Object> GETRANGE = Cmd.create("GETRANGE");
 
-  public static final Cmd<Object> HSET = Cmd.create("HSET");
-  public static final Cmd<Object> HGET = Cmd.create("HGET");
-  public static final Cmd<Object> HSETNX = Cmd.create("HSETNX");
-  public static final Cmd<Object> HMSET = Cmd.create("HMSET");
-  public static final Cmd<Object> HMGET = Cmd.create("HMGET");
-  public static final Cmd<Object> HKEYS = Cmd.create("HKEYS");
-  public static final Cmd<Object> HVALS = Cmd.create("HVALS");
-  public static final Cmd<Object> HGETALL = Cmd.create("HGETALL");
-  public static final Cmd<Object> HEXISTS = Cmd.create("HEXISTS");
-  public static final Cmd<Object> HDEL = Cmd.create("HDEL");
-  public static final Cmd<Object> HLEN = Cmd.create("HLEN");
-  public static final Cmd<Object> HINCRBY = Cmd.create("HINCRBY");
-  public static final Cmd<Object> HINCRBYFLOAT = Cmd.create("HINCRBYFLOAT");
-
-  public static final Cmd<Object> LINSERT = Cmd.create("LINSERT");
-  public static final Cmd<Object> LPUSHX = Cmd.create("LPUSHX");
-  public static final Cmd<Object> LPUSH = Cmd.create("LPUSH");
-  public static final Cmd<Object> LLEN = Cmd.create("LLEN");
-  public static final Cmd<Object> LRANGE = Cmd.create("LRANGE");
-  public static final Cmd<Object> LTRIM = Cmd.create("LTRIM");
-  public static final Cmd<Object> LINDEX = Cmd.create("LINDEX");
-  public static final Cmd<Object> LSET = Cmd.create("LSET");
-  public static final Cmd<Object> LREM = Cmd.create("LREM");
-  public static final Cmd<Object> LPOP = Cmd.create("LPOP");
-
-  public static final Cmd<Object> RPUSHX = Cmd.create("RPUSHX");
-  public static final Cmd<Object> RPUSH = Cmd.create("RPUSH");
-  public static final Cmd<Object> RPOP = Cmd.create("RPOP");
-  public static final Cmd<Object> RPOPLPUSH = Cmd.create("RPOPLPUSH");
-  public static final Cmd<Object> BLPOP = Cmd.create("BLPOP");
-  public static final Cmd<Object> BRPOP = Cmd.create("BRPOP");
-  public static final Cmd<Object> BRPOPLPUSH = Cmd.create("BRPOPLPUSH");
-
-
-  public static final Cmd<String> MULTI = Cmd.createStringReply("MULTI");
-  public static final Cmd<String> DISCARD = Cmd.createStringReply("DISCARD");
-  public static final Cmd<Object[]> EXEC = Cmd.createCast("EXEC");
-  public static final Cmd<String> WATCH = Cmd.createStringReply("WATCH");
-  public static final Cmd<String> UNWATCH = Cmd.createStringReply("UNWATCH");
-
-  public static final Cmd<Object> SUBSCRIBE = Cmd.create("SUBSCRIBE");
-  public static final Cmd<Object> PUBLISH = Cmd.create("PUBLISH");
-  public static final Cmd<Object> UNSUBSCRIBE = Cmd.create("UNSUBSCRIBE");
-  public static final Cmd<Object> PSUBSCRIBE = Cmd.create("PSUBSCRIBE");
-  public static final Cmd<Object> PUNSUBSCRIBE = Cmd.create("PUNSUBSCRIBE");
-  public static final Cmd<Object> PUBSUB = Cmd.create("PUBSUB");
-
   public static final Cmd<Object> MODULE = Cmd.create("MODULE");
 
   public static final Cmd<Object> SCAN = Cmd.create("SCAN");
-  public static final Cmd<Object> HSCAN = Cmd.create("HSCAN");
-
-  public static final Cmd<Object> PFADD = Cmd.create("PFADD");
-  public static final Cmd<Object> PFCOUNT = Cmd.create("PFCOUNT");
-  public static final Cmd<Object> PFMERGE = Cmd.create("PFMERGE");
-
-  public static final Cmd<Object> GEOADD = Cmd.create("GEOADD");
-  public static final Cmd<Object> GEODIST = Cmd.create("GEODIST");
-  public static final Cmd<Object> GEOHASH = Cmd.create("GEOHASH");
-  public static final Cmd<Object> GEOPOS = Cmd.create("GEOPOS");
-  public static final Cmd<Object> GEORADIUS = Cmd.create("GEORADIUS");
-  public static final Cmd<Object> GEORADIUSBYMEMBER = Cmd.create("GEORADIUSBYMEMBER");
 }
