@@ -44,6 +44,7 @@ import com.fabahaba.jedipus.cmds.ClusterCmds;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.ConnCmds;
 import com.fabahaba.jedipus.cmds.SCmds;
+import com.fabahaba.jedipus.cmds.ServerCmds;
 import com.fabahaba.jedipus.exceptions.AskNodeException;
 import com.fabahaba.jedipus.exceptions.MaxRedirectsExceededException;
 import com.fabahaba.jedipus.exceptions.RedisClusterDownException;
@@ -788,7 +789,7 @@ public class RedisClusterTest {
 
             final int addrStart = clientInfo.indexOf("addr=") + 5;
             final int addrEnd = clientInfo.indexOf(' ', addrStart);
-            client.sendCmd(Cmds.CLIENT, Cmds.KILL.raw(),
+            client.sendCmd(Cmds.CLIENT, ServerCmds.KILL.raw(),
                 RESP.toBytes(clientInfo.substring(addrStart, addrEnd)));
             break;
           }

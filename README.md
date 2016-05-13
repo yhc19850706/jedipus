@@ -87,8 +87,7 @@ try (final RedisClusterExecutor rce =
 
   // Implicit multi applied.
   final Object[] sortedBars = rce.applyPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
-
-    // Direct command execution.
+ 
     pipeline.sendCmd(Cmds.SET, hashTaggedKey, "value");
     pipeline.sendCmd(Cmds.ZADD, fooKey, "NX", "-1", "barowitch");
     pipeline.sendCmd(Cmds.ZADD, fooKey, "XX", "-2", "barowitch");
