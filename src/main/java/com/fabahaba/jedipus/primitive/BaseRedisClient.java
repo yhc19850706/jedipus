@@ -4,7 +4,7 @@ import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.Cmd;
-import com.fabahaba.jedipus.cmds.ConnCmds;
+import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.PrimCmd;
 
 abstract class BaseRedisClient implements RedisClient {
@@ -224,7 +224,7 @@ abstract class BaseRedisClient implements RedisClient {
   public void close() {
 
     try {
-      sendCmd(ConnCmds.QUIT.raw());
+      sendCmd(Cmds.QUIT.raw());
     } catch (final RuntimeException e) {
       // closing anyways
     } finally {

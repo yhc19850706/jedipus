@@ -40,9 +40,7 @@ import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
-import com.fabahaba.jedipus.cmds.ClusterCmds;
 import com.fabahaba.jedipus.cmds.Cmds;
-import com.fabahaba.jedipus.cmds.ConnCmds;
 import com.fabahaba.jedipus.cmds.SCmds;
 import com.fabahaba.jedipus.cmds.ServerCmds;
 import com.fabahaba.jedipus.exceptions.AskNodeException;
@@ -116,7 +114,7 @@ public class RedisClusterTest {
     for (;;) {
       for (final RedisClient client : masterClients) {
         client.sendCmd(Cmds.FLUSHALL.raw());
-        client.clusterReset(ClusterCmds.SOFT);
+        client.clusterReset(Cmds.SOFT);
       }
 
       for (int i = 0; i < NUM_MASTERS; i++) {
@@ -138,7 +136,7 @@ public class RedisClusterTest {
       log.warning("Timed out setting up cluster for test, trying again...");
       for (final Node node : slaves) {
         try (final RedisClient client = REDIS_CLIENT_BUILDER.create(node)) {
-          client.clusterReset(ClusterCmds.SOFT);
+          client.clusterReset(Cmds.SOFT);
         }
       }
     }
@@ -155,7 +153,7 @@ public class RedisClusterTest {
 
       try (final RedisClient client = RedisClientFactory.startBuilding().create(node)) {
         client.sendCmd(Cmds.FLUSHALL.raw());
-        client.clusterReset(ClusterCmds.SOFT);
+        client.clusterReset(Cmds.SOFT);
       }
     }
   }
@@ -165,7 +163,7 @@ public class RedisClusterTest {
 
     for (final RedisClient master : masterClients) {
       master.sendCmd(Cmds.FLUSHALL.raw());
-      master.clusterReset(ClusterCmds.SOFT);
+      master.clusterReset(Cmds.SOFT);
       master.close();
     }
   }
@@ -428,7 +426,7 @@ public class RedisClusterTest {
     try (final RedisClient client = RedisClientFactory.startBuilding().create(newNode)) {
 
       do {
-        client.clusterReset(ClusterCmds.HARD);
+        client.clusterReset(Cmds.HARD);
         pendingReset.add(newNode);
         for (final Node master : masters) {
           client.clusterMeet(master.getHost(), master.getPort());
@@ -681,7 +679,7 @@ public class RedisClusterTest {
 
     final RedisClusterExecutor jce = RedisClusterExecutor.startBuilding(discoveryNodes).create();
     try {
-      jce.acceptAll(client -> assertEquals("PONG", client.sendCmd(ConnCmds.PING)),
+      jce.acceptAll(client -> assertEquals("PONG", client.sendCmd(Cmds.PING)),
           ForkJoinPool.commonPool()).forEach(CompletableFuture::join);
     } finally {
       jce.close();
@@ -690,7 +688,7 @@ public class RedisClusterTest {
     jce.acceptAll(client -> fail("All pools should have been closed."));
 
     try {
-      jce.accept(client -> client.sendCmd(ConnCmds.PING.raw()));
+      jce.accept(client -> client.sendCmd(Cmds.PING.raw()));
       fail("All pools should have been closed.");
     } catch (final RedisConnectionException jcex) {
       // expected
@@ -780,23 +778,23 @@ public class RedisClusterTest {
 
       jce.accept(slot, client -> {
 
-        client.sendCmd(Cmds.CLIENT, Cmds.SETNAME.raw(), RESP.toBytes("DEAD"));
+        client.sendCmd(Cmds.CLIENT, Cmds.CLIENT_SETNAME.raw(), RESP.toBytes("DEAD"));
 
-        for (final String clientInfo : client.sendCmd(Cmds.CLIENT, Cmds.LIST).split("\n")) {
+        for (final String clientInfo : client.sendCmd(Cmds.CLIENT, Cmds.CLIENT_LIST).split("\n")) {
 
           final int nameStart = clientInfo.indexOf("name=") + 5;
           if (clientInfo.substring(nameStart, nameStart + 4).equals("DEAD")) {
 
             final int addrStart = clientInfo.indexOf("addr=") + 5;
             final int addrEnd = clientInfo.indexOf(' ', addrStart);
-            client.sendCmd(Cmds.CLIENT, ServerCmds.KILL.raw(),
+            client.sendCmd(Cmds.CLIENT, ServerCmds.CLIENT_KILL.raw(),
                 RESP.toBytes(clientInfo.substring(addrStart, addrEnd)));
             break;
           }
         }
       });
 
-      assertEquals("PONG", jce.apply(slot, client -> client.sendCmd(ConnCmds.PING)));
+      assertEquals("PONG", jce.apply(slot, client -> client.sendCmd(Cmds.PING)));
     }
   }
 

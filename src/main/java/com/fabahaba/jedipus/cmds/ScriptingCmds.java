@@ -6,7 +6,7 @@ import com.fabahaba.jedipus.RESP;
 
 public interface ScriptingCmds extends DirectCmds {
 
-  public static byte[][] createEvalArgs(final byte[] sha1Hex, final byte[] keyCount,
+  static byte[][] createEvalArgs(final byte[] sha1Hex, final byte[] keyCount,
       final byte[][] params) {
 
     final byte[][] allArgs = new byte[params.length + 2][];
@@ -19,7 +19,7 @@ public interface ScriptingCmds extends DirectCmds {
     return allArgs;
   }
 
-  public static byte[][] createEvalArgs(final byte[] sha1Hex, final List<byte[]> keys,
+  static byte[][] createEvalArgs(final byte[] sha1Hex, final List<byte[]> keys,
       final List<byte[]> args) {
 
     final int numKeys = keys.size();
@@ -55,16 +55,17 @@ public interface ScriptingCmds extends DirectCmds {
     return sendCmd(SCRIPT, LOAD, script);
   }
 
-  public static final Cmd<Object> EVAL = Cmd.create("EVAL");
-  public static final Cmd<Object> EVALSHA = Cmd.create("EVALSHA");
-  public static final Cmd<Object> SCRIPT = Cmd.create("SCRIPT");
-  public static final Cmd<Object[]> EXISTS = Cmd.createCast("EXISTS");
-  public static final Cmd<String> FLUSH = Cmd.createStringReply("FLUSH");
-  public static final Cmd<String> KILL = Cmd.createStringReply("KILL");
-  public static final Cmd<String> LOAD = Cmd.createStringReply("LOAD");
+  // http://redis.io/commands#scripting
+  static final Cmd<Object> EVAL = Cmd.create("EVAL");
+  static final Cmd<Object> EVALSHA = Cmd.create("EVALSHA");
+  static final Cmd<Object> SCRIPT = Cmd.create("SCRIPT");
+  static final Cmd<Object[]> EXISTS = Cmd.createCast("EXISTS");
+  static final Cmd<String> FLUSH = Cmd.createStringReply("FLUSH");
+  static final Cmd<String> KILL = Cmd.createStringReply("KILL");
+  static final Cmd<String> LOAD = Cmd.createStringReply("LOAD");
 
-  public static final Cmd<String> DEBUG = Cmd.createStringReply("DEBUG");
-  public static final Cmd<String> YES = Cmd.createStringReply("YES");
-  public static final Cmd<String> SYNC = Cmd.createStringReply("SYNC");
-  public static final Cmd<String> NO = Cmd.createStringReply("NO");
+  static final Cmd<String> DEBUG = Cmd.createStringReply("DEBUG");
+  static final Cmd<String> YES = Cmd.createStringReply("YES");
+  static final Cmd<String> SYNC = Cmd.createStringReply("SYNC");
+  static final Cmd<String> NO = Cmd.createStringReply("NO");
 }

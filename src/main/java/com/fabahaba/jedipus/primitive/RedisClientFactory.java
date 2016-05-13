@@ -14,9 +14,7 @@ import org.apache.commons.pool2.impl.DefaultPooledObject;
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
-import com.fabahaba.jedipus.cmds.ClusterCmds;
 import com.fabahaba.jedipus.cmds.Cmds;
-import com.fabahaba.jedipus.cmds.ConnCmds;
 
 public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
 
@@ -87,7 +85,7 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
   public boolean validateObject(final PooledObject<RedisClient> pooledClient) {
 
     try {
-      pooledClient.getObject().sendCmd(ConnCmds.PING.raw());
+      pooledClient.getObject().sendCmd(Cmds.PING.raw());
       return true;
     } catch (final RuntimeException e) {
       return false;
@@ -190,17 +188,17 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
 
       if (pass != null) {
 
-        client.sendCmd(ConnCmds.AUTH.raw(), pass);
+        client.sendCmd(Cmds.AUTH.raw(), pass);
       }
 
       if (clientName != null) {
 
-        client.sendCmd(Cmds.CLIENT, Cmds.SETNAME.raw(), RESP.toBytes(clientName));
+        client.sendCmd(Cmds.CLIENT, Cmds.CLIENT_SETNAME.raw(), RESP.toBytes(clientName));
       }
 
       if (initReadOnly) {
 
-        client.sendCmd(ClusterCmds.READONLY.raw());
+        client.sendCmd(Cmds.READONLY.raw());
       }
 
       return client;

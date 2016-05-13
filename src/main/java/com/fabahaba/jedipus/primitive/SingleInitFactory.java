@@ -8,9 +8,7 @@ import javax.net.ssl.SSLSocketFactory;
 
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
-import com.fabahaba.jedipus.cmds.ClusterCmds;
 import com.fabahaba.jedipus.cmds.Cmds;
-import com.fabahaba.jedipus.cmds.ConnCmds;
 
 class SingleInitFactory extends RedisClientFactory {
 
@@ -28,19 +26,19 @@ class SingleInitFactory extends RedisClientFactory {
 
     if (pass != null) {
 
-      client.sendCmd(ConnCmds.AUTH.raw(), pass);
+      client.sendCmd(Cmds.AUTH.raw(), pass);
       return;
     }
 
     if (clientName != null) {
 
-      client.sendCmd(Cmds.CLIENT, Cmds.SETNAME.raw(), clientName);
+      client.sendCmd(Cmds.CLIENT, Cmds.CLIENT_SETNAME.raw(), clientName);
       return;
     }
 
     if (initReadOnly) {
 
-      client.sendCmd(ClusterCmds.READONLY.raw());
+      client.sendCmd(Cmds.READONLY.raw());
       return;
     }
   }

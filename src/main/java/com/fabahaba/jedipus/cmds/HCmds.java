@@ -2,6 +2,7 @@ package com.fabahaba.jedipus.cmds;
 
 public interface HCmds {
 
+  // http://redis.io/commands#hash
   public static final Cmd<Long> HDEL = Cmd.createCast("HDEL");
   public static final Cmd<Long> HEXISTS = Cmd.createCast("HEXISTS");
   public static final Cmd<String> HGET = Cmd.createStringReply("HGET");

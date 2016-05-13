@@ -27,7 +27,7 @@ final class RedisInputStream extends InputStream {
 
   public RedisInputStream(final Node node, final InputStream in) {
 
-    this(node, in, 1024);
+    this(node, in, 4096);
   }
 
   public Node getNode() {

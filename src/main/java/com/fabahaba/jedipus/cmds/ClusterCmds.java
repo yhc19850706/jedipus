@@ -159,6 +159,7 @@ public interface ClusterCmds extends DirectCmds {
     sendCmd(CLUSTER, FLUSHSLOTS.raw());
   }
 
+  // http://redis.io/commands#cluster
   static final Cmd<Object> CLUSTER = Cmd.create("CLUSTER");
   static final Cmd<Object> FLUSHSLOTS = Cmd.create("FLUSHSLOTS");
   static final Cmd<String> ASKING = Cmd.createStringReply("ASKING");
