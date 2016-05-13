@@ -20,7 +20,7 @@ class DirectFutureReply<T> extends StatefulFutureReply<T> {
   @Override
   public T get() {
 
-    super.build();
+    check();
 
     return (T) response;
   }

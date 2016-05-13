@@ -15,7 +15,7 @@ class AdaptedFutureLongReply extends StatefulFutureReply<Void> {
   @Override
   public long getLong() {
 
-    super.build();
+    check();
 
     return adapter.applyAsLong(response);
   }

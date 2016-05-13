@@ -15,7 +15,7 @@ final class DeserializedFutureRespy<T> extends DirectFutureReply<T> {
   @Override
   public T get() {
 
-    super.build();
+    check();
 
     return deserialized;
   }

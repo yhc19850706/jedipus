@@ -41,39 +41,42 @@ dependencies {
 
 #####Basic Usage Demos
 ```java
-try (final RedisClusterExecutor rce = RedisClusterExecutor
-      .startBuilding(Node.create("localhost", 7000)).create()) {
+try (final RedisClusterExecutor rce =
+    RedisClusterExecutor.startBuilding(Node.create("localhost", 7000)).create()) {
 
-   final String key = "42";
-   rce.accept(key, client -> client.sendCmd(Cmds.SET, key, "107.6"));
+  final String key = "42";
+  rce.accept(key, client -> client.sendCmd(Cmds.SET, key, "107.6"));
 
-   final String temp = rce.apply(key, client -> client.sendCmd(Cmds.GET, key));
-   if (temp.equals("107.6")) {
-      System.out.println("Showers' ready, don't forget your towel.");
-   }
+  final String temp = rce.apply(key, client -> client.sendCmd(Cmds.GET, key));
+  if (temp.equals("107.6")) {
+    System.out.println("Showers' ready, don't forget your towel.");
+  }
 }
 ```
 
 ```java
-try (final RedisClusterExecutor rce = RedisClusterExecutor
-      .startBuilding(Node.create("localhost", 7000)).create()) {
+try (final RedisClusterExecutor rce =
+    RedisClusterExecutor.startBuilding(Node.create("localhost", 7000)).create()) {
 
-   final String skey = "skey";
+  final String skey = "skey";
 
-   final Long numMembers = rce.applyPipeline(skey, pipeline -> {
-      pipeline.sendCmd(Cmds.SADD, skey, "member");
-      final FutureResponse<Long> response = pipeline.sendCmd(Cmds.SCARD, skey);
-      pipeline.sync();
-      return response.get();
-   });
+  final FutureLongReply numMembers = rce.applyPipeline(skey, pipeline -> {
+    // Express a raw return type to prevent unused String deserialization.
+    pipeline.sendCmd(Cmds.SADD.raw(), skey, "member");
+    // Optional primitive return types; no auto boxing!
+    final FutureLongReply response = pipeline.sendCmd(Cmds.SCARD.prim(), skey);
+    pipeline.sync();
+    return response.check();
+  });
 
-   System.out.format("'%s' has %d members.%n", skey, numMembers);
+  System.out.format("'%s' has %d members.%n", skey, numMembers.getLong());
 }
 ```
 
 ```java
-try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(Node.create("localhost", 7000))
-      .withReadMode(ReadMode.MIXED_SLAVES).create()) {
+try (final RedisClusterExecutor rce =
+    RedisClusterExecutor.startBuilding(Node.create("localhost", 7000))
+        .withReadMode(ReadMode.MIXED_SLAVES).create()) {
 
   // Hash tagged pipelined transaction.
   final String hashTag = RCUtils.createNameSpacedHashTag("HT");
@@ -82,27 +85,27 @@ try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(Node.cr
   final String hashTaggedKey = hashTag + "key";
   final String fooKey = hashTag + "foo";
 
+  // Implicit multi applied.
   final Object[] sortedBars = rce.applyPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
 
+    // Direct command execution.
     pipeline.sendCmd(Cmds.SET, hashTaggedKey, "value");
-
-    pipeline.sendCmd(ZCmds.ZADD, fooKey, "NX", "-1", "barowitch");
-    pipeline.sendCmd(ZCmds.ZADD, fooKey, "XX", "-2", "barowitch");
+    pipeline.sendCmd(Cmds.ZADD, fooKey, "NX", "-1", "barowitch");
+    pipeline.sendCmd(Cmds.ZADD, fooKey, "XX", "-2", "barowitch");
     // Handle different ZADD return types with flexible command design.
-    pipeline.sendCmd(ZCmds.ZADD_INCR, fooKey, "XX", "INCR", "-1", "barowitch");
+    pipeline.sendCmd(Cmds.ZADD_INCR, fooKey, "XX", "INCR", "-1", "barowitch");
     // Utilities to avoid extra array creation.
-    pipeline.sendCmd(ZCmds.ZADD, ZAddParams.fillNX(new byte[][] {RESP.toBytes(fooKey), null,
+    pipeline.sendCmd(Cmds.ZADD, ZAddParams.fillNX(new byte[][] {RESP.toBytes(fooKey), null,
         RESP.toBytes(.37), RESP.toBytes("barinsky")}));
-    pipeline.sendCmd(ZCmds.ZADD, fooKey, "42", "barikoviev");
+    pipeline.sendCmd(Cmds.ZADD, fooKey, "42", "barikoviev");
 
-    final FutureResponse<String> valueResponse = pipeline.sendCmd(Cmds.GET, hashTaggedKey);
-    final FutureResponse<Object[]> barsResponse =
-        pipeline.sendCmd(ZCmds.ZRANGE, fooKey, "0", "-1", "WITHSCORES");
+    final FutureReply<String> valueResponse = pipeline.sendCmd(Cmds.GET, hashTaggedKey);
+    final FutureReply<Object[]> barsResponse =
+        pipeline.sendCmd(Cmds.ZRANGE, fooKey, "0", "-1", "WITHSCORES");
 
     // Note: Pipelines and transactions (multi) are merely started by the the library.
     // 'exec' and 'sync' must be called by the user.
-    pipeline.exec();
-    pipeline.sync();
+    pipeline.execSync();
 
     // Note: Responses must be captured within this lambda closure in order to properly
     // leverage error handling.
@@ -113,21 +116,21 @@ try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(Node.cr
     return barsResponse.get();
   });
 
-  // '{HT}:foo': barowitch (-3.0) barinsky (0.37) barikoviev (42.0)
+  // '{HT}:foo': [barowitch (-1.0), barinsky (0.37), barikoviev (42.0)]
   System.out.format("%n'%s':", fooKey);
-
   for (int i = 0; i < sortedBars.length;) {
-    System.out.format(" %s (%s)", RESP.toString(sortedBars[i++]), RESP.toDouble(sortedBars[i++]));
+    System.out.format(" %s (%s)", RESP.toString(sortedBars[i++]),
+        RESP.toDouble(sortedBars[i++]));
   }
 
   // Read from load balanced slave.
-  final String roResult = rce.apply(ReadMode.SLAVES, slot,
-      client -> client.sendCmd(Cmds.GET, hashTaggedKey));
+  final String roResult =
+      rce.apply(ReadMode.SLAVES, slot, client -> client.sendCmd(Cmds.GET, hashTaggedKey));
   System.out.format("%n'%s': %s%n", hashTaggedKey, roResult);
 
-  // cleanup
-  final Long numRemoved = rce.apply(ReadMode.MASTER, slot,
-      client -> client.sendCmd(Cmds.DEL, hashTaggedKey, fooKey));
+  // Optional primitive return types; no auto boxing!
+  final long numRemoved = rce.apply(ReadMode.MASTER, slot,
+      client -> client.sendCmd(Cmds.DEL.prim(), hashTaggedKey, fooKey));
   System.out.format("%nRemoved %d keys.%n", numRemoved);
 }
 ```

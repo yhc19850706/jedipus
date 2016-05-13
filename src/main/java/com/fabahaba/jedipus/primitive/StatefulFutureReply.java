@@ -27,15 +27,16 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
     state = State.PENDING_DEPENDENCY;
   }
 
-  protected void build() {
+  @Override
+  public StatefulFutureReply<T> check() {
 
     switch (state) {
       case PENDING_DEPENDENCY:
         state = State.BUILDING_DEPENDENCY;
         try {
           // Dependency will drive another build of this after setting response.
-          dependency.build();
-          return;
+          dependency.check();
+          return this;
         } catch (final RuntimeException re) {
           setException(re);
           throw re;
@@ -45,7 +46,7 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
         try {
           handleResponse();
           state = State.BUILT;
-          return;
+          return this;
         } catch (final RuntimeException re) {
           setException(re);
           throw re;
@@ -59,7 +60,7 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
       case BUILDING:
       case BUILT:
       default:
-        return;
+        return this;
     }
   }
 
