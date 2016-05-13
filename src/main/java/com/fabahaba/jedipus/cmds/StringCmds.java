@@ -33,6 +33,10 @@ public interface StringCmds {
   static final Cmd<Long> MSETNX = Cmd.createCast("MSETNX");
   static final Cmd<String> PSETEX = Cmd.createStringReply("PSETEX");
   static final Cmd<String> SET = Cmd.createStringReply("SET");
+  static final Cmd<String> EX = Cmd.createStringReply("EX");
+  static final Cmd<String> PX = Cmd.createStringReply("PX");
+  static final Cmd<String> NX = Cmd.createStringReply("NX");
+  static final Cmd<String> XX = Cmd.createStringReply("XX");
   static final Cmd<Long> SETBIT = Cmd.createCast("SETBIT");
   static final Cmd<String> SETEX = Cmd.createStringReply("SETEX");
   static final Cmd<Long> SETNX = Cmd.createCast("SETNX");

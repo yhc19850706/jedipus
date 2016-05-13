@@ -1,19 +1,11 @@
 package com.fabahaba.jedipus.params;
 
 import com.fabahaba.jedipus.RESP;
+import com.fabahaba.jedipus.cmds.Cmds;
 
 public final class SortingParams {
 
-  public static enum SortKeywords {
-    ALPHA, ASC, BY, DESC, GET, LIMIT, NOSORT;
-
-    private byte[] bytes;
-
-    private SortKeywords() {
-      this.bytes = RESP.toBytes(name());
-    }
-  }
-
+  // http://redis.io/commands/sort
   private SortingParams() {}
 
   public static Builder build() {
@@ -74,7 +66,7 @@ public final class SortingParams {
       int index = fillOps(ops, RESP.toBytes(key), params);
 
       for (final String pattern : getPatterns) {
-        params[index++] = SortKeywords.GET.bytes;
+        params[index++] = Cmds.GET.getCmdBytes();
         params[index++] = RESP.toBytes(pattern);
       }
 
@@ -88,7 +80,7 @@ public final class SortingParams {
       int index = fillOps(ops, key, params);
 
       for (final byte[] pattern : getPatterns) {
-        params[index++] = SortKeywords.GET.bytes;
+        params[index++] = Cmds.GET.getCmdBytes();
         params[index++] = pattern;
       }
 
@@ -98,7 +90,7 @@ public final class SortingParams {
     public byte[][] fill(final byte[] key, final byte[][] args) {
 
       for (int index = fillOps(ops, key, args); index < args.length; index += 2) {
-        args[index] = SortKeywords.GET.bytes;
+        args[index] = Cmds.GET.getCmdBytes();
       }
 
       return args;
@@ -115,14 +107,16 @@ public final class SortingParams {
       return by(RESP.toBytes(by));
     }
 
+    private static final byte[] NOSORT = RESP.toBytes("nosort");
+
     public Builder nosort() {
 
-      return by(SortKeywords.NOSORT.bytes);
+      return by(NOSORT);
     }
 
     public Builder by(final byte[] by) {
 
-      ops[0] = SortKeywords.BY.bytes;
+      ops[0] = Cmds.BY.getCmdBytes();
       ops[1] = by;
       return this;
     }
@@ -134,7 +128,7 @@ public final class SortingParams {
 
     public Builder limit(final byte[] offset, final byte[] count) {
 
-      ops[2] = SortKeywords.LIMIT.bytes;
+      ops[2] = Cmds.LIMIT.getCmdBytes();
       ops[3] = offset;
       ops[4] = count;
       return this;
@@ -142,19 +136,19 @@ public final class SortingParams {
 
     public Builder asc() {
 
-      ops[5] = SortKeywords.ASC.bytes;
+      ops[5] = Cmds.ASC.getCmdBytes();
       return this;
     }
 
     public Builder desc() {
 
-      ops[5] = SortKeywords.DESC.bytes;
+      ops[5] = Cmds.DESC.getCmdBytes();
       return this;
     }
 
     public Builder alpha() {
 
-      ops[6] = SortKeywords.ALPHA.bytes;
+      ops[6] = Cmds.ALPHA.getCmdBytes();
       return this;
     }
 

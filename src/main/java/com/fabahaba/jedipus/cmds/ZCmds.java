@@ -4,6 +4,9 @@ public interface ZCmds {
 
   // http://redis.io/commands#sorted_set
   static final Cmd<Long> ZADD = Cmd.createCast("ZADD");
+  static final Cmd<Long> ZADD_NX = Cmd.createCast("NX");
+  static final Cmd<Long> ZADD_XX = Cmd.createCast("XX");
+  static final Cmd<Long> ZADD_CH = Cmd.createCast("CH");
   static final Cmd<String> ZADD_INCR = Cmd.createStringReply("ZADD");
   static final Cmd<Long> ZCARD = Cmd.createCast("ZCARD");
   static final Cmd<Long> ZCOUNT = Cmd.createCast("ZCOUNT");

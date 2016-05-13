@@ -1,64 +1,62 @@
 package com.fabahaba.jedipus.params;
 
-import com.fabahaba.jedipus.RESP;
+import com.fabahaba.jedipus.cmds.Cmds;
 
-public class ZAddParams {
+public final class ZAddParams {
 
-  private static final byte[] XX = RESP.toBytes("xx");
-  private static final byte[] NX = RESP.toBytes("nx");
-  private static final byte[] CH = RESP.toBytes("ch");
-  private static final byte[] INCR = RESP.toBytes("incr");
+  // http://redis.io/commands/zadd
+  private ZAddParams() {}
 
   public static byte[][] fillNX(final byte[][] args) {
 
-    args[1] = NX;
+    args[1] = Cmds.ZADD_NX.getCmdBytes();
     return args;
   }
 
   public static byte[][] fillXX(final byte[][] args) {
 
-    args[1] = XX;
+    args[1] = Cmds.ZADD_XX.getCmdBytes();
     return args;
   }
 
   public static byte[][] fillXXCH(final byte[][] args) {
 
-    args[1] = XX;
-    args[2] = CH;
+    args[1] = Cmds.ZADD_XX.getCmdBytes();
+    args[2] = Cmds.ZADD_CH.getCmdBytes();
     return args;
   }
 
   public static byte[][] fillXXCHINCR(final byte[][] args) {
 
-    args[1] = XX;
-    args[2] = CH;
-    args[3] = INCR;
+    args[1] = Cmds.ZADD_XX.getCmdBytes();
+    args[2] = Cmds.ZADD_CH.getCmdBytes();
+    args[3] = Cmds.ZADD_INCR.getCmdBytes();
     return args;
   }
 
   public static byte[][] fillXXINCR(final byte[][] args) {
 
-    args[1] = XX;
-    args[2] = INCR;
+    args[1] = Cmds.ZADD_XX.getCmdBytes();
+    args[2] = Cmds.ZADD_INCR.getCmdBytes();
     return args;
   }
 
   public static byte[][] fillCH(final byte[][] args) {
 
-    args[1] = CH;
+    args[1] = Cmds.ZADD_CH.getCmdBytes();
     return args;
   }
 
   public static byte[][] fillCHINCR(final byte[][] args) {
 
-    args[1] = CH;
-    args[2] = INCR;
+    args[1] = Cmds.ZADD_CH.getCmdBytes();
+    args[2] = Cmds.ZADD_INCR.getCmdBytes();
     return args;
   }
 
   public static byte[][] fillINCR(final byte[][] args) {
 
-    args[1] = INCR;
+    args[1] = Cmds.ZADD_INCR.getCmdBytes();
     return args;
   }
 }
