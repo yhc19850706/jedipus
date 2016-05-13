@@ -1,6 +1,5 @@
 package com.fabahaba.jedipus.primitive;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -11,8 +10,8 @@ final class RedisInputStream extends InputStream {
 
   private final Node node;
   private final InputStream in;
-  private final byte[] buf;
-  private int count;
+  private byte[] buf;
+  private int pos;
   private int limit;
 
   RedisInputStream(final Node node, final InputStream in, final int size) {
@@ -28,7 +27,7 @@ final class RedisInputStream extends InputStream {
 
   public RedisInputStream(final Node node, final InputStream in) {
 
-    this(node, in, 8192);
+    this(node, in, 1024);
   }
 
   public Node getNode() {
@@ -39,23 +38,27 @@ final class RedisInputStream extends InputStream {
   public byte readByte() {
 
     ensureFill();
-    return buf[count++];
+    return buf[pos++];
   }
 
   public String readLine() {
 
-    final StringBuilder sb = new StringBuilder();
-
-    for (;;) {
+    for (final StringBuilder sb = new StringBuilder();;) {
       ensureFill();
 
-      final byte bite = buf[count++];
+      final byte bite = buf[pos++];
       if (bite == '\r') {
         ensureFill(); // Must be one more byte
 
-        final byte newLine = buf[count++];
+        final byte newLine = buf[pos++];
         if (newLine == '\n') {
-          break;
+
+          final String reply = sb.toString();
+          if (reply.length() == 0) {
+            throw new RedisConnectionException(node,
+                "It seems like server has closed the connection.");
+          }
+          return reply;
         }
 
         sb.append((char) bite);
@@ -65,89 +68,41 @@ final class RedisInputStream extends InputStream {
 
       sb.append((char) bite);
     }
-
-    final String reply = sb.toString();
-    if (reply.length() == 0) {
-      throw new RedisConnectionException(node, "It seems like server has closed the connection.");
-    }
-
-    return reply;
   }
 
   public byte[] readLineBytes() {
 
-    /*
-     * This operation should only require one fill. In that typical case we optimize allocation and
-     * copy of the byte array. In the edge case where more than one fill is required then we take a
-     * slower path and expand a byte array output stream as is necessary.
-     */
-
     ensureFill();
 
-    int pos = count;
+    for (int lookAhead = pos;;) {
 
-    for (;;) {
+      if (buf[lookAhead++] == '\r') {
+        if (lookAhead == limit) {
+          grow(lookAhead);
+        }
 
-      if (pos == limit) {
-        return readLineBytesSlowly();
+        if (buf[lookAhead++] == '\n') {
+          final int numBytes = (lookAhead - pos) - 2;
+          final byte[] line = new byte[numBytes];
+          System.arraycopy(buf, pos, line, 0, numBytes);
+          pos = lookAhead;
+          return line;
+        }
       }
 
-      if (buf[pos++] == '\r') {
-        if (pos == limit) {
-          return readLineBytesSlowly();
-        }
-
-        if (buf[pos++] == '\n') {
-          break;
-        }
+      if (lookAhead == limit) {
+        grow(lookAhead);
       }
     }
-
-    final int numBytes = (pos - count) - 2;
-    final byte[] line = new byte[numBytes];
-    System.arraycopy(buf, count, line, 0, numBytes);
-    count = pos;
-    return line;
   }
 
-  /**
-   * Slow path in case a line of bytes cannot be read in one #fill() operation. This is still faster
-   * than creating the StrinbBuilder, String, then encoding as byte[] in Protocol, then decoding
-   * back into a String.
-   */
-  private byte[] readLineBytesSlowly() {
+  private void grow(final int pos) {
 
-    ByteArrayOutputStream bout = null;
-
-    while (true) {
-      ensureFill();
-
-      final byte bite = buf[count++];
-      if (bite == '\r') {
-        ensureFill(); // Must be one more byte
-
-        final byte newLine = buf[count++];
-        if (newLine == '\n') {
-          break;
-        }
-
-        if (bout == null) {
-          bout = new ByteArrayOutputStream(16);
-        }
-
-        bout.write(bite);
-        bout.write(newLine);
-        continue;
-      }
-
-      if (bout == null) {
-        bout = new ByteArrayOutputStream(16);
-      }
-
-      bout.write(bite);
-    }
-
-    return bout == null ? new byte[0] : bout.toByteArray();
+    final int originalLength = buf.length;
+    final byte[] doubled = new byte[originalLength << 1];
+    System.arraycopy(buf, 0, doubled, 0, originalLength);
+    buf = doubled;
+    limit += readChecked(limit, originalLength);
   }
 
   public int readIntCRLF() {
@@ -161,8 +116,8 @@ final class RedisInputStream extends InputStream {
 
     ensureFill();
 
-    if (buf[count] == '-') {
-      ++count;
+    if (buf[pos] == '-') {
+      ++pos;
       return -readUnsignedLongCRLF();
     }
 
@@ -174,11 +129,11 @@ final class RedisInputStream extends InputStream {
     for (long value = 0;;) {
       ensureFill();
 
-      final int b = buf[count++];
+      final int b = buf[pos++];
       if (b == '\r') {
         ensureFill();
 
-        if (buf[count++] != '\n') {
+        if (buf[pos++] != '\n') {
           throw new RedisConnectionException(node, "Unexpected character!");
         }
 
@@ -194,28 +149,37 @@ final class RedisInputStream extends InputStream {
 
     ensureFill();
 
-    final int length = Math.min(limit - count, len);
-    System.arraycopy(buf, count, data, off, length);
-    count += length;
+    final int length = Math.min(limit - pos, len);
+    System.arraycopy(buf, pos, data, off, length);
+    pos += length;
     return length;
   }
 
-  /**
-   * This methods assumes there are required bytes to be read. If we cannot read anymore bytes an
-   * exception is thrown to quickly ascertain that the stream was smaller than expected.
-   */
   private void ensureFill() {
 
-    if (count >= limit) {
-      try {
-        limit = in.read(buf);
-        count = 0;
-        if (limit == -1) {
-          throw new RedisConnectionException(node, "Unexpected end of stream.");
-        }
-      } catch (final IOException e) {
-        throw new RedisConnectionException(node, e);
+    if (pos < limit) {
+      return;
+    }
+
+    try {
+      limit = readChecked(0, buf.length);
+    } finally {
+      pos = 0;
+    }
+  }
+
+  private int readChecked(final int off, final int len) {
+
+    try {
+      final int read = in.read(buf, off, len);
+
+      if (read == -1) {
+        throw new RedisConnectionException(node, "Unexpected end of stream.");
       }
+
+      return read;
+    } catch (final IOException e) {
+      throw new RedisConnectionException(node, e);
     }
   }
 

@@ -63,7 +63,7 @@ try (final RedisClusterExecutor rce =
   final FutureLongReply numMembers = rce.applyPipeline(skey, pipeline -> {
     // Express a raw return type to prevent unused String deserialization.
     pipeline.sendCmd(Cmds.SADD.raw(), skey, "member");
-    // Optional primitive return types; no auto boxing!
+    // Optional primitive return types.
     final FutureLongReply response = pipeline.sendCmd(Cmds.SCARD.prim(), skey);
     pipeline.sync();
     return response.check();
@@ -87,7 +87,7 @@ try (final RedisClusterExecutor rce =
 
   // Implicit multi applied.
   final Object[] sortedBars = rce.applyPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
- 
+
     pipeline.sendCmd(Cmds.SET, hashTaggedKey, "value");
     pipeline.sendCmd(Cmds.ZADD, fooKey, "NX", "-1", "barowitch");
     pipeline.sendCmd(Cmds.ZADD, fooKey, "XX", "-2", "barowitch");

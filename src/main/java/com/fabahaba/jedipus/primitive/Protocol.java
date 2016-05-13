@@ -267,12 +267,44 @@ final class Protocol {
 
     final Object[] reply = new Object[num];
     for (int i = 0; i < num; i++) {
-      try {
-        reply[i] = read(node, hostPortMapper, is);
-      } catch (final RedisUnhandledException e) {
-        reply[i] = e;
-      }
+      reply[i] = read(node, hostPortMapper, is);
     }
     return reply;
+  }
+
+  static long[] readLongArray(final Node node, final Function<Node, Node> hostPortMapper,
+      final RedisInputStream is) {
+
+    final byte bite = is.readByte();
+
+    switch (bite) {
+      case ASTERISK_BYTE:
+        final int num = is.readIntCRLF();
+        if (num == -1) {
+          return null;
+        }
+
+        final long[] reply = new long[num];
+        for (int i = 0; i < num; i++) {
+          reply[i] = readLong(node, hostPortMapper, is);
+        }
+        return reply;
+      case COLON_BYTE:
+        throw new RedisUnhandledException(null,
+            "Expected an Array (*) response type, received an Integer (:) response.");
+      case MINUS_BYTE:
+        throw processError(node, hostPortMapper, is);
+      case PLUS_BYTE:
+        throw new RedisUnhandledException(null,
+            "Expected an Array (*) response type, received a Simple String (+) response.");
+      case DOLLAR_BYTE:
+        throw new RedisUnhandledException(null,
+            "Expected an Array (*) response type, received a Bulk String ($) response.");
+      default:
+        final String msg = String.format(
+            "Unknown reply where data type expected. Recieved '%s'. Supported types are '+', '-', ':', '$' and '*'.",
+            (char) bite);
+        throw new RedisConnectionException(node, msg);
+    }
   }
 }
