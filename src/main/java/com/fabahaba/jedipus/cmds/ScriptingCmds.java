@@ -47,20 +47,24 @@ public interface ScriptingCmds extends DirectCmds {
 
   default Object evalSha1Hex(final byte[][] allArgs) {
 
-    return sendCmd(ScriptingCmds.EVALSHA, allArgs);
+    return sendCmd(EVALSHA, allArgs);
   }
 
-  default Object scriptLoad(final byte[] script) {
+  default String scriptLoad(final byte[] script) {
 
-    return sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.LOAD, script);
+    return sendCmd(SCRIPT, LOAD, script);
   }
 
   public static final Cmd<Object> EVAL = Cmd.create("EVAL");
   public static final Cmd<Object> EVALSHA = Cmd.create("EVALSHA");
   public static final Cmd<Object> SCRIPT = Cmd.create("SCRIPT");
-  public static final Cmd<Object> LOAD = Cmd.create("LOAD");
-  public static final Cmd<Object[]> EXISTS = Cmd.create("EXISTS", data -> (Object[]) data);
+  public static final Cmd<Object[]> EXISTS = Cmd.createCast("EXISTS");
+  public static final Cmd<String> FLUSH = Cmd.createStringReply("FLUSH");
+  public static final Cmd<String> KILL = Cmd.createStringReply("KILL");
+  public static final Cmd<String> LOAD = Cmd.createStringReply("LOAD");
 
-  public static final Cmd<Object> FLUSH = Cmd.create("FLUSH");
-  public static final Cmd<Object> DEBUG = Cmd.create("DEBUG");
+  public static final Cmd<String> DEBUG = Cmd.createStringReply("DEBUG");
+  public static final Cmd<String> YES = Cmd.createStringReply("YES");
+  public static final Cmd<String> SYNC = Cmd.createStringReply("SYNC");
+  public static final Cmd<String> NO = Cmd.createStringReply("NO");
 }

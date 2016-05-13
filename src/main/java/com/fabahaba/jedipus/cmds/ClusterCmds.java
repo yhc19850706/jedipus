@@ -8,7 +8,7 @@ public interface ClusterCmds extends DirectCmds {
 
   default String asking() {
 
-    return sendCmd(ClusterCmds.ASKING);
+    return sendCmd(ASKING);
   }
 
   public Node getNode();
@@ -32,12 +32,12 @@ public interface ClusterCmds extends DirectCmds {
 
   default String clusterNodes() {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.NODES);
+    return sendCmd(CLUSTER, NODES);
   }
 
   default String clusterMeet(final String ip, final int port) {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.MEET, RESP.toBytes(ip), RESP.toBytes(port));
+    return sendCmd(CLUSTER, MEET, RESP.toBytes(ip), RESP.toBytes(port));
   }
 
   static byte[][] slotsToBytes(final int... slots) {
@@ -54,52 +54,50 @@ public interface ClusterCmds extends DirectCmds {
 
   default String clusterAddSlots(final int... slots) {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.ADDSLOTS, slotsToBytes(slots));
+    return sendCmd(CLUSTER, ADDSLOTS, slotsToBytes(slots));
   }
 
   default String clusterDelSlots(final int... slots) {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.DELSLOTS, slotsToBytes(slots));
+    return sendCmd(CLUSTER, DELSLOTS, slotsToBytes(slots));
   }
 
   default String clusterInfo() {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.INFO);
+    return sendCmd(CLUSTER, INFO);
   }
 
-  default Object[] clusterGetKeysInSlot(final int slot, final int count) {
+  default String[] clusterGetKeysInSlot(final int slot, final int count) {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.GETKEYSINSLOT, RESP.toBytes(slot),
-        ClusterCmds.NODE.getCmdBytes(), RESP.toBytes(count));
+    return sendCmd(CLUSTER, GETKEYSINSLOT, RESP.toBytes(slot), NODE.getCmdBytes(),
+        RESP.toBytes(count));
   }
 
   default String clusterSetSlotNode(final int slot, final String nodeId) {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.SETSLOT, RESP.toBytes(slot),
-        ClusterCmds.NODE.getCmdBytes(), RESP.toBytes(nodeId));
+    return sendCmd(CLUSTER, SETSLOT, RESP.toBytes(slot), NODE.getCmdBytes(), RESP.toBytes(nodeId));
   }
 
   default String clusterSetSlotMigrating(final int slot, final String nodeId) {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.SETSLOT, RESP.toBytes(slot),
-        ClusterCmds.MIGRATING.getCmdBytes(), RESP.toBytes(nodeId));
+    return sendCmd(CLUSTER, SETSLOT, RESP.toBytes(slot), MIGRATING.getCmdBytes(),
+        RESP.toBytes(nodeId));
   }
 
   default String clusterSetSlotImporting(final int slot, final String nodeId) {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.SETSLOT, RESP.toBytes(slot),
-        ClusterCmds.IMPORTING.getCmdBytes(), RESP.toBytes(nodeId));
+    return sendCmd(CLUSTER, SETSLOT, RESP.toBytes(slot), IMPORTING.getCmdBytes(),
+        RESP.toBytes(nodeId));
   }
 
   default String clusterSetSlotStable(final int slot) {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.SETSLOT, RESP.toBytes(slot),
-        ClusterCmds.STABLE.getCmdBytes());
+    return sendCmd(CLUSTER, SETSLOT, RESP.toBytes(slot), STABLE.getCmdBytes());
   }
 
   default String clusterForget(final String nodeId) {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.FORGET, RESP.toBytes(nodeId));
+    return sendCmd(CLUSTER, FORGET, RESP.toBytes(nodeId));
   }
 
   default int clusterKeySlot(final String key) {
@@ -109,57 +107,56 @@ public interface ClusterCmds extends DirectCmds {
 
   default int clusterKeySlot(final byte[] key) {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.KEYSLOT, key).intValue();
+    return (int) sendCmd(CLUSTER, KEYSLOT.prim(), key);
   }
 
   default long clusterCountKeysInSlot(final int slot) {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.COUNTKEYSINSLOT, RESP.toBytes(slot))
-        .longValue();
+    return sendCmd(CLUSTER, COUNTKEYSINSLOT, RESP.toBytes(slot)).longValue();
   }
 
   default String clusterSaveConfig() {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.SAVECONFIG);
+    return sendCmd(CLUSTER, SAVECONFIG);
   }
 
   default String clusterReplicate(final String nodeId) {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.REPLICATE, nodeId);
+    return sendCmd(CLUSTER, REPLICATE, nodeId);
   }
 
   default Object[] clusterSlaves(final String nodeId) {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.SLAVES, nodeId);
+    return sendCmd(CLUSTER, SLAVES, nodeId);
   }
 
   default Object[] clusterSlots() {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.SLOTS);
+    return sendCmd(CLUSTER, SLOTS);
   }
 
   default String clusterReset(final Cmd<String> mode) {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.RESET, mode.getCmdBytes());
+    return sendCmd(CLUSTER, RESET, mode.getCmdBytes());
   }
 
   default String clusterFailover(final Cmd<String> mode) {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.FAILOVER, mode.getCmdBytes());
+    return sendCmd(CLUSTER, FAILOVER, mode.getCmdBytes());
   }
 
   default String readOnly() {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.READONLY);
+    return sendCmd(CLUSTER, READONLY);
   }
 
   default String readWrite() {
 
-    return sendCmd(ClusterCmds.CLUSTER, ClusterCmds.READWRITE);
+    return sendCmd(CLUSTER, READWRITE);
   }
 
   default void clusterFlushSlots() {
-    sendCmd(ClusterCmds.CLUSTER, ClusterCmds.FLUSHSLOTS.raw());
+    sendCmd(CLUSTER, FLUSHSLOTS.raw());
   }
 
   static final Cmd<Object> CLUSTER = Cmd.create("CLUSTER");
@@ -169,7 +166,7 @@ public interface ClusterCmds extends DirectCmds {
   static final Cmd<String> READWRITE = Cmd.createStringReply("READWRITE");
   static final Cmd<Long> KEYSLOT = Cmd.createCast("KEYSLOT");
   static final Cmd<Object[]> SLOTS = Cmd.createCast("SLOTS");
-  static final Cmd<Object[]> GETKEYSINSLOT = Cmd.createCast("GETKEYSINSLOT");
+  static final Cmd<String[]> GETKEYSINSLOT = Cmd.createStringArrayReply("GETKEYSINSLOT");
   static final Cmd<Long> COUNTKEYSINSLOT = Cmd.createCast("COUNTKEYSINSLOT");
 
   static final Cmd<String> SETSLOT = Cmd.createStringReply("SETSLOT");

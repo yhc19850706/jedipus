@@ -150,23 +150,28 @@ final class RedisInputStream extends InputStream {
     return bout == null ? new byte[0] : bout.toByteArray();
   }
 
-  public int readIntCrLf() {
+  public int readIntCRLF() {
 
-    return (int) readLongCrLf();
+    return (int) readLongCRLF();
   }
 
-  public long readLongCrLf() {
+  public long readLongCRLF() {
+
     final byte[] buf = this.buf;
 
     ensureFill();
 
-    final boolean isNeg = buf[count] == '-';
-    if (isNeg) {
+    if (buf[count] == '-') {
       ++count;
+      return -readUnsignedLongCRLF();
     }
 
-    long value = 0;
-    while (true) {
+    return readUnsignedLongCRLF();
+  }
+
+  private long readUnsignedLongCRLF() {
+
+    for (long value = 0;;) {
       ensureFill();
 
       final int b = buf[count++];
@@ -177,13 +182,11 @@ final class RedisInputStream extends InputStream {
           throw new RedisConnectionException(node, "Unexpected character!");
         }
 
-        break;
+        return value;
       }
 
       value = value * 10 + b - '0';
     }
-
-    return (isNeg ? -value : value);
   }
 
   @Override

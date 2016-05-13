@@ -103,10 +103,10 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
-  public void sendSubCmd(final byte[] cmd, final byte[] args) {
+  public void sendSubCmd(final byte[] cmd, final byte[] subcmd) {
 
     try {
-      Protocol.sendSubCmd(outputStream, cmd, args);
+      Protocol.sendSubCmd(outputStream, cmd, subcmd);
     } catch (final RuntimeException | IOException jcex) {
       handleWriteException(jcex);
     }
@@ -176,6 +176,10 @@ abstract class RedisConn implements AutoCloseable {
     return readLongBrokenChecked();
   }
 
+  long getOneLongNoFlush() {
+    return readLongBrokenChecked();
+  }
+
   public boolean isBroken() {
     return broken;
   }
@@ -202,7 +206,7 @@ abstract class RedisConn implements AutoCloseable {
   protected long readLongBrokenChecked() {
 
     try {
-      return Protocol.processLong(getNode(), hostPortMapper, inputStream);
+      return Protocol.readLong(getNode(), hostPortMapper, inputStream);
     } catch (final RedisConnectionException exc) {
       broken = true;
       throw exc;

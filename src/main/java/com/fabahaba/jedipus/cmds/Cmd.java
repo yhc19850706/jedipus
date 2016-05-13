@@ -26,6 +26,11 @@ public interface Cmd<R> extends Function<Object, R> {
     return new HandledResponseCmd<>(name, STRING_REPLY);
   }
 
+  public static Cmd<String[]> createStringArrayReply(final String name) {
+
+    return new HandledResponseCmd<>(name, STRING_ARRAY_REPLY);
+  }
+
   public static Cmd<Object> create(final String name) {
 
     return new RawCmd(name);

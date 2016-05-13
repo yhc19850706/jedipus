@@ -35,7 +35,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.fabahaba.jedipus.FutureResponse;
+import com.fabahaba.jedipus.FutureReply;
 import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
@@ -526,7 +526,7 @@ public class RedisClusterTest {
         // Forced asking pending feedback on the following:
         // https://github.com/antirez/redis/issues/3203
         client.asking();
-        final FutureResponse<Long> response = client.sendCmd(SCmds.SCARD, key);
+        final FutureReply<Long> response = client.sendCmd(SCmds.SCARD, key);
         client.sync();
         assertEquals(1, RESP.longToInt(response.get()));
       });
@@ -744,7 +744,7 @@ public class RedisClusterTest {
 
         final Future<String> future = executor.submit(() -> jce.applyPipeline(slot, pipeline -> {
           pipeline.sendCmd(Cmds.SET.raw(), key, val);
-          final FutureResponse<String> response = pipeline.sendCmd(Cmds.GET, key);
+          final FutureReply<String> response = pipeline.sendCmd(Cmds.GET, key);
           pipeline.sync();
           return response.get();
         }));

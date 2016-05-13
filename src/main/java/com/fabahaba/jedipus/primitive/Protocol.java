@@ -181,7 +181,7 @@ final class Protocol {
     return response;
   }
 
-  private static Object process(final Node node, final Function<Node, Node> hostPortMapper,
+  static Object read(final Node node, final Function<Node, Node> hostPortMapper,
       final RedisInputStream is) {
 
     final byte bite = is.readByte();
@@ -191,51 +191,51 @@ final class Protocol {
       case PLUS_BYTE:
         return is.readLineBytes();
       case DOLLAR_BYTE:
-        return processBulkReply(node, is);
+        return readBulkReply(node, is);
       case ASTERISK_BYTE:
-        return processMultiBulkReply(node, hostPortMapper, is);
+        return readMultiBulkReply(node, hostPortMapper, is);
       case COLON_BYTE:
-        return is.readLongCrLf();
+        return is.readLongCRLF();
       case MINUS_BYTE:
         throw processError(node, hostPortMapper, is);
       default:
         final String msg = String.format(
-            "Unknown reply where data type expected. Recieved '%s'. Supprted options are '+', '-', ':', '$' and '*'.",
+            "Unknown reply where data type expected. Recieved '%s'. Supported types are '+', '-', ':', '$' and '*'.",
             (char) bite);
         throw new RedisConnectionException(node, msg);
     }
   }
 
-  static long processLong(final Node node, final Function<Node, Node> hostPortMapper,
+  static long readLong(final Node node, final Function<Node, Node> hostPortMapper,
       final RedisInputStream is) {
 
     final byte bite = is.readByte();
 
     switch (bite) {
       case COLON_BYTE:
-        return is.readLongCrLf();
+        return is.readLongCRLF();
       case MINUS_BYTE:
         throw processError(node, hostPortMapper, is);
       case PLUS_BYTE:
         throw new RedisUnhandledException(null,
-            "Expected an Integer (:) response types, received a Simple String (+) response.");
+            "Expected an Integer (:) response type, received a Simple String (+) response.");
       case DOLLAR_BYTE:
         throw new RedisUnhandledException(null,
-            "Expected an Integer (:) response types, received a Bulk String ($) response.");
+            "Expected an Integer (:) response type, received a Bulk String ($) response.");
       case ASTERISK_BYTE:
         throw new RedisUnhandledException(null,
-            "Expected an Integer (:) response types, received an Array (*) response.");
+            "Expected an Integer (:) response type, received an Array (*) response.");
       default:
         final String msg = String.format(
-            "Unknown reply where data type expected. Recieved '%s'. Supprted options are '+', '-', ':', '$' and '*'.",
+            "Unknown reply where data type expected. Recieved '%s'. Supported types are '+', '-', ':', '$' and '*'.",
             (char) bite);
         throw new RedisConnectionException(node, msg);
     }
   }
 
-  private static byte[] processBulkReply(final Node node, final RedisInputStream is) {
+  private static byte[] readBulkReply(final Node node, final RedisInputStream is) {
 
-    final int len = is.readIntCrLf();
+    final int len = is.readIntCRLF();
     if (len == -1) {
       return null;
     }
@@ -257,10 +257,10 @@ final class Protocol {
     return read;
   }
 
-  private static Object[] processMultiBulkReply(final Node node,
+  private static Object[] readMultiBulkReply(final Node node,
       final Function<Node, Node> hostPortMapper, final RedisInputStream is) {
 
-    final int num = is.readIntCrLf();
+    final int num = is.readIntCRLF();
     if (num == -1) {
       return null;
     }
@@ -268,17 +268,11 @@ final class Protocol {
     final Object[] reply = new Object[num];
     for (int i = 0; i < num; i++) {
       try {
-        reply[i] = process(node, hostPortMapper, is);
+        reply[i] = read(node, hostPortMapper, is);
       } catch (final RedisUnhandledException e) {
         reply[i] = e;
       }
     }
     return reply;
-  }
-
-  static Object read(final Node node, final Function<Node, Node> hostPortMapper,
-      final RedisInputStream is) {
-
-    return process(node, hostPortMapper, is);
   }
 }

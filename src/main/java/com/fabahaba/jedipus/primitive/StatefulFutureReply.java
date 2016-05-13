@@ -1,45 +1,31 @@
 package com.fabahaba.jedipus.primitive;
 
+import com.fabahaba.jedipus.FutureLongReply;
+import com.fabahaba.jedipus.FutureReply;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
-abstract class BaseFutureResponse<T> implements SettableFutureResponse<T> {
+abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply {
 
   protected static enum State {
     EMPTY, PENDING, PENDING_DEPENDENCY, BUILDING_DEPENDENCY, BUILDING, BUILT, BROKEN;
   }
 
-  private State state = State.EMPTY;
-  private RuntimeException exception = null;
-  private Object response;
-  private BaseFutureResponse<?> dependency = null;
+  protected State state = State.EMPTY;
+  protected RuntimeException exception = null;
 
-  @Override
-  public void setResponse(final Object response) {
+  protected StatefulFutureReply<?> dependency = null;
 
-    if (response == null) {
-      state = State.BUILT;
-      return;
-    }
-
-    this.response = response;
-    state = State.PENDING;
-  }
-
-  @Override
-  public void setException(final RedisUnhandledException exception) {
+  public void setException(final RuntimeException exception) {
 
     this.exception = exception;
     state = State.BROKEN;
   }
 
-  @Override
-  public void setDependency(final BaseFutureResponse<?> dependency) {
+  public void setDependency(final StatefulFutureReply<?> dependency) {
 
     this.dependency = dependency;
     state = State.PENDING_DEPENDENCY;
   }
-
-  protected abstract void handleResponse(final Object response);
 
   protected void build() {
 
@@ -47,33 +33,22 @@ abstract class BaseFutureResponse<T> implements SettableFutureResponse<T> {
       case PENDING_DEPENDENCY:
         state = State.BUILDING_DEPENDENCY;
         try {
+          // Dependency will drive another build of this after setting response.
           dependency.build();
-          state = State.PENDING;
-          build();
           return;
         } catch (final RuntimeException re) {
-          response = null;
-          exception = re;
-          state = State.BROKEN;
+          setException(re);
           throw re;
         }
       case PENDING:
         state = State.BUILDING;
-        if (response == null) {
-          state = State.BUILT;
-          return;
-        }
-
         try {
-          handleResponse(response);
+          handleResponse();
           state = State.BUILT;
           return;
         } catch (final RuntimeException re) {
-          exception = re;
-          state = State.BROKEN;
+          setException(re);
           throw re;
-        } finally {
-          response = null;
         }
       case EMPTY:
         throw new RedisUnhandledException(null,
@@ -86,5 +61,34 @@ abstract class BaseFutureResponse<T> implements SettableFutureResponse<T> {
       default:
         return;
     }
+  }
+
+  protected void handleResponse() {
+
+  }
+
+  public void setResponse(final PrimRedisConn conn) {
+
+    setMultiResponse(conn.getOneNoFlush());
+  }
+
+  public void setMultiResponse(final Object response) {
+
+  }
+
+  public void setMultiLongResponse(final long response) {
+
+  }
+
+  @Override
+  public T get() {
+
+    return null;
+  }
+
+  @Override
+  public long getLong() {
+
+    return Long.MIN_VALUE;
   }
 }

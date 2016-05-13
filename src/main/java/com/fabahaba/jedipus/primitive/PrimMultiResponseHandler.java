@@ -5,11 +5,11 @@ import java.util.function.Function;
 
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
-class MultiResponseHandler implements Function<Object, Object[]> {
+public class PrimMultiResponseHandler implements Function<Object, long[]> {
 
   private final Queue<StatefulFutureReply<?>> multiResponses;
 
-  MultiResponseHandler(final Queue<StatefulFutureReply<?>> responses) {
+  PrimMultiResponseHandler(final Queue<StatefulFutureReply<?>> responses) {
 
     this.multiResponses = responses;
   }
@@ -20,9 +20,9 @@ class MultiResponseHandler implements Function<Object, Object[]> {
   }
 
   @Override
-  public Object[] apply(final Object data) {
+  public long[] apply(final Object data) {
 
-    final Object[] inPlaceAdaptedResponses = (Object[]) data;
+    final long[] inPlaceAdaptedResponses = (long[]) data;
 
     if (inPlaceAdaptedResponses.length < multiResponses.size()) {
       throw new RedisUnhandledException(null,
@@ -45,8 +45,8 @@ class MultiResponseHandler implements Function<Object, Object[]> {
           return inPlaceAdaptedResponses;
         }
 
-        response.setMultiResponse(inPlaceAdaptedResponses[index]);
-        inPlaceAdaptedResponses[index] = response.get();
+        response.setMultiLongResponse(inPlaceAdaptedResponses[index]);
+        inPlaceAdaptedResponses[index] = response.getLong();
       }
     } finally {
       multiResponses.clear();

@@ -1,6 +1,6 @@
 package com.fabahaba.jedipus;
 
-public interface FutureResponse<T> {
+public interface FutureReply<T> {
 
   public T get();
 }

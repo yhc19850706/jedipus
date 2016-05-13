@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 
 import javax.xml.bind.DatatypeConverter;
 
-import com.fabahaba.jedipus.FutureResponse;
+import com.fabahaba.jedipus.FutureReply;
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.RedisPipeline;
@@ -24,7 +24,6 @@ import com.fabahaba.jedipus.cluster.RedisClusterExecutor;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.cmds.ScriptingCmds;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
-import com.fabahaba.jedipus.primitive.DeserializedFutureResponse;
 
 public interface LuaScript<R> {
 
@@ -115,8 +114,8 @@ public interface LuaScript<R> {
       if (jde.getMessage().startsWith("NOSCRIPT")) {
 
         final RedisPipeline pipeline = client.createPipeline();
-        pipeline.scriptLoad(RESP.toBytes(getLuaScript()));
-        final FutureResponse<Object> response = pipeline.evalSha1Hex(args);
+        pipeline.sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.LOAD.raw(), getLuaScript());
+        final FutureReply<Object> response = pipeline.evalSha1Hex(args);
         pipeline.sync();
         return (R) response.get();
       }
@@ -125,7 +124,7 @@ public interface LuaScript<R> {
     }
   }
 
-  default DeserializedFutureResponse<R> eval(final RedisPipeline pipeline, final int keyCount,
+  default FutureReply<R> eval(final RedisPipeline pipeline, final int keyCount,
       final byte[]... params) {
 
     final byte[][] args =
@@ -134,24 +133,23 @@ public interface LuaScript<R> {
     return eval(pipeline, args);
   }
 
-  default DeserializedFutureResponse<R> evalFill(final RedisPipeline pipeline,
-      final byte[][] params) {
+  default FutureReply<R> evalFill(final RedisPipeline pipeline, final byte[][] params) {
 
     params[0] = getSha1HexBytes();
 
     return eval(pipeline, params);
   }
 
-  default DeserializedFutureResponse<R> eval(final RedisPipeline pipeline, final List<byte[]> keys,
+  default FutureReply<R> eval(final RedisPipeline pipeline, final List<byte[]> keys,
       final List<byte[]> args) {
 
     return eval(pipeline, ScriptingCmds.createEvalArgs(getSha1HexBytes(), keys, args));
   }
 
   @SuppressWarnings("unchecked")
-  default DeserializedFutureResponse<R> eval(final RedisPipeline pipeline, final byte[][] args) {
+  default FutureReply<R> eval(final RedisPipeline pipeline, final byte[][] args) {
 
-    return (DeserializedFutureResponse<R>) pipeline.evalSha1Hex(args);
+    return (FutureReply<R>) pipeline.evalSha1Hex(args);
   }
 
   default R eval(final RedisClusterExecutor rce, final int keyCount, final byte[]... params) {
