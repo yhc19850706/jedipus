@@ -9,10 +9,24 @@ public interface RedisPipeline extends PipelineClusterCmds, PipelineScriptingCmd
 
   public FutureReply<Object[]> exec();
 
+  public FutureReply<long[]> primExec();
+
+  public FutureReply<long[][]> primArrayExec();
+
   public FutureReply<String> discard();
 
   default void execSync() {
     exec();
+    sync();
+  }
+
+  default void primExecSync() {
+    primExec();
+    sync();
+  }
+
+  default void primArrayExecSync() {
+    primArrayExec();
     sync();
   }
 

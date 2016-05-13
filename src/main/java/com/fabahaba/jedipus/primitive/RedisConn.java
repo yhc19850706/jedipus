@@ -162,30 +162,30 @@ abstract class RedisConn implements AutoCloseable {
     throw new RedisConnectionException(getNode(), ioEx);
   }
 
-  Object getReply() {
+  protected Object getReply() {
     flush();
     return readObjBrokenChecked();
   }
 
-  Object getReplyNoFlush() {
+  protected Object getReplyNoFlush() {
     return readObjBrokenChecked();
   }
 
-  long[] getLongArray() {
+  protected long[] getLongArray() {
     flush();
     return readLongArrayBrokenChecked();
   }
 
-  long[] getLongArrayNoFlush() {
+  protected long[] getLongArrayNoFlush() {
     return readLongArrayBrokenChecked();
   }
 
-  long getLong() {
+  protected long getLong() {
     flush();
     return readLongBrokenChecked();
   }
 
-  long getLongNoFlush() {
+  protected long getLongNoFlush() {
     return readLongBrokenChecked();
   }
 

@@ -46,12 +46,6 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[]... args) {
-    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
-    return conn.getReply(subCmd);
-  }
-
-  @Override
   public <T> T sendCmd(final Cmd<T> cmd) {
     conn.sendCmd(cmd.getCmdBytes());
     return conn.getReply(cmd);
@@ -64,7 +58,13 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[] args) {
+  public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[] arg) {
+    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), arg);
+    return conn.getReply(subCmd);
+  }
+
+  @Override
+  public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[]... args) {
     conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
     return conn.getReply(subCmd);
   }
@@ -82,15 +82,15 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public <T> T sendCmd(final Cmd<T> cmd, final String... args) {
-    conn.sendCmd(cmd.getCmdBytes(), args);
-    return conn.getReply(cmd);
-  }
-
-  @Override
   public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final String... args) {
     conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
     return conn.getReply(subCmd);
+  }
+
+  @Override
+  public <T> T sendCmd(final Cmd<T> cmd, final String... args) {
+    conn.sendCmd(cmd.getCmdBytes(), args);
+    return conn.getReply(cmd);
   }
 
   @Override
@@ -124,6 +124,88 @@ abstract class BaseRedisClient implements RedisClient {
       conn.rollbackTimeout();
     }
     return conn.getReply(cmd);
+  }
+
+
+  @Override
+  public long[] sendPrimCmd(final Cmd<long[]> cmd) {
+    conn.sendCmd(cmd.getCmdBytes());
+    return conn.getLongArrayReply(cmd);
+  }
+
+  @Override
+  public long[] sendPrimCmd(final Cmd<?> cmd, final Cmd<long[]> subCmd) {
+    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes());
+    return conn.getLongArrayReply(subCmd);
+  }
+
+  @Override
+  public long[] sendPrimCmd(final Cmd<?> cmd, final Cmd<long[]> subCmd, final byte[] arg) {
+    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), arg);
+    return conn.getLongArrayReply(subCmd);
+  }
+
+  @Override
+  public long[] sendPrimCmd(final Cmd<?> cmd, final Cmd<long[]> subCmd, final byte[]... args) {
+    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    return conn.getLongArrayReply(subCmd);
+  }
+
+  @Override
+  public long[] sendPrimCmd(final Cmd<long[]> cmd, final byte[] arg) {
+    conn.sendSubCmd(cmd.getCmdBytes(), arg);
+    return conn.getLongArrayReply(cmd);
+  }
+
+  @Override
+  public long[] sendPrimCmd(final Cmd<long[]> cmd, final byte[]... args) {
+    conn.sendCmd(cmd.getCmdBytes(), args);
+    return conn.getLongArrayReply(cmd);
+  }
+
+  @Override
+  public long[] sendPrimCmd(final Cmd<?> cmd, final Cmd<long[]> subCmd, final String... args) {
+    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    return conn.getLongArrayReply(subCmd);
+  }
+
+  @Override
+  public long[] sendPrimCmd(final Cmd<long[]> cmd, final String... args) {
+    conn.sendCmd(cmd.getCmdBytes(), args);
+    return conn.getLongArrayReply(cmd);
+  }
+
+  @Override
+  public long[] sendPrimBlockingCmd(final Cmd<long[]> cmd) {
+    conn.setTimeoutInfinite();
+    try {
+      conn.sendCmd(cmd.getCmdBytes());
+    } finally {
+      conn.rollbackTimeout();
+    }
+    return conn.getLongArrayReply(cmd);
+  }
+
+  @Override
+  public long[] sendPrimBlockingCmd(final Cmd<long[]> cmd, final byte[]... args) {
+    conn.setTimeoutInfinite();
+    try {
+      conn.sendCmd(cmd.getCmdBytes(), args);
+    } finally {
+      conn.rollbackTimeout();
+    }
+    return conn.getLongArrayReply(cmd);
+  }
+
+  @Override
+  public long[] sendPrimBlockingCmd(final Cmd<long[]> cmd, final String... args) {
+    conn.setTimeoutInfinite();
+    try {
+      conn.sendCmd(cmd.getCmdBytes(), args);
+    } finally {
+      conn.rollbackTimeout();
+    }
+    return conn.getLongArrayReply(cmd);
   }
 
   @Override

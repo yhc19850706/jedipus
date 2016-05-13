@@ -61,6 +61,7 @@ final class PrimPipeline implements RedisPipeline {
     return client.queueMultiReplyHandler();
   }
 
+  @Override
   public FutureReply<long[]> primExec() {
 
     if (!client.getConn().isInMulti()) {
@@ -69,6 +70,12 @@ final class PrimPipeline implements RedisPipeline {
 
     client.getConn().exec();
     return client.queuePrimMultiReplyHandler();
+  }
+
+  @Override
+  public FutureReply<long[][]> primArrayExec() {
+    // TODO Auto-generated method stub
+    return null;
   }
 
   @Override

@@ -216,4 +216,70 @@ public class MockRedisClient implements RedisClient {
 
     return 0;
   }
+
+  @Override
+  public long[] sendPrimCmd(final Cmd<long[]> cmd) {
+
+    return null;
+  }
+
+  @Override
+  public long[] sendPrimCmd(final Cmd<?> cmd, final Cmd<long[]> subCmd) {
+
+    return null;
+  }
+
+  @Override
+  public long[] sendPrimCmd(final Cmd<?> cmd, final Cmd<long[]> subCmd, final byte[] arg) {
+
+    return null;
+  }
+
+  @Override
+  public long[] sendPrimCmd(final Cmd<?> cmd, final Cmd<long[]> subCmd, final byte[]... args) {
+
+    return null;
+  }
+
+  @Override
+  public long[] sendPrimCmd(final Cmd<long[]> cmd, final byte[] arg) {
+
+    return null;
+  }
+
+  @Override
+  public long[] sendPrimCmd(final Cmd<long[]> cmd, final byte[]... args) {
+
+    return null;
+  }
+
+  @Override
+  public long[] sendPrimCmd(final Cmd<?> cmd, final Cmd<long[]> subCmd, final String... args) {
+
+    return null;
+  }
+
+  @Override
+  public long[] sendPrimCmd(final Cmd<long[]> cmd, final String... args) {
+
+    return null;
+  }
+
+  @Override
+  public long[] sendPrimBlockingCmd(final Cmd<long[]> cmd) {
+
+    return null;
+  }
+
+  @Override
+  public long[] sendPrimBlockingCmd(final Cmd<long[]> cmd, final byte[]... args) {
+
+    return null;
+  }
+
+  @Override
+  public long[] sendPrimBlockingCmd(final Cmd<long[]> cmd, final String... args) {
+
+    return null;
+  }
 }

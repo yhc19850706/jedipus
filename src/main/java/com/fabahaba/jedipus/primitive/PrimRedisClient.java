@@ -49,10 +49,6 @@ final class PrimRedisClient extends BaseRedisClient {
 
   FutureReply<Object[]> queueMultiReplyHandler() {
 
-    if (multiReplyHandler == null) {
-      multiReplyHandler = new MultiReplyHandler(getMultiReplies());
-    }
-
     final DeserializedFutureReply<Object[]> futureMultiReply =
         new DeserializedFutureReply<>(multiReplyHandler);
 
@@ -83,15 +79,14 @@ final class PrimRedisClient extends BaseRedisClient {
     pipelinedReplies.add(new DirectFutureReply<>());
 
     final StatefulFutureReply<T> futureReply = new DeserializedFutureReply<>(builder);
+    if (multiReplyHandler == null) {
+      multiReplyHandler = new MultiReplyHandler(getMultiReplies());
+    }
     multiReplyHandler.queueFutureReply(futureReply);
     return futureReply;
   }
 
   FutureReply<long[]> queuePrimMultiReplyHandler() {
-
-    if (primMultiReplyHandler == null) {
-      primMultiReplyHandler = new PrimMultiReplyHandler(getMultiReplies());
-    }
 
     final DeserializedFutureReply<long[]> futureMultiReply =
         new DeserializedFutureReply<>(primMultiReplyHandler);
@@ -123,6 +118,9 @@ final class PrimRedisClient extends BaseRedisClient {
     pipelinedReplies.add(new DirectFutureReply<>());
 
     final StatefulFutureReply<Void> futureResponse = new AdaptedFutureLongReply(adapter);
+    if (primMultiReplyHandler == null) {
+      primMultiReplyHandler = new PrimMultiReplyHandler(getMultiReplies());
+    }
     primMultiReplyHandler.queueFutureReply(futureResponse);
     return futureResponse;
   }
