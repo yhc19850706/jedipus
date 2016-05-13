@@ -13,7 +13,7 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
   protected State state = State.EMPTY;
   protected RuntimeException exception = null;
 
-  protected StatefulFutureReply<?> dependency = null;
+  protected StatefulFutureReply<?> execDependency = null;
 
   public void setException(final RuntimeException exception) {
 
@@ -21,21 +21,21 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
     state = State.BROKEN;
   }
 
-  public void setDependency(final StatefulFutureReply<?> dependency) {
+  public void setExecDependency(final StatefulFutureReply<?> execDependency) {
 
-    this.dependency = dependency;
+    this.execDependency = execDependency;
     state = State.PENDING_DEPENDENCY;
   }
 
   @Override
-  public StatefulFutureReply<T> check() {
+  public StatefulFutureReply<T> checkReply() {
 
     switch (state) {
       case PENDING_DEPENDENCY:
         state = State.BUILDING_DEPENDENCY;
         try {
-          // Dependency will drive another build of this after setting response.
-          dependency.check();
+          // Dependency will drive another build of this after setting this reply.
+          execDependency.checkReply();
           return this;
         } catch (final RuntimeException re) {
           setException(re);
@@ -44,7 +44,7 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
       case PENDING:
         state = State.BUILDING;
         try {
-          handleResponse();
+          handleReply();
           state = State.BUILT;
           return this;
         } catch (final RuntimeException re) {
@@ -64,22 +64,16 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
     }
   }
 
-  protected void handleResponse() {
+  protected void handleReply() {}
 
+  public void setReply(final PrimRedisConn conn) {
+
+    setMultiReply(conn.getReplyNoFlush());
   }
 
-  public void setResponse(final PrimRedisConn conn) {
+  public void setMultiReply(final Object reply) {}
 
-    setMultiResponse(conn.getOneNoFlush());
-  }
-
-  public void setMultiResponse(final Object response) {
-
-  }
-
-  public void setMultiLongResponse(final long response) {
-
-  }
+  public void setMultiLongReply(final long reply) {}
 
   @Override
   public T get() {

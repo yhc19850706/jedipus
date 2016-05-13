@@ -2,12 +2,12 @@ package com.fabahaba.jedipus.primitive;
 
 import java.util.function.Function;
 
-final class DeserializedFutureRespy<T> extends DirectFutureReply<T> {
+final class DeserializedFutureReply<T> extends DirectFutureReply<T> {
 
   private final Function<Object, T> deserializer;
   private T deserialized = null;
 
-  DeserializedFutureRespy(final Function<Object, T> deserializer) {
+  DeserializedFutureReply(final Function<Object, T> deserializer) {
 
     this.deserializer = deserializer;
   }
@@ -15,14 +15,14 @@ final class DeserializedFutureRespy<T> extends DirectFutureReply<T> {
   @Override
   public T get() {
 
-    check();
+    checkReply();
 
     return deserialized;
   }
 
   @Override
-  protected void handleResponse() {
+  protected void handleReply() {
 
-    this.deserialized = deserializer.apply(this.response);
+    deserialized = deserializer.apply(reply);
   }
 }

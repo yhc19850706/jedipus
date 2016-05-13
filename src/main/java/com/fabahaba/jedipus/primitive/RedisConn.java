@@ -162,21 +162,30 @@ abstract class RedisConn implements AutoCloseable {
     throw new RedisConnectionException(getNode(), ioEx);
   }
 
-  Object getOne() {
+  Object getReply() {
     flush();
     return readObjBrokenChecked();
   }
 
-  Object getOneNoFlush() {
+  Object getReplyNoFlush() {
     return readObjBrokenChecked();
   }
 
-  long getOneLong() {
+  long[] getLongArray() {
+    flush();
+    return readLongArrayBrokenChecked();
+  }
+
+  long[] getLongArrayNoFlush() {
+    return readLongArrayBrokenChecked();
+  }
+
+  long getLong() {
     flush();
     return readLongBrokenChecked();
   }
 
-  long getOneLongNoFlush() {
+  long getLongNoFlush() {
     return readLongBrokenChecked();
   }
 
@@ -197,6 +206,16 @@ abstract class RedisConn implements AutoCloseable {
 
     try {
       return Protocol.read(getNode(), hostPortMapper, inputStream);
+    } catch (final RedisConnectionException exc) {
+      broken = true;
+      throw exc;
+    }
+  }
+
+  protected long[] readLongArrayBrokenChecked() {
+
+    try {
+      return Protocol.readLongArray(getNode(), hostPortMapper, inputStream);
     } catch (final RedisConnectionException exc) {
       broken = true;
       throw exc;

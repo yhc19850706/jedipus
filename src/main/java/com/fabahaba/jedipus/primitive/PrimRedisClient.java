@@ -3,19 +3,25 @@ package com.fabahaba.jedipus.primitive;
 import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.function.Function;
+import java.util.function.LongUnaryOperator;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocketFactory;
 
+import com.fabahaba.jedipus.FutureLongReply;
+import com.fabahaba.jedipus.FutureReply;
 import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 final class PrimRedisClient extends BaseRedisClient {
 
-  private Queue<StatefulFutureReply<?>> pipelinedResponses;
-  private MultiResponseHandler multiResponseHandler;
+  // All lazy in case pipelines are not used.
+  private Queue<StatefulFutureReply<?>> pipelinedReplies;
+  private Queue<StatefulFutureReply<?>> multiReplies;
+  private MultiReplyHandler multiReplyHandler;
+  private PrimMultiReplyHandler primMultiReplyHandler;
   private PrimPipeline pipeline = null;
 
   PrimRedisClient(final Node node, final Function<Node, Node> hostPortMapper, final int connTimeout,
@@ -32,18 +38,131 @@ final class PrimRedisClient extends BaseRedisClient {
         sslParameters, hostnameVerifier));
   }
 
-  MultiResponseHandler getMultiResponseHandler() {
+  private Queue<StatefulFutureReply<?>> getMultiReplies() {
 
-    if (multiResponseHandler == null) {
-      multiResponseHandler = new MultiResponseHandler(new ArrayDeque<>());
+    if (multiReplies == null) {
+      multiReplies = new ArrayDeque<>();
     }
 
-    return multiResponseHandler;
+    return multiReplies;
   }
 
-  Queue<StatefulFutureReply<?>> getPipelinedResponses() {
+  FutureReply<Object[]> queueMultiReplyHandler() {
 
-    return pipelinedResponses;
+    if (multiReplyHandler == null) {
+      multiReplyHandler = new MultiReplyHandler(getMultiReplies());
+    }
+
+    final DeserializedFutureReply<Object[]> futureMultiReply =
+        new DeserializedFutureReply<>(multiReplyHandler);
+
+    pipelinedReplies.add(futureMultiReply);
+    multiReplyHandler.setExecReplyDependency(futureMultiReply);
+    return futureMultiReply;
+  }
+
+  <T> FutureReply<T> queueFutureReply(final Function<Object, T> builder) {
+
+    if (conn.isInMulti()) {
+      return queueMultiPipelinedReply(builder);
+    }
+
+    return queuePipelinedReply(builder);
+  }
+
+  <T> FutureReply<T> queuePipelinedReply(final Function<Object, T> builder) {
+
+    final StatefulFutureReply<T> futureReply = new DeserializedFutureReply<>(builder);
+    pipelinedReplies.add(futureReply);
+    return futureReply;
+  }
+
+  private <T> FutureReply<T> queueMultiPipelinedReply(final Function<Object, T> builder) {
+
+    // handle QUEUED response
+    pipelinedReplies.add(new DirectFutureReply<>());
+
+    final StatefulFutureReply<T> futureReply = new DeserializedFutureReply<>(builder);
+    multiReplyHandler.queueFutureReply(futureReply);
+    return futureReply;
+  }
+
+  FutureReply<long[]> queuePrimMultiReplyHandler() {
+
+    if (primMultiReplyHandler == null) {
+      primMultiReplyHandler = new PrimMultiReplyHandler(getMultiReplies());
+    }
+
+    final DeserializedFutureReply<long[]> futureMultiReply =
+        new DeserializedFutureReply<>(primMultiReplyHandler);
+
+    pipelinedReplies.add(futureMultiReply);
+    primMultiReplyHandler.setExecReplyDependency(futureMultiReply);
+    return futureMultiReply;
+  }
+
+  FutureLongReply queueFutureReply(final LongUnaryOperator adapter) {
+
+    if (conn.isInMulti()) {
+      return queueMultiPipelinedReply(adapter);
+    }
+
+    return queuePipelinedReply(adapter);
+  }
+
+  FutureLongReply queuePipelinedReply(final LongUnaryOperator adapter) {
+
+    final StatefulFutureReply<Void> futureResponse = new AdaptedFutureLongReply(adapter);
+    pipelinedReplies.add(futureResponse);
+    return futureResponse;
+  }
+
+  private FutureLongReply queueMultiPipelinedReply(final LongUnaryOperator adapter) {
+
+    // handle QUEUED response
+    pipelinedReplies.add(new DirectFutureReply<>());
+
+    final StatefulFutureReply<Void> futureResponse = new AdaptedFutureLongReply(adapter);
+    primMultiReplyHandler.queueFutureReply(futureResponse);
+    return futureResponse;
+  }
+
+  void sync() {
+
+    if (conn.isInMulti()) {
+      throw new RedisUnhandledException(null, "EXEC your MULTI before calling SYNC.");
+    }
+
+    conn.flush();
+
+    for (final Queue<StatefulFutureReply<?>> responses = pipelinedReplies;;) {
+
+      final StatefulFutureReply<?> response = responses.poll();
+
+      if (response == null) {
+        return;
+      }
+
+      try {
+        response.setReply(conn);
+      } catch (final RedisUnhandledException re) {
+        response.setException(re);
+      }
+    }
+  }
+
+  void closePipeline() {
+
+    pipelinedReplies.clear();
+
+    if (multiReplies != null) {
+      multiReplies.clear();
+    }
+
+    if (conn.isInMulti()) {
+      conn.discard();
+      conn.getReply(MultiCmds.DISCARD.raw());
+    }
   }
 
   @Override
@@ -65,8 +184,8 @@ final class PrimRedisClient extends BaseRedisClient {
       throw new RedisUnhandledException(getNode(), "Pipeline has already been created.");
     }
 
-    if (pipelinedResponses == null) {
-      pipelinedResponses = new ArrayDeque<>();
+    if (pipelinedReplies == null) {
+      pipelinedReplies = new ArrayDeque<>();
     }
 
     this.pipeline = new PrimPipeline(this);

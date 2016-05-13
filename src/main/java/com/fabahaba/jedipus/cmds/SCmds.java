@@ -1,6 +1,6 @@
 package com.fabahaba.jedipus.cmds;
 
-public interface SCmds {
+public interface SCmds extends DirectPrimCmds {
 
   // http://redis.io/commands#set
   static final Cmd<Long> SADD = Cmd.createCast("SADD");

@@ -126,7 +126,6 @@ abstract class BaseRedisClient implements RedisClient {
     return conn.getReply(cmd);
   }
 
-
   @Override
   public long sendCmd(final PrimCmd cmd) {
     conn.sendCmd(cmd.getCmdBytes());

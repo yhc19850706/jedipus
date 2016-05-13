@@ -1,6 +1,6 @@
 package com.fabahaba.jedipus.cmds;
 
-public interface ConnCmds {
+public interface ConnCmds extends DirectPrimCmds {
 
   // http://redis.io/commands#connection
   static final Cmd<String> AUTH = Cmd.createStringReply("AUTH");

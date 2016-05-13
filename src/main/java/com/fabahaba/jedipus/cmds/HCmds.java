@@ -1,6 +1,6 @@
 package com.fabahaba.jedipus.cmds;
 
-public interface HCmds {
+public interface HCmds extends DirectPrimCmds {
 
   // http://redis.io/commands#hash
   public static final Cmd<Long> HDEL = Cmd.createCast("HDEL");

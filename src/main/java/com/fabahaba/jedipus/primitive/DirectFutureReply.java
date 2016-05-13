@@ -2,17 +2,17 @@ package com.fabahaba.jedipus.primitive;
 
 class DirectFutureReply<T> extends StatefulFutureReply<T> {
 
-  protected Object response;
+  protected Object reply;
 
   @Override
-  public void setMultiResponse(final Object response) {
+  public void setMultiReply(final Object reply) {
 
-    if (response == null) {
+    if (reply == null) {
       state = State.BUILT;
       return;
     }
 
-    this.response = response;
+    this.reply = reply;
     state = State.PENDING;
   }
 
@@ -20,11 +20,11 @@ class DirectFutureReply<T> extends StatefulFutureReply<T> {
   @Override
   public T get() {
 
-    check();
+    checkReply();
 
-    return (T) response;
+    return (T) reply;
   }
 
   @Override
-  protected void handleResponse() {}
+  protected void handleReply() {}
 }

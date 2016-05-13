@@ -5,7 +5,7 @@ import java.util.function.LongUnaryOperator;
 class AdaptedFutureLongReply extends StatefulFutureReply<Void> {
 
   private final LongUnaryOperator adapter;
-  private long response = Long.MIN_VALUE;
+  private long reply = Long.MIN_VALUE;
 
   AdaptedFutureLongReply(final LongUnaryOperator adapter) {
 
@@ -15,22 +15,22 @@ class AdaptedFutureLongReply extends StatefulFutureReply<Void> {
   @Override
   public long getLong() {
 
-    check();
+    checkReply();
 
-    return adapter.applyAsLong(response);
+    return adapter.applyAsLong(reply);
   }
 
   @Override
-  public void setResponse(final PrimRedisConn conn) {
+  public void setReply(final PrimRedisConn conn) {
 
-    setMultiLongResponse(conn.getOneLongNoFlush());
+    setMultiLongReply(conn.getLongNoFlush());
   }
 
 
   @Override
-  public void setMultiLongResponse(final long response) {
+  public void setMultiLongReply(final long reply) {
 
-    this.response = response;
+    this.reply = reply;
     state = State.PENDING;
   }
 }

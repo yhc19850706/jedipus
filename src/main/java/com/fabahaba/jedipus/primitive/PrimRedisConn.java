@@ -120,11 +120,16 @@ final class PrimRedisConn extends RedisConn {
 
   public <T> T getReply(final Function<Object, T> responseHandler) {
 
-    return responseHandler.apply(getOne());
+    return responseHandler.apply(getReply());
+  }
+
+  public long[] getLongArrayReply(final Function<Object, long[]> responseHandler) {
+
+    return responseHandler.apply(getLongArray());
   }
 
   public long getReply(final LongUnaryOperator responseHandler) {
 
-    return responseHandler.applyAsLong(getOneLong());
+    return responseHandler.applyAsLong(getLong());
   }
 }

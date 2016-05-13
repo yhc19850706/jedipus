@@ -1,6 +1,6 @@
 package com.fabahaba.jedipus.cmds;
 
-public interface ServerCmds {
+public interface ServerCmds extends DirectPrimCmds {
 
   // http://redis.io/commands#server
   static final Cmd<Object> BGREWRITEAOF = Cmd.create("BGREWRITEAOF");

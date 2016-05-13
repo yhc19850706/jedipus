@@ -1,6 +1,6 @@
 package com.fabahaba.jedipus.cmds;
 
-public interface LCmds {
+public interface LCmds extends DirectPrimCmds {
 
   // http://redis.io/commands#list
   static final Cmd<String[]> BLPOP = Cmd.createStringArrayReply("BLPOP");

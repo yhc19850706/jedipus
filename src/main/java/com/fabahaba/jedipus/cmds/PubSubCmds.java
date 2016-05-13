@@ -1,6 +1,6 @@
 package com.fabahaba.jedipus.cmds;
 
-public interface PubSubCmds {
+public interface PubSubCmds extends DirectPrimCmds {
 
   // http://redis.io/commands#pubsub
   static final Cmd<Object> PSUBSCRIBE = Cmd.createCast("PSUBSCRIBE");

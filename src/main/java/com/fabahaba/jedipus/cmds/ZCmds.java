@@ -1,6 +1,6 @@
 package com.fabahaba.jedipus.cmds;
 
-public interface ZCmds {
+public interface ZCmds extends DirectPrimCmds {
 
   // http://redis.io/commands#sorted_set
   static final Cmd<Long> ZADD = Cmd.createCast("ZADD");

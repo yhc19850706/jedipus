@@ -2,7 +2,7 @@ package com.fabahaba.jedipus;
 
 public interface FutureLongReply {
 
-  public FutureLongReply check();
+  public FutureLongReply checkReply();
 
   public long getLong();
 }
