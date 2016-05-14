@@ -32,8 +32,7 @@ before_install:
    - unzip gradle-$GRADLE_VERSION-bin.zip
    - export GRADLE_HOME=$PWD/gradle-$GRADLE_VERSION
    - export PATH=$GRADLE_HOME/bin:$PATH
-   - docker pull redis:alpine
-   - echo "$TRAVIS_COMMIT"
+   - docker pull redis:alpine 
 
 before_cache:
   - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
@@ -43,7 +42,7 @@ cache:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
 
-install: /bin/true
+install: echo "$TRAVIS_COMMIT"
 
 script: if [ ! -z "$TRAVIS_TAG" ] || [[ "$TRAVIS_COMMIT" != 'Release jedipus'* ]] ; then gradle check; fi
 
