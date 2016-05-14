@@ -11,7 +11,7 @@
   * Minimal enforced (de)serialization.  Write directly to the socket output stream buffer, and retrieve raw responses.
   * Locking is only applied to threads which are accessing slots that are migrating; there is no known node; or for which a client connection continually cannot be established; all of which will trigger a slot cache refresh.
   * Primitive long, long[] and long[][] return types to avoid auto boxing, especially useful for BITFIELD.
-* Single dependency of `org.apache.commons:commons-pool2:+`.
+* Single dependency on `org.apache.commons:commons-pool2:+`.
 * Optional user supplied [`Node`](src/main/java/com/fabahaba/jedipus/cluster/Node.java) -> `ObjectPool<RedisClient>` factories.
 * Load balance read-only requests across pools.  Optional user supplied [`LoadBalancedPools`](src/main/java/com/fabahaba/jedipus/concurrent/LoadBalancedPools.java) factories.  By default, a [round robin strategy](src/main/java/com/fabahaba/jedipus/cluster/RoundRobinPools.java) is used.
 * [Client side HostPort mapping to internally networked clusters](https://gist.github.com/jamespedwards42/5037cf03768280ab1d81a88e7929c608).

@@ -6,7 +6,7 @@ import com.fabahaba.jedipus.cmds.pipeline.PipelineScriptingCmds;
 
 public interface RedisPipeline extends PipelineClusterCmds, PipelineScriptingCmds, AutoCloseable {
 
-  RedisPipeline skipReply();
+  RedisPipeline skip();
 
   ReplyMode getReplyMode();
 

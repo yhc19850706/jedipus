@@ -30,7 +30,7 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public boolean replyOn() {
+  public String replyOn() {
     return conn.replyOn();
   }
 

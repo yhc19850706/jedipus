@@ -23,7 +23,7 @@ final class PrimPipeline implements RedisPipeline {
   }
 
   @Override
-  public RedisPipeline skipReply() {
+  public RedisPipeline skip() {
     client.skip();
     return this;
   }

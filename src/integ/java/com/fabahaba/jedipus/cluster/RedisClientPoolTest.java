@@ -6,7 +6,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.NoSuchElementException;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.pool2.BasePooledObjectFactory;
@@ -26,25 +25,17 @@ import com.fabahaba.jedipus.exceptions.RedisException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
-public class RedisClientPoolTest {
+public class RedisClientPoolTest extends BaseRedisClientTest {
 
-  private static final int REDIS_PORT = Optional
-      .ofNullable(System.getProperty("jedipus.redis.port")).map(Integer::parseInt).orElse(9736);
-
-  private final Node defaultNode = Node.create("localhost", REDIS_PORT);
-
-  private PooledObjectFactory<RedisClient> defaultRedisFactory;
   private GenericObjectPoolConfig config;
   private GenericObjectPool<RedisClient> pool;
 
   @Before
   public void before() {
 
-    defaultRedisFactory =
-        RedisClientFactory.startBuilding().withAuth("42").createPooled(defaultNode);
     config = new GenericObjectPoolConfig();
     config.setMaxWaitMillis(200);
-    pool = new GenericObjectPool<>(defaultRedisFactory, config);
+    pool = new GenericObjectPool<>(defaultPoolFactory, config);
   }
 
   @After
@@ -101,8 +92,7 @@ public class RedisClientPoolTest {
     config.setMaxTotal(1);
     config.setBlockWhenExhausted(false);
 
-    final GenericObjectPool<RedisClient> pool =
-        new GenericObjectPool<>(defaultRedisFactory, config);
+    final GenericObjectPool<RedisClient> pool = new GenericObjectPool<>(defaultPoolFactory, config);
 
     final RedisClient client = RedisClientPool.borrowClient(pool);
     client.sendCmd(Cmds.SET.raw(), "foo", "0");
@@ -115,8 +105,7 @@ public class RedisClientPoolTest {
   public void securePool() {
 
     config.setTestOnBorrow(true);
-    final GenericObjectPool<RedisClient> pool =
-        new GenericObjectPool<>(defaultRedisFactory, config);
+    final GenericObjectPool<RedisClient> pool = new GenericObjectPool<>(defaultPoolFactory, config);
 
     final RedisClient client = RedisClientPool.borrowClient(pool);
     client.sendCmd(Cmds.SET.raw(), "foo", "bar");
@@ -149,8 +138,8 @@ public class RedisClientPoolTest {
   public void customClientName() {
 
     final GenericObjectPool<RedisClient> pool = new GenericObjectPool<>(
-        RedisClientFactory.startBuilding().withClientName("my_shiny_client_name").withAuth("42")
-            .createPooled(defaultNode),
+        RedisClientFactory.startBuilding().withClientName("my_shiny_client_name")
+            .withAuth(REDIS_PASS).createPooled(defaultNode),
         config);
 
     final RedisClient client = RedisClientPool.borrowClient(pool);
@@ -248,8 +237,7 @@ public class RedisClientPoolTest {
 
     config.setMaxTotal(1);
     config.setBlockWhenExhausted(false);
-    final GenericObjectPool<RedisClient> pool =
-        new GenericObjectPool<>(defaultRedisFactory, config);
+    final GenericObjectPool<RedisClient> pool = new GenericObjectPool<>(defaultPoolFactory, config);
 
     final RedisClient client = RedisClientPool.borrowClient(pool);
     try {

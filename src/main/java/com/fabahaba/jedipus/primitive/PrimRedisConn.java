@@ -172,21 +172,20 @@ final class PrimRedisConn extends RedisConn {
     return replyMode;
   }
 
-  boolean replyOn() {
+  String replyOn() {
     switch (replyMode) {
       case ON:
-        return true;
+        return RESP.OK;
       case OFF:
       case SKIP:
       default:
         sendSubCmd(Cmds.CLIENT.getCmdBytes(), Cmds.CLIENT_REPLY.getCmdBytes(),
             Cmds.ON.getCmdBytes());
         final String reply = Cmds.CLIENT_REPLY.apply(getReply());
-        if (reply.equals(RESP.OK)) {
+        if (reply != null) {
           replyMode = ReplyMode.ON;
-          return true;
         }
-        return false;
+        return reply;
     }
   }
 

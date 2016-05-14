@@ -50,6 +50,7 @@ sourceSets {
 }
 
 project.ext.set('redisServerPort', '9736')
+project.ext.set('redisServerPass', '42')
 
 project.ext.set('clusterAnnounceIp', '127.0.0.1')
 project.ext.set('startingClusterPort', '7379')
@@ -66,6 +67,7 @@ test {
       exceptionFormat "full"
    }
    systemProperty 'jedipus.redis.port', project.redisServerPort
+   systemProperty 'jedipus.redis.pass', project.redisServerPass
 
    systemProperty 'jedipus.redis.cluster.announceip', project.clusterAnnounceIp
    systemProperty 'jedipus.redis.cluster.startingport', project.startingClusterPort
@@ -78,7 +80,7 @@ task startRedis(type:Exec) {
    int numMasters = project.numMasters.toInteger()
    int numClusterNodes = numMasters + numMasters *  project.numSlavesEach.toInteger()
 
-   commandLine './scripts/startRedis.sh', project.name, project.redisServerPort, project.startingClusterPort, numClusterNodes, project.clusterAnnounceIp
+   commandLine './scripts/startRedis.sh', project.name, project.redisServerPort, project.redisServerPass, project.startingClusterPort, numClusterNodes, project.clusterAnnounceIp
 }
 
 task rmRedis(type:Exec) {
@@ -91,12 +93,12 @@ test.finalizedBy rmRedis
 
 task latestRedisModule(type:Exec) {
 
-   commandLine 'wget', '-O', 'src/integ/resources/redismodule.h', 'https://raw.githubusercontent.com/antirez/redis/unstable/src/redismodule.h'
+   commandLine 'wget', '-O', 'redis/modules/redismodule.h', 'https://raw.githubusercontent.com/antirez/redis/unstable/src/redismodule.h'
 }
 
 task compileModules(type:Exec) {
 
-   commandLine './scripts/compileModules.sh', 'src/integ/resources/module'
+   commandLine './scripts/compileModules.sh', 'redis/modules/module'
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {

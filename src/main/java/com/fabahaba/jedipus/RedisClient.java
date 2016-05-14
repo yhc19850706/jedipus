@@ -8,7 +8,7 @@ public interface RedisClient extends Cmds, AutoCloseable {
     ON, OFF, SKIP
   }
 
-  boolean replyOn();
+  String replyOn();
 
   RedisClient replyOff();
 

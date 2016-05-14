@@ -1,6 +1,7 @@
 package com.fabahaba.jedipus.cluster;
 
 import com.fabahaba.jedipus.HostPort;
+import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cmds.Cmd;
@@ -284,9 +285,9 @@ public class MockRedisClient implements RedisClient {
   }
 
   @Override
-  public boolean replyOn() {
+  public String replyOn() {
 
-    return false;
+    return RESP.OK;
   }
 
   @Override
