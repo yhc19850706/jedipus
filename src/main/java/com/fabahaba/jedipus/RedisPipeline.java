@@ -11,8 +11,6 @@ public interface RedisPipeline extends PipelineClusterCmds, PipelineScriptingCmd
 
   public FutureReply<long[]> primExec();
 
-  public FutureReply<long[][]> primArrayExec();
-
   public FutureReply<String> discard();
 
   default FutureReply<Object[]> execSync() {
@@ -27,13 +25,14 @@ public interface RedisPipeline extends PipelineClusterCmds, PipelineScriptingCmd
     return execReply;
   }
 
-  default FutureReply<long[][]> primArrayExecSync() {
-    final FutureReply<long[][]> execReply = primArrayExec();
-    sync();
-    return execReply;
+  default void primArrayExecSync() {
+    exec();
+    syncPrimArray();
   }
 
   public void sync();
+
+  public void syncPrimArray();
 
   @Override
   public void close();

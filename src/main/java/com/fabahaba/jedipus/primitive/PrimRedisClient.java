@@ -149,6 +149,30 @@ final class PrimRedisClient extends BaseRedisClient {
     }
   }
 
+  void syncPrimArray() {
+
+    if (conn.isInMulti()) {
+      throw new RedisUnhandledException(null, "EXEC your MULTI before calling SYNC.");
+    }
+
+    conn.flush();
+
+    for (final Queue<StatefulFutureReply<?>> responses = pipelinedReplies;;) {
+
+      final StatefulFutureReply<?> response = responses.poll();
+
+      if (response == null) {
+        return;
+      }
+
+      try {
+        response.setMultiReply(conn.getLongArrayNoFlush());
+      } catch (final RedisUnhandledException re) {
+        response.setException(re);
+      }
+    }
+  }
+
   void closePipeline() {
 
     pipelinedReplies.clear();
