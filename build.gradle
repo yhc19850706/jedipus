@@ -18,8 +18,11 @@ scmVersion {
       customPassword = ""
    }
 
+   createReleaseCommit true // should create empty commit to annotate release in commit history, false by default
+   releaseCommitMessage { version, position -> "Release $position.latestTag" }
+
    checks {
-      uncommittedChanges = true
+      uncommittedChanges = false
    }
 }
 

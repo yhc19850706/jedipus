@@ -12,7 +12,7 @@
   * Official Fire-And-Forget support using [`CLIENT REPLY ON|OFF|SKIP`](http://redis.io/commands/client-reply); supported in pipelines as well.
   * Locking is only applied to threads which are accessing slots that are migrating; there is no known node; or for which a client connection continually cannot be established; all of which will trigger a slot cache refresh.
   * Primitive long, long[] and long[][] return types to avoid auto boxing, nice for BITFIELD commands.
-  * Load balanced read-only requests across master and/or slave pools.
+  * Load balance read-only requests across master and/or slave pools.
 * Single dependency on `org.apache.commons:commons-pool2:+`.
 * PGP signed releases.  [Bintray](https://bintray.com/jamespedwards42/libs/jedipus/_latestVersion) verifies signatures automatically.  See [verifying your Jedipus jar](scripts/gpgVerifyJedipus.sh).
 * Optional user supplied [`Node`](src/main/java/com/fabahaba/jedipus/cluster/Node.java) -> `ObjectPool<RedisClient>` factories.
