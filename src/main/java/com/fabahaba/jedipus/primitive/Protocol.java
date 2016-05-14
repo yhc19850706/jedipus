@@ -217,15 +217,15 @@ final class Protocol {
       case MINUS_BYTE:
         throw processError(node, hostPortMapper, is);
       case PLUS_BYTE:
-        is.readLineBytes();
+        is.drain();
         throw new RedisUnhandledException(null,
             "Expected an Integer (:) response type, received a Simple String (+) response.");
       case DOLLAR_BYTE:
-        readBulkReply(node, is);
+        is.drain();
         throw new RedisUnhandledException(null,
             "Expected an Integer (:) response type, received a Bulk String ($) response.");
       case ASTERISK_BYTE:
-        readMultiBulkReply(node, hostPortMapper, is);
+        is.drain();
         throw new RedisUnhandledException(null,
             "Expected an Integer (:) response type, received an Array (*) response.");
       default:
@@ -292,18 +292,18 @@ final class Protocol {
           reply[i] = readLong(node, hostPortMapper, is);
         }
         return reply;
-      case COLON_BYTE:
-        is.readLongCRLF();
-        throw new RedisUnhandledException(null,
-            "Expected an Array (*) response type, received an Integer (:) response.");
       case MINUS_BYTE:
         throw processError(node, hostPortMapper, is);
+      case COLON_BYTE:
+        is.drain();
+        throw new RedisUnhandledException(null,
+            "Expected an Array (*) response type, received an Integer (:) response.");
       case PLUS_BYTE:
-        is.readLineBytes();
+        is.drain();
         throw new RedisUnhandledException(null,
             "Expected an Array (*) response type, received a Simple String (+) response.");
       case DOLLAR_BYTE:
-        readBulkReply(node, is);
+        is.drain();
         throw new RedisUnhandledException(null,
             "Expected an Array (*) response type, received a Bulk String ($) response.");
       default:
