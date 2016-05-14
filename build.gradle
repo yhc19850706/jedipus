@@ -19,7 +19,7 @@ scmVersion {
    }
 
    createReleaseCommit true
-   releaseCommitMessage { version, position -> "Release $project.name-$version." }
+   releaseCommitMessage { version, position -> "Release $project.name-$version" }
 
    checks {
       uncommittedChanges = false
