@@ -28,11 +28,12 @@ env:
    - GRADLE_VERSION="2.13"
 
 before_install:
+   - "export TRAVIS_COMMIT_MSG=\"$(git log --format=%B --no-merges -n 1)\""
    - wget http://services.gradle.org/distributions/gradle-$GRADLE_VERSION-bin.zip
    - unzip gradle-$GRADLE_VERSION-bin.zip
    - export GRADLE_HOME=$PWD/gradle-$GRADLE_VERSION
    - export PATH=$GRADLE_HOME/bin:$PATH
-   - docker pull redis:alpine 
+   - docker pull redis:alpine
 
 before_cache:
   - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
@@ -42,8 +43,8 @@ cache:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
 
-install: echo "$TRAVIS_COMMIT"
+install: /bin/true
 
-script: if [ ! -z "$TRAVIS_TAG" ] || [[ "$TRAVIS_COMMIT" != 'Release jedipus'* ]] ; then gradle check; fi
+script: echo "$TRAVIS_COMMIT_MESSAGE" && if [ ! -z "$TRAVIS_TAG" ] || [[ "$TRAVIS_COMMIT_MESSAGE" != 'Release jedipus'* ]] ; then gradle check; fi
 
 after_success: if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ ! -z "$TRAVIS_TAG" ] ; then gradle bintrayUpload; fi
