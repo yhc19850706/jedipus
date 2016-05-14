@@ -33,6 +33,7 @@ before_install:
    - export GRADLE_HOME=$PWD/gradle-$GRADLE_VERSION
    - export PATH=$GRADLE_HOME/bin:$PATH
    - docker pull redis:alpine
+   -- echo "$TRAVIS_COMMIT"
 
 before_cache:
   - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
@@ -44,8 +45,6 @@ cache:
 
 install: /bin/true
 
-script:
-   -- echo "$TRAVIS_COMMIT"
-   -- if [ ! -z "$TRAVIS_TAG" ] || [[ "$TRAVIS_COMMIT" ~= "Release jedipus-"* ]] gradle check
+script: if [ ! -z "$TRAVIS_TAG" ] || [[ "$TRAVIS_COMMIT" ~= "Release jedipus-"* ]] ; then gradle check; fi
 
 after_success: if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ ! -z "$TRAVIS_TAG" ] ; then gradle bintrayUpload; fi
