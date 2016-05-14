@@ -9,9 +9,11 @@
 * Performance focused:
   * Reuse known slot integers for direct O(1) primitive array access to a corresponding `RedisClient` pool.
   * Minimal enforced (de)serialization.  Write directly to the socket output stream buffer, and retrieve raw responses.
+  * Official Fire-And-Forget support using [`CLIENT REPLY ON|OFF|SKIP`](http://redis.io/commands/client-reply); suppported in pipelines as well.
   * Locking is only applied to threads which are accessing slots that are migrating; there is no known node; or for which a client connection continually cannot be established; all of which will trigger a slot cache refresh.
-  * Primitive long, long[] and long[][] return types to avoid auto boxing, especially useful for BITFIELD.
+  * Primitive long, long[] and long[][] return types to avoid auto boxing, nice for BITFIELD commands.
 * Single dependency on `org.apache.commons:commons-pool2:+`.
+* PGP signed releases.  [Bintray](https://bintray.com/jamespedwards42/libs/jedipus/_latestVersion) verifies signatures automatically.  See [verifing your Jedipus jar](scripts/gpgVerifyJedipus.sh), you will need wget and gpg.
 * Optional user supplied [`Node`](src/main/java/com/fabahaba/jedipus/cluster/Node.java) -> `ObjectPool<RedisClient>` factories.
 * Load balance read-only requests across pools.  Optional user supplied [`LoadBalancedPools`](src/main/java/com/fabahaba/jedipus/concurrent/LoadBalancedPools.java) factories.  By default, a [round robin strategy](src/main/java/com/fabahaba/jedipus/cluster/RoundRobinPools.java) is used.
 * [Client side HostPort mapping to internally networked clusters](https://gist.github.com/jamespedwards42/5037cf03768280ab1d81a88e7929c608).
@@ -46,7 +48,8 @@ try (final RedisClusterExecutor rce =
     RedisClusterExecutor.startBuilding(Node.create("localhost", 7000)).create()) {
 
   final String key = "42";
-  rce.accept(key, client -> client.sendCmd(Cmds.SET, key, "107.6"));
+  // skip() issues a pipelined CLIENT REPLY SKIP
+  rce.accept(key, client -> client.skip().sendCmd(Cmds.SET, key, "107.6"));
 
   final String temp = rce.apply(key, client -> client.sendCmd(Cmds.GET, key));
   if (temp.equals("107.6")) {
@@ -62,15 +65,18 @@ try (final RedisClusterExecutor rce =
   final String skey = "skey";
 
   final FutureLongReply numMembers = rce.applyPipeline(skey, pipeline -> {
-    // Express a raw return type to prevent unused String deserialization.
-    pipeline.sendCmd(Cmds.SADD.raw(), skey, "member");
+    // Fire and forget SADD.
+    pipeline.skip().sendCmd(Cmds.SADD, skey, "member");
     // Optional primitive return types.
     final FutureLongReply response = pipeline.sendCmd(Cmds.SCARD.prim(), skey);
     pipeline.sync();
+    // Check reply to leverage library error handling.
     return response.checkReply();
   });
 
-  System.out.format("'%s' has %d members.%n", skey, numMembers.getLong());
+  // This long was never auto boxed.
+  final long primitiveNumMembers = numMembers.getLong();
+  System.out.format("'%s' has %d members.%n", skey, primitiveNumMembers);
 }
 ```
 
@@ -136,15 +142,17 @@ try (final RedisClusterExecutor rce =
 ```
 
 ```java
-try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(Node.create("localhost", 7000))
-      .withReadMode(ReadMode.MIXED_SLAVES).create()) {
+try (final RedisClusterExecutor rce =
+    RedisClusterExecutor.startBuilding(Node.create("localhost", 7000))
+        .withReadMode(ReadMode.MIXED_SLAVES).create()) {
 
-   // Ping-Pong all masters.
-   rce.acceptAllMasters(
-      master -> System.out.format("%s %s%n", master, master.sendCmd(Cmds.PING)));
+  // Ping-Pong all masters.
+  rce.acceptAllMasters(
+      master -> System.out.format("%s from %s%n", master.sendCmd(Cmds.PING), master));
 
-   // Ping-Pong all slaves concurrently.
-   rce.applyAllSlaves(slave -> String.format("%s %s", slave, slave.sendCmd(Cmds.PING)), 1,
+  // Ping-Pong all slaves concurrently.
+  rce.applyAllSlaves(
+      slave -> String.format("%s from %s", slave.sendCmd(Cmds.PING, "Howdy"), slave), 1,
       ForkJoinPool.commonPool()).stream().map(CompletableFuture::join)
       .forEach(System.out::println);
 }
