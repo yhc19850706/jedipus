@@ -18,8 +18,8 @@ scmVersion {
       customPassword = ""
    }
 
-   createReleaseCommit true 
-   releaseCommitMessage { version, position -> "Release $prefix-$version." }
+   createReleaseCommit true
+   releaseCommitMessage { version, position -> "Release $project.name-$version." }
 
    checks {
       uncommittedChanges = false
