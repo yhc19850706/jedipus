@@ -44,6 +44,8 @@ cache:
 
 install: /bin/true
 
-script: gradle check
+script:
+   -- echo "$TRAVIS_COMMIT"
+   -- if [ ! -z "$TRAVIS_TAG" ] || [[ "$TRAVIS_COMMIT" ~= "Release jedipus-"* ]] gradle check
 
 after_success: if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ ! -z "$TRAVIS_TAG" ] ; then gradle bintrayUpload; fi
