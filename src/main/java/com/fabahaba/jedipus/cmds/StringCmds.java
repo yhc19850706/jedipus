@@ -1,6 +1,6 @@
 package com.fabahaba.jedipus.cmds;
 
-public interface StringCmds extends DirectPrimCmds {
+public interface StringCmds extends DirectCmds {
 
   // http://redis.io/commands#string
   static final Cmd<Long> APPEND = Cmd.createCast("APPEND");

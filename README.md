@@ -4,18 +4,18 @@
 
 ######Features
 * Execute `Consumer<RedisClient>` and `Function<RedisClient, R>` lambas.
-* Flexible generic or primitive return types to mathc the dynamic return type design of Redis.
-* Flexible command interface allows for custom commands, great for calling [Modules](https://github.com/antirez/redis/blob/unstable/src/modules/API.md).
+* Flexible generic or primitive return types to match the dynamic return type design of Redis.
+* Flexible command interface allows for calling [Modules](https://github.com/antirez/redis/blob/unstable/src/modules/API.md) or renamed commands.
 * Performance focused:
   * Reuse known slot integers for direct O(1) primitive array access to a corresponding `RedisClient` pool.
   * Minimal enforced (de)serialization.  Write directly to the socket output stream buffer, and retrieve raw responses.
   * Locking is only applied to threads which are accessing slots that are migrating; there is no known node; or for which a client connection continually cannot be established; all of which will trigger a slot cache refresh.
   * Primitive long, long[] and long[][] return types to avoid auto boxing, especially useful for BITFIELD.
-* Minimal dependencies, only `org.apache.commons:commons-pool2`.
+* Single dependency of `org.apache.commons:commons-pool2:+`.
 * Optional user supplied [`Node`](src/main/java/com/fabahaba/jedipus/cluster/Node.java) -> `ObjectPool<RedisClient>` factories.
 * Load balance read-only requests across pools.  Optional user supplied [`LoadBalancedPools`](src/main/java/com/fabahaba/jedipus/concurrent/LoadBalancedPools.java) factories.  By default, a [round robin strategy](src/main/java/com/fabahaba/jedipus/cluster/RoundRobinPools.java) is used.
 * [Client side HostPort mapping to internally networked clusters](https://gist.github.com/jamespedwards42/5037cf03768280ab1d81a88e7929c608).
-* Configurable [retry delays](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java) per cluster node for `RedisConnectionException's`.  By default, an [exponential backoff delay](src/main/java/com/fabahaba/jedipus/concurrent/SemaphoredRetryDelay.java) is used.
+* Configurable [retry delays](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java) per cluster node for `RedisConnectionException`'s.  By default, an [exponential back-off delay](src/main/java/com/fabahaba/jedipus/concurrent/SemaphoredRetryDelay.java) is used.
 * Execute directly against known or random nodes.
 * Utilities to manage and execute Lua scripts, see this [RedisLock Gist](https://gist.github.com/jamespedwards42/46bc6fcd6e2c81315d2d63a4e80b527f).
 
@@ -67,7 +67,7 @@ try (final RedisClusterExecutor rce =
     // Optional primitive return types.
     final FutureLongReply response = pipeline.sendCmd(Cmds.SCARD.prim(), skey);
     pipeline.sync();
-    return response.check();
+    return response.checkReply();
   });
 
   System.out.format("'%s' has %d members.%n", skey, numMembers.getLong());

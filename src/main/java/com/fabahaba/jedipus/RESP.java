@@ -7,6 +7,8 @@ import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 public final class RESP {
 
+  public static final String OK = "OK";
+
   private RESP() {}
 
   private static final byte[] BYTES_TRUE = RESP.toBytes(1);

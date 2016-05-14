@@ -13,6 +13,7 @@ import org.apache.commons.pool2.impl.DefaultPooledObject;
 
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
+import com.fabahaba.jedipus.RedisClient.ReplyMode;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.Cmds;
 
@@ -26,6 +27,7 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
   protected final byte[] pass;
   protected final byte[] clientName;
   protected final boolean initReadOnly;
+  protected final ReplyMode replyMode;
 
   private final boolean ssl;
   private final SSLSocketFactory sslSocketFactory;
@@ -34,8 +36,9 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
 
   RedisClientFactory(final Node node, final Function<Node, Node> hostPortMapper,
       final int connTimeout, final int soTimeout, final String pass, final String clientName,
-      final boolean initReadOnly, final boolean ssl, final SSLSocketFactory sslSocketFactory,
-      final SSLParameters sslParameters, final HostnameVerifier hostnameVerifier) {
+      final boolean initReadOnly, final ReplyMode replyMode, final boolean ssl,
+      final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
+      final HostnameVerifier hostnameVerifier) {
 
     this.node = node;
     this.hostPortMapper = hostPortMapper;
@@ -44,6 +47,7 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
     this.pass = pass == null ? null : RESP.toBytes(pass);
     this.clientName = clientName == null ? null : RESP.toBytes(clientName);
     this.initReadOnly = initReadOnly;
+    this.replyMode = replyMode;
 
     this.ssl = ssl;
     this.sslSocketFactory = sslSocketFactory;
@@ -61,8 +65,8 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
   @Override
   public RedisClient create() throws Exception {
 
-    final PrimRedisClient client = new PrimRedisClient(node, hostPortMapper, connTimeout, soTimeout,
-        ssl, sslSocketFactory, sslParameters, hostnameVerifier);
+    final PrimRedisClient client = new PrimRedisClient(node, replyMode, hostPortMapper, connTimeout,
+        soTimeout, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
 
     initClient(client);
 
@@ -114,6 +118,7 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
     private String pass;
     private String clientName;
     private boolean initReadOnly;
+    private ReplyMode replyMode = ReplyMode.ON;
 
     private boolean ssl;
     private SSLSocketFactory sslSocketFactory;
@@ -160,20 +165,32 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
         numInits++;
       }
 
+      switch (replyMode) {
+        case OFF:
+          numInits++;
+          break;
+        case SKIP:
+        case ON:
+        default:
+          break;
+      }
+
       if (numInits == 0) {
 
         return new RedisClientFactory(node, hostPortMapper, connTimeout, soTimeout, pass,
-            clientName, initReadOnly, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
+            clientName, initReadOnly, replyMode, ssl, sslSocketFactory, sslParameters,
+            hostnameVerifier);
       }
 
       if (numInits == 1) {
 
         return new SingleInitFactory(node, hostPortMapper, connTimeout, soTimeout, pass, clientName,
-            initReadOnly, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
+            initReadOnly, replyMode, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
       }
 
       return new PipelinedInitFactory(node, hostPortMapper, connTimeout, soTimeout, pass,
-          clientName, initReadOnly, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
+          clientName, initReadOnly, replyMode, ssl, sslSocketFactory, sslParameters,
+          hostnameVerifier);
     }
 
     public RedisClient create(final Node node) {
@@ -183,8 +200,8 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
 
     public RedisClient create(final Node node, final boolean initReadOnly) {
 
-      final PrimRedisClient client = new PrimRedisClient(node, hostPortMapper, connTimeout,
-          soTimeout, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
+      final PrimRedisClient client = new PrimRedisClient(node, replyMode, hostPortMapper,
+          connTimeout, soTimeout, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
 
       if (pass != null) {
 
@@ -273,6 +290,20 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
 
     public Builder withInitReadOnly(final boolean initReadOnly) {
       this.initReadOnly = initReadOnly;
+      return this;
+    }
+
+    public ReplyMode getReplyMode() {
+      return replyMode;
+    }
+
+    public Builder withReplyOff() {
+      this.replyMode = ReplyMode.OFF;
+      return this;
+    }
+
+    public Builder withReplyOn() {
+      this.replyMode = ReplyMode.ON;
       return this;
     }
 

@@ -12,36 +12,52 @@ abstract class BaseRedisClient implements RedisClient {
   protected final PrimRedisConn conn;
 
   protected BaseRedisClient(final PrimRedisConn conn) {
-
     this.conn = conn;
   }
 
   PrimRedisConn getConn() {
-
     return conn;
   }
 
   @Override
   public HostPort getHostPort() {
-
     return conn.getNode().getHostPort();
   }
 
   @Override
-  public int getConnectionTimeout() {
+  public ReplyMode getReplyMode() {
+    return conn.getReplyMode();
+  }
 
+  @Override
+  public boolean replyOn() {
+    return conn.replyOn();
+  }
+
+  @Override
+  public RedisClient replyOff() {
+    conn.replyOff();
+    return this;
+  }
+
+  @Override
+  public RedisClient skip() {
+    conn.replySkip();
+    return this;
+  }
+
+  @Override
+  public int getConnectionTimeout() {
     return conn.getConnectionTimeout();
   }
 
   @Override
   public int getSoTimeout() {
-
     return conn.getSoTimeout();
   }
 
   @Override
   public boolean isBroken() {
-
     return conn.isBroken();
   }
 

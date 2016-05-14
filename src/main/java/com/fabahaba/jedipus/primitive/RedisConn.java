@@ -202,6 +202,10 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
+  void drain() {
+    inputStream.drain();
+  }
+
   protected Object readObjBrokenChecked() {
 
     try {

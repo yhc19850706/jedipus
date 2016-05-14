@@ -2,7 +2,7 @@ package com.fabahaba.jedipus.cmds;
 
 import com.fabahaba.jedipus.RESP;
 
-public interface GeoCmds extends DirectPrimCmds {
+public interface GeoCmds extends DirectCmds {
 
   // http://redis.io/commands#geo
   static final Cmd<Long> GEOADD = Cmd.createCast("GEOADD");

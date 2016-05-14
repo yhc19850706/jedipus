@@ -1,6 +1,6 @@
 package com.fabahaba.jedipus.cmds;
 
-public interface PFCmds extends DirectPrimCmds {
+public interface PFCmds extends DirectCmds {
 
   // http://redis.io/commands#hyperloglog
   static final Cmd<Long> PFADD = Cmd.createCast("PFADD");

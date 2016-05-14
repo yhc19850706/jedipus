@@ -4,6 +4,18 @@ import com.fabahaba.jedipus.cmds.Cmds;
 
 public interface RedisClient extends Cmds, AutoCloseable {
 
+  public static enum ReplyMode {
+    ON, OFF, SKIP
+  }
+
+  boolean replyOn();
+
+  RedisClient replyOff();
+
+  RedisClient skip();
+
+  ReplyMode getReplyMode();
+
   public int getConnectionTimeout();
 
   public int getSoTimeout();

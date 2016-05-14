@@ -2,6 +2,7 @@ package com.fabahaba.jedipus.primitive;
 
 import com.fabahaba.jedipus.FutureLongReply;
 import com.fabahaba.jedipus.FutureReply;
+import com.fabahaba.jedipus.RedisClient.ReplyMode;
 import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.PrimCmd;
@@ -18,8 +19,18 @@ final class PrimPipeline implements RedisPipeline {
 
   @Override
   public void close() {
-
     client.closePipeline();
+  }
+
+  @Override
+  public RedisPipeline skipReply() {
+    client.skip();
+    return this;
+  }
+
+  @Override
+  public ReplyMode getReplyMode() {
+    return client.getReplyMode();
   }
 
   @Override

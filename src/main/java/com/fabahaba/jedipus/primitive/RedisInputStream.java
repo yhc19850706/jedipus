@@ -188,4 +188,20 @@ final class RedisInputStream extends InputStream {
 
     return in.read();
   }
+
+  public void drain() {
+    try {
+      if (in.available() == 0) {
+        return;
+      }
+
+      while (in.read(buf) > 0) {
+      }
+    } catch (final IOException e) {
+      // purpose is to ignore responses anyways.
+    } finally {
+      pos = 0;
+      limit = 0;
+    }
+  }
 }

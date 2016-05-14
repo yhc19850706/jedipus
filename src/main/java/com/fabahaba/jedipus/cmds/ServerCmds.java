@@ -1,6 +1,6 @@
 package com.fabahaba.jedipus.cmds;
 
-public interface ServerCmds extends DirectPrimCmds {
+public interface ServerCmds extends DirectCmds {
 
   // http://redis.io/commands#server
   static final Cmd<Object> BGREWRITEAOF = Cmd.create("BGREWRITEAOF");
@@ -15,7 +15,7 @@ public interface ServerCmds extends DirectPrimCmds {
   static final Cmd<Object> SKIPME = Cmd.create("SKIPME");
   static final Cmd<String> CLIENT_LIST = Cmd.createStringReply("LIST");
   static final Cmd<Object> CLIENT_PAUSE = Cmd.create("PAUSE");
-  static final Cmd<Object> CLIENT_REPLY = Cmd.create("REPLY");
+  static final Cmd<String> CLIENT_REPLY = Cmd.createStringReply("REPLY");
   static final Cmd<Object> ON = Cmd.create("ON");
   static final Cmd<Object> OFF = Cmd.create("OFF");
   static final Cmd<Object> SKIP = Cmd.create("SKIP");

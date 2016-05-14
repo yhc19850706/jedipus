@@ -282,4 +282,28 @@ public class MockRedisClient implements RedisClient {
 
     return null;
   }
+
+  @Override
+  public boolean replyOn() {
+
+    return false;
+  }
+
+  @Override
+  public RedisClient replyOff() {
+
+    return null;
+  }
+
+  @Override
+  public RedisClient skip() {
+
+    return null;
+  }
+
+  @Override
+  public ReplyMode getReplyMode() {
+
+    return null;
+  }
 }

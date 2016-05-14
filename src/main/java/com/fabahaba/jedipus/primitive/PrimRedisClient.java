@@ -13,6 +13,7 @@ import com.fabahaba.jedipus.FutureLongReply;
 import com.fabahaba.jedipus.FutureReply;
 import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cluster.Node;
+import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 final class PrimRedisClient extends BaseRedisClient {
@@ -22,20 +23,21 @@ final class PrimRedisClient extends BaseRedisClient {
   private Queue<StatefulFutureReply<?>> multiReplies;
   private MultiReplyHandler multiReplyHandler;
   private PrimMultiReplyHandler primMultiReplyHandler;
-  private PrimPipeline pipeline = null;
+  private PrimPipeline pipeline;
 
-  PrimRedisClient(final Node node, final Function<Node, Node> hostPortMapper, final int connTimeout,
-      final int soTimeout) {
+  PrimRedisClient(final Node node, final ReplyMode replyMode,
+      final Function<Node, Node> hostPortMapper, final int connTimeout, final int soTimeout) {
 
-    this(node, hostPortMapper, connTimeout, soTimeout, false, null, null, null);
+    this(node, replyMode, hostPortMapper, connTimeout, soTimeout, false, null, null, null);
   }
 
-  PrimRedisClient(final Node node, final Function<Node, Node> hostPortMapper, final int connTimeout,
-      final int soTimeout, final boolean ssl, final SSLSocketFactory sslSocketFactory,
-      final SSLParameters sslParameters, final HostnameVerifier hostnameVerifier) {
+  PrimRedisClient(final Node node, final ReplyMode replyMode,
+      final Function<Node, Node> hostPortMapper, final int connTimeout, final int soTimeout,
+      final boolean ssl, final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
+      final HostnameVerifier hostnameVerifier) {
 
-    super(PrimRedisConn.create(node, hostPortMapper, connTimeout, soTimeout, ssl, sslSocketFactory,
-        sslParameters, hostnameVerifier));
+    super(PrimRedisConn.create(node, replyMode, hostPortMapper, connTimeout, soTimeout, ssl,
+        sslSocketFactory, sslParameters, hostnameVerifier));
   }
 
   private Queue<StatefulFutureReply<?>> getMultiReplies() {
@@ -48,7 +50,6 @@ final class PrimRedisClient extends BaseRedisClient {
   }
 
   FutureReply<Object[]> queueMultiReplyHandler() {
-
     final DeserializedFutureReply<Object[]> futureMultiReply =
         new DeserializedFutureReply<>(multiReplyHandler);
 
@@ -58,24 +59,27 @@ final class PrimRedisClient extends BaseRedisClient {
   }
 
   <T> FutureReply<T> queueFutureReply(final Function<Object, T> builder) {
-
-    if (conn.isInMulti()) {
-      return queueMultiPipelinedReply(builder);
-    }
-
-    return queuePipelinedReply(builder);
+    return conn.isInMulti() ? queueMultiPipelinedReply(builder) : queuePipelinedReply(builder);
   }
 
   <T> FutureReply<T> queuePipelinedReply(final Function<Object, T> builder) {
-
-    final StatefulFutureReply<T> futureReply = new DeserializedFutureReply<>(builder);
-    pipelinedReplies.add(futureReply);
-    return futureReply;
+    switch (conn.getReplyMode()) {
+      case ON:
+        final StatefulFutureReply<T> futureReply = new DeserializedFutureReply<>(builder);
+        pipelinedReplies.add(futureReply);
+        return futureReply;
+      case OFF:
+        return null;
+      case SKIP:
+        conn.setReplyMode(ReplyMode.ON);
+        return null;
+      default:
+        return null;
+    }
   }
 
   private <T> FutureReply<T> queueMultiPipelinedReply(final Function<Object, T> builder) {
 
-    // handle QUEUED response
     pipelinedReplies.add(new DirectFutureReply<>());
 
     final StatefulFutureReply<T> futureReply = new DeserializedFutureReply<>(builder);
@@ -87,7 +91,6 @@ final class PrimRedisClient extends BaseRedisClient {
   }
 
   FutureReply<long[]> queuePrimMultiReplyHandler() {
-
     final DeserializedFutureReply<long[]> futureMultiReply =
         new DeserializedFutureReply<>(primMultiReplyHandler);
 
@@ -97,24 +100,26 @@ final class PrimRedisClient extends BaseRedisClient {
   }
 
   FutureLongReply queueFutureReply(final LongUnaryOperator adapter) {
-
-    if (conn.isInMulti()) {
-      return queueMultiPipelinedReply(adapter);
-    }
-
-    return queuePipelinedReply(adapter);
+    return conn.isInMulti() ? queueMultiPipelinedReply(adapter) : queuePipelinedReply(adapter);
   }
 
   FutureLongReply queuePipelinedReply(final LongUnaryOperator adapter) {
-
-    final StatefulFutureReply<Void> futureResponse = new AdaptedFutureLongReply(adapter);
-    pipelinedReplies.add(futureResponse);
-    return futureResponse;
+    switch (conn.getReplyMode()) {
+      case ON:
+        final StatefulFutureReply<Void> futureResponse = new AdaptedFutureLongReply(adapter);
+        pipelinedReplies.add(futureResponse);
+        return futureResponse;
+      case SKIP:
+        conn.setReplyMode(ReplyMode.ON);
+        return null;
+      case OFF:
+      default:
+        return null;
+    }
   }
 
   private FutureLongReply queueMultiPipelinedReply(final LongUnaryOperator adapter) {
 
-    // handle QUEUED response
     pipelinedReplies.add(new DirectFutureReply<>());
 
     final StatefulFutureReply<Void> futureResponse = new AdaptedFutureLongReply(adapter);
@@ -123,6 +128,17 @@ final class PrimRedisClient extends BaseRedisClient {
     }
     primMultiReplyHandler.queueFutureReply(futureResponse);
     return futureResponse;
+  }
+
+  FutureReply<String> queueReplyOnReply() {
+
+    conn.setReplyMode(ReplyMode.ON);
+
+    if (conn.isInMulti()) {
+      return queueMultiPipelinedReply(Cmds.CLIENT_REPLY);
+    }
+
+    return queuePipelinedReply(Cmds.CLIENT_REPLY);
   }
 
   void sync() {

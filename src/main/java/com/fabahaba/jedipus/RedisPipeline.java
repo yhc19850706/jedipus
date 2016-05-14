@@ -1,9 +1,14 @@
 package com.fabahaba.jedipus;
 
+import com.fabahaba.jedipus.RedisClient.ReplyMode;
 import com.fabahaba.jedipus.cmds.pipeline.PipelineClusterCmds;
 import com.fabahaba.jedipus.cmds.pipeline.PipelineScriptingCmds;
 
 public interface RedisPipeline extends PipelineClusterCmds, PipelineScriptingCmds, AutoCloseable {
+
+  RedisPipeline skipReply();
+
+  ReplyMode getReplyMode();
 
   public FutureReply<String> multi();
 
