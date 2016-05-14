@@ -1,5 +1,6 @@
 package com.fabahaba.jedipus.primitive;
 
+import java.util.Arrays;
 import java.util.function.Function;
 
 import javax.net.ssl.HostnameVerifier;
@@ -98,10 +99,10 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
 
   @Override
   public String toString() {
-
     return new StringBuilder("RedisClientFactory [node=").append(node).append(", connTimeout=")
-        .append(connTimeout).append(", soTimeout=").append(soTimeout).append(", clientName=")
-        .append(RESP.toString(clientName)).append(", initReadOnly=").append(initReadOnly)
+        .append(connTimeout).append(", soTimeout=").append(soTimeout).append(", pass=")
+        .append(Arrays.toString(pass)).append(", clientName=").append(Arrays.toString(clientName))
+        .append(", initReadOnly=").append(initReadOnly).append(", replyMode=").append(replyMode)
         .append(", ssl=").append(ssl).append(", sslSocketFactory=").append(sslSocketFactory)
         .append(", sslParameters=").append(sslParameters).append(", hostnameVerifier=")
         .append(hostnameVerifier).append("]").toString();
@@ -345,12 +346,11 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
 
     @Override
     public String toString() {
-
-      return new StringBuilder("RedisClientFactory.Builder [host=").append(host).append(", port=")
-          .append(port).append(", connTimeout=").append(connTimeout).append(", soTimeout=")
-          .append(soTimeout).append(", pass=").append(pass).append(", clientName=")
-          .append(clientName).append(", initReadOnly=").append(initReadOnly).append(", ssl=")
-          .append(ssl).append(", sslSocketFactory=").append(sslSocketFactory)
+      return new StringBuilder("Builder [host=").append(host).append(", port=").append(port)
+          .append(", connTimeout=").append(connTimeout).append(", soTimeout=").append(soTimeout)
+          .append(", pass=").append(pass).append(", clientName=").append(clientName)
+          .append(", initReadOnly=").append(initReadOnly).append(", replyMode=").append(replyMode)
+          .append(", ssl=").append(ssl).append(", sslSocketFactory=").append(sslSocketFactory)
           .append(", sslParameters=").append(sslParameters).append(", hostnameVerifier=")
           .append(hostnameVerifier).append("]").toString();
     }

@@ -19,7 +19,7 @@ class RoundRobinPools<T> implements LoadBalancedPools<T, ReadMode> {
   }
 
   @Override
-  public ObjectPool<T> next(final ReadMode readMode) {
+  public ObjectPool<T> next(final ReadMode readMode, final ObjectPool<T> defaultPool) {
 
     switch (readMode) {
       case MIXED:
@@ -27,7 +27,7 @@ class RoundRobinPools<T> implements LoadBalancedPools<T, ReadMode> {
             .getAndUpdate(previousIndex -> previousIndex == pools.length ? 0 : previousIndex + 1);
 
         if (index == pools.length) {
-          return null;
+          return defaultPool;
         }
 
         return pools[index];
@@ -38,7 +38,7 @@ class RoundRobinPools<T> implements LoadBalancedPools<T, ReadMode> {
         return pools[index];
       case MASTER:
       default:
-        return null;
+        return defaultPool;
     }
   }
 }

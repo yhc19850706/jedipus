@@ -33,4 +33,11 @@ class AdaptedFutureLongReply extends StatefulFutureReply<Void> {
     this.reply = reply;
     state = State.PENDING;
   }
+
+  @Override
+  public String toString() {
+    return new StringBuilder("AdaptedFutureLongReply [reply=").append(reply).append(", state=")
+        .append(state).append(", exception=").append(exception).append(", execDependency=")
+        .append(execDependency).append("]").toString();
+  }
 }

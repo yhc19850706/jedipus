@@ -42,7 +42,7 @@ abstract class BaseRedisClient implements RedisClient {
 
   @Override
   public RedisClient skip() {
-    conn.replySkip();
+    conn.skip();
     return this;
   }
 
@@ -321,7 +321,7 @@ abstract class BaseRedisClient implements RedisClient {
   public void close() {
 
     try {
-      sendCmd(Cmds.QUIT.raw());
+      skip().sendCmd(Cmds.QUIT);
     } catch (final RuntimeException e) {
       // closing anyways
     } finally {
@@ -341,7 +341,7 @@ abstract class BaseRedisClient implements RedisClient {
 
   @Override
   public String toString() {
-
-    return getNode().toString();
+    return new StringBuilder("BaseRedisClient [conn=").append(conn).append(", getNode()=")
+        .append(getNode()).append("]").toString();
   }
 }

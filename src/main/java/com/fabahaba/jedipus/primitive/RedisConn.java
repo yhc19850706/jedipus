@@ -238,6 +238,8 @@ abstract class RedisConn implements AutoCloseable {
 
   @Override
   public String toString() {
-    return getNode().toString();
+    return new StringBuilder("RedisConn [node=").append(getNode()).append(", connectionTimeout=")
+        .append(connectionTimeout).append(", soTimeout=").append(soTimeout).append(", broken=")
+        .append(broken).append("]").toString();
   }
 }

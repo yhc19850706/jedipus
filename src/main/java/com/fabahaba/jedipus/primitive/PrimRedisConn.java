@@ -118,11 +118,11 @@ final class PrimRedisConn extends RedisConn {
 
   public void resetState() {
     if (isInMulti()) {
-      discard();
+      skip().discard();
     }
 
     if (isInWatch()) {
-      unwatch();
+      skip().unwatch();
     }
   }
 
@@ -206,16 +206,24 @@ final class PrimRedisConn extends RedisConn {
     }
   }
 
-  void replySkip() {
+  PrimRedisConn skip() {
     switch (replyMode) {
       case SKIP:
-        return;
-      case ON:
       case OFF:
+        return this;
+      case ON:
       default:
         sendSubCmd(Cmds.CLIENT.getCmdBytes(), Cmds.CLIENT_REPLY.getCmdBytes(),
             Cmds.SKIP.getCmdBytes());
         replyMode = ReplyMode.SKIP;
     }
+    return this;
+  }
+
+  @Override
+  public String toString() {
+    return new StringBuilder("PrimRedisConn [isInMulti=").append(isInMulti).append(", isInWatch=")
+        .append(isInWatch).append(", replyMode=").append(replyMode).append(", super.toString()=")
+        .append(super.toString()).append("]").toString();
   }
 }

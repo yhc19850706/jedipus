@@ -53,8 +53,7 @@ class RedisClusterSlotCache implements AutoCloseable {
 
   RedisClusterSlotCache(final ReadMode defaultReadMode, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
-      final Map<HostPort, Node> discoveryNodes,
-      final Function<Node, Node> hostPortMapper,
+      final Map<HostPort, Node> discoveryNodes, final Function<Node, Node> hostPortMapper,
       final Map<Node, ObjectPool<RedisClient>> masterPools,
       final ObjectPool<RedisClient>[] masterSlots,
       final Map<Node, ObjectPool<RedisClient>> slavePools,
@@ -108,8 +107,7 @@ class RedisClusterSlotCache implements AutoCloseable {
   @SuppressWarnings("unchecked")
   static RedisClusterSlotCache create(final ReadMode defaultReadMode, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
-      final Collection<Node> discoveryNodes,
-      final Function<Node, Node> hostPortMapper,
+      final Collection<Node> discoveryNodes, final Function<Node, Node> hostPortMapper,
       final Function<Node, ObjectPool<RedisClient>> masterPoolFactory,
       final Function<Node, ObjectPool<RedisClient>> slavePoolFactory,
       final Function<Node, RedisClient> nodeUnknownFactory,
@@ -147,8 +145,7 @@ class RedisClusterSlotCache implements AutoCloseable {
       final LoadBalancedPools<RedisClient, ReadMode>[] slaveSlots,
       final ElementRetryDelay<Node> clusterNodeRetryDelay) {
 
-    final Map<HostPort, Node> allDiscoveryNodes =
-        new ConcurrentHashMap<>(discoveryNodes.size());
+    final Map<HostPort, Node> allDiscoveryNodes = new ConcurrentHashMap<>(discoveryNodes.size());
     discoveryNodes.forEach(node -> allDiscoveryNodes.put(node.getHostPort(), node));
 
     for (final Node discoveryHostPort : discoveryNodes) {
@@ -166,8 +163,7 @@ class RedisClusterSlotCache implements AutoCloseable {
             case MIXED_SLAVES:
             case MIXED:
             case MASTER:
-              final Node masterNode =
-                  Node.create(hostPortMapper, (Object[]) slotInfo[2]);
+              final Node masterNode = Node.create(hostPortMapper, (Object[]) slotInfo[2]);
               allDiscoveryNodes.compute(masterNode.getHostPort(), (hostPort, known) -> {
                 if (known == null) {
                   return masterNode;
@@ -196,8 +192,7 @@ class RedisClusterSlotCache implements AutoCloseable {
 
           for (int i = 3, poolIndex = 0; i < slotInfoSize; i++) {
 
-            final Node slaveNode =
-                Node.create(hostPortMapper, (Object[]) slotInfo[i]);
+            final Node slaveNode = Node.create(hostPortMapper, (Object[]) slotInfo[i]);
             allDiscoveryNodes.compute(slaveNode.getHostPort(), (hostPort, known) -> {
               if (known == null) {
                 return slaveNode;
@@ -330,8 +325,7 @@ class RedisClusterSlotCache implements AutoCloseable {
           case MIXED_SLAVES:
           case MIXED:
           case MASTER:
-            final Node masterNode =
-                Node.create(hostPortMapper, (Object[]) slotInfo[2]);
+            final Node masterNode = Node.create(hostPortMapper, (Object[]) slotInfo[2]);
             discoveryNodes.compute(masterNode.getHostPort(), (hostPort, known) -> {
               if (known == null) {
                 return masterNode;
@@ -519,7 +513,7 @@ class RedisClusterSlotCache implements AutoCloseable {
           return masterSlots[slot];
         }
 
-        final ObjectPool<RedisClient> slavePool = lbSlaves.next(readMode);
+        final ObjectPool<RedisClient> slavePool = lbSlaves.next(readMode, null);
 
         return slavePool == null ? masterSlots[slot] : slavePool;
       case SLAVES:
@@ -528,7 +522,7 @@ class RedisClusterSlotCache implements AutoCloseable {
           return masterSlots.length == 0 ? null : masterSlots[slot];
         }
 
-        return lbSlaves.next(readMode);
+        return lbSlaves.next(readMode, null);
       default:
         return null;
     }
@@ -784,5 +778,15 @@ class RedisClusterSlotCache implements AutoCloseable {
         lock.unlockWrite(writeStamp);
       }
     }
+  }
+
+  @Override
+  public String toString() {
+    return new StringBuilder("RedisClusterSlotCache [defaultReadMode=").append(defaultReadMode)
+        .append(", discoveryNodes=").append(discoveryNodes).append(", optimisticReads=")
+        .append(optimisticReads).append(", maxAwaitCacheRefreshNanos=")
+        .append(maxAwaitCacheRefreshNanos).append(", millisBetweenSlotCacheRefresh=")
+        .append(millisBetweenSlotCacheRefresh).append(", refreshStamp=").append(refreshStamp)
+        .append("]").toString();
   }
 }

@@ -25,4 +25,12 @@ final class DeserializedFutureReply<T> extends DirectFutureReply<T> {
 
     deserialized = deserializer.apply(reply);
   }
+
+  @Override
+  public String toString() {
+    return new StringBuilder("DeserializedFutureReply [deserializer=").append(deserializer)
+        .append(", deserialized=").append(deserialized).append(", reply=").append(reply)
+        .append(", state=").append(state).append(", exception=").append(exception)
+        .append(", execDependency=").append(execDependency).append("]").toString();
+  }
 }

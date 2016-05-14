@@ -77,13 +77,12 @@ public final class Jedipus implements RedisClusterExecutor {
       (defaultReadMode, slavePools) -> {
 
         if (slavePools.length == 0) {
-          // will fall back to master pool
-          return rm -> null;
+          return (rm, def) -> def;
         }
 
         switch (defaultReadMode) {
           case MASTER:
-            // will never reach here.
+            // No load balancer needed for single master pool.
             return null;
           case SLAVES:
 
@@ -91,7 +90,7 @@ public final class Jedipus implements RedisClusterExecutor {
 
               final ObjectPool<RedisClient> pool = slavePools[0];
 
-              return rm -> pool;
+              return (rm, def) -> pool;
             }
 
             return new RoundRobinPools<>(slavePools);
@@ -101,11 +100,10 @@ public final class Jedipus implements RedisClusterExecutor {
 
               final ObjectPool<RedisClient> pool = slavePools[0];
 
-              return rm -> {
+              return (rm, def) -> {
                 switch (rm) {
                   case MASTER:
-                    // will fall back to master pool
-                    return null;
+                    return def;
                   case MIXED:
                     // ignore request to lb across master. Should use MIXED as default instead.
                   case MIXED_SLAVES:
@@ -232,9 +230,7 @@ public final class Jedipus implements RedisClusterExecutor {
     }
 
     for (;;) {
-
       try {
-
         if (previousRedirectEx == null || !(previousRedirectEx instanceof AskNodeException)) {
 
           pool = retries > tryRandomAfter ? connHandler.getRandomPool(readMode)
@@ -246,12 +242,11 @@ public final class Jedipus implements RedisClusterExecutor {
           return result;
         }
 
-
         final Node askNode = previousRedirectEx.getTargetNode();
         pool = connHandler.getAskPool(askNode);
         client = RedisClientPool.borrowClient(pool);
         if (wantsPipeline) {
-          client.createPipeline().asking();
+          client.pipeline().asking();
         } else {
           client.asking();
         }
@@ -288,7 +283,6 @@ public final class Jedipus implements RedisClusterExecutor {
         } else {
           connHandler.renewSlotCache(readMode, client);
         }
-
 
         previousRedirectEx = moveEx;
         continue;
@@ -406,7 +400,6 @@ public final class Jedipus implements RedisClusterExecutor {
 
     if (executor == null) {
       pools.forEach((node, pool) -> acceptPool(node, pool, clientConsumer, maxRetries));
-
       return Collections.emptyList();
     }
 
@@ -460,6 +453,15 @@ public final class Jedipus implements RedisClusterExecutor {
     connHandler.close();
   }
 
+  @Override
+  public String toString() {
+    return new StringBuilder("Jedipus [maxRedirections=").append(maxRedirections)
+        .append(", maxRetries=").append(maxRetries).append(", tryRandomAfter=")
+        .append(tryRandomAfter).append(", retryUnhandledRetryableExceptions=")
+        .append(retryUnhandledRetryableExceptions).append(", connHandler=").append(connHandler)
+        .append("]").toString();
+  }
+
   public static final class Builder {
 
     private ReadMode defaultReadMode = ReadMode.MASTER;
@@ -473,7 +475,7 @@ public final class Jedipus implements RedisClusterExecutor {
     private GenericObjectPoolConfig poolConfig = DEFAULT_POOL_CONFIG;
     private Function<Node, ObjectPool<RedisClient>> masterPoolFactory = DEFAULT_MASTER_POOL_FACTORY;
     private Function<Node, ObjectPool<RedisClient>> slavePoolFactory = DEFAULT_SLAVE_POOL_FACTORY;
-    // Used for ASK requests if no pool exists and random node discovery.
+    // Used for ASK requests if no pool already exists and random node discovery.
     private Function<Node, RedisClient> nodeUnknownFactory = DEFAULT_UNKOWN_NODE_FACTORY;
     private BiFunction<ReadMode, ObjectPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> lbFactory =
         DEFAULT_LB_FACTORIES;
@@ -481,7 +483,7 @@ public final class Jedipus implements RedisClusterExecutor {
     // migration.
     private boolean optimisticReads = true;
     private Duration durationBetweenCacheRefresh = DEFAULT_DURATION_BETWEEN_CACHE_REFRESH;
-    // 0 blocks forever, timed out requests will retry or throws a RedisConnectionException if no
+    // 0 blocks forever, timed out requests will retry or throw a RedisConnectionException if no
     // pools are available.
     private Duration maxAwaitCacheRefresh = DEFAULT_MAX_AWAIT_CACHE_REFRESH;
 
@@ -649,18 +651,15 @@ public final class Jedipus implements RedisClusterExecutor {
 
     @Override
     public String toString() {
-
-      return new StringBuilder("RedisClusterExecutor.Builder [defaultReadMode=")
-          .append(defaultReadMode).append(", discoveryNodes=").append(discoveryNodes)
-          .append(", maxRedirections=").append(maxRedirections).append(", maxRetries=")
-          .append(maxRetries).append(", tryRandomAfter=").append(tryRandomAfter)
-          .append(", clusterNodeRetryDelay=").append(clusterNodeRetryDelay).append(", poolConfig=")
-          .append(poolConfig).append(", masterPoolFactory=").append(masterPoolFactory)
-          .append(", slavePoolFactory=").append(slavePoolFactory).append(", nodeUnknownFactory=")
-          .append(nodeUnknownFactory).append(", lbFactory=").append(lbFactory)
-          .append(", optimisticReads=").append(optimisticReads)
-          .append(", durationBetweenCacheRefresh=").append(durationBetweenCacheRefresh)
-          .append(", maxAwaitCacheRefresh=").append(maxAwaitCacheRefresh).append("]").toString();
+      return new StringBuilder("Builder [defaultReadMode=").append(defaultReadMode)
+          .append(", discoveryNodes=").append(discoveryNodes).append(", maxRedirections=")
+          .append(maxRedirections).append(", maxRetries=").append(maxRetries)
+          .append(", tryRandomAfter=").append(tryRandomAfter)
+          .append(", retryUnhandledRetryableExceptions=").append(retryUnhandledRetryableExceptions)
+          .append(", poolConfig=").append(poolConfig).append(", optimisticReads=")
+          .append(optimisticReads).append(", durationBetweenCacheRefresh=")
+          .append(durationBetweenCacheRefresh).append(", maxAwaitCacheRefresh=")
+          .append(maxAwaitCacheRefresh).append("]").toString();
     }
   }
 }

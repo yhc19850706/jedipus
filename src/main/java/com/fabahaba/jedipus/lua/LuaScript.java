@@ -113,7 +113,7 @@ public interface LuaScript<R> {
 
       if (jde.getMessage().startsWith("NOSCRIPT")) {
 
-        final RedisPipeline pipeline = client.createPipeline();
+        final RedisPipeline pipeline = client.pipeline();
         pipeline.sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.LOAD.raw(), getLuaScript());
         final FutureReply<Object> response = pipeline.evalSha1Hex(args);
         pipeline.sync();
@@ -313,7 +313,7 @@ public interface LuaScript<R> {
 
       if (RESP.longToInt(exists) == 0) {
         if (pipeline == null) {
-          pipeline = client.createPipeline();
+          pipeline = client.pipeline();
         }
         pipeline.scriptLoad(RESP.toBytes(luaScripts[index].getLuaScript()));
       }

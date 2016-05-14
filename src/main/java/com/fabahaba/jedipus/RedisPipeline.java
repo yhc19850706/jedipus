@@ -8,6 +8,8 @@ public interface RedisPipeline extends PipelineClusterCmds, PipelineScriptingCmd
 
   RedisPipeline skip();
 
+  RedisPipeline replyOff();
+
   ReplyMode getReplyMode();
 
   public FutureReply<String> multi();

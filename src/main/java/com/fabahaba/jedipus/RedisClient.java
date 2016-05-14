@@ -34,9 +34,7 @@ public interface RedisClient extends Cmds, AutoCloseable {
     return getHostPort().getPort();
   }
 
-  public RedisPipeline createPipeline();
-
-  public RedisPipeline createOrUseExistingPipeline();
+  public RedisPipeline pipeline();
 
   public void resetState();
 

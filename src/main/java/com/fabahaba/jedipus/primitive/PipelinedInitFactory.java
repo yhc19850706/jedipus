@@ -27,7 +27,7 @@ class PipelinedInitFactory extends RedisClientFactory {
   @Override
   protected void initClient(final RedisClient client) {
 
-    final RedisPipeline pipeline = client.createPipeline();
+    final RedisPipeline pipeline = client.pipeline();
 
     if (pass != null) {
       pipeline.sendCmd(Cmds.AUTH.raw(), pass);

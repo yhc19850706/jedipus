@@ -21,6 +21,7 @@
 * Configurable `RedisConnectionException` [retry delays](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java) per cluster node.  By default, an [exponential back-off delay](src/main/java/com/fabahaba/jedipus/concurrent/SemaphoredRetryDelay.java) is used.
 * Execute directly against known or random nodes.
 * Utilities to manage and execute Lua scripts, see this [RedisLock Gist](https://gist.github.com/jamespedwards42/46bc6fcd6e2c81315d2d63a4e80b527f).
+* Frequent point releases for new features, utilities and bug fixes.
 
 ######Read Modes
 >Read modes control how pools to master and slave nodes are managed.
@@ -149,11 +150,11 @@ try (final RedisClusterExecutor rce =
 
   // Ping-Pong all masters.
   rce.acceptAllMasters(
-      master -> System.out.format("%s from %s%n", master.sendCmd(Cmds.PING), master));
+      master -> System.out.format("%s from %s%n", master.sendCmd(Cmds.PING), master.getNode()));
 
   // Ping-Pong all slaves concurrently.
   rce.applyAllSlaves(
-      slave -> String.format("%s from %s", slave.sendCmd(Cmds.PING, "Howdy"), slave), 1,
+      slave -> String.format("%s from %s", slave.sendCmd(Cmds.PING, "Howdy"), slave.getNode()), 1,
       ForkJoinPool.commonPool()).stream().map(CompletableFuture::join)
       .forEach(System.out::println);
 }

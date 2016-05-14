@@ -94,13 +94,7 @@ public class MockRedisClient implements RedisClient {
   }
 
   @Override
-  public RedisPipeline createPipeline() {
-
-    return null;
-  }
-
-  @Override
-  public RedisPipeline createOrUseExistingPipeline() {
+  public RedisPipeline pipeline() {
 
     return null;
   }
