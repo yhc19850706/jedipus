@@ -5,18 +5,28 @@ import com.fabahaba.jedipus.cluster.Node;
 @SuppressWarnings("serial")
 public class UnhandledAskNodeException extends RedisRetryableUnhandledException {
 
-  public UnhandledAskNodeException(final Node node, final String message) {
+  private final AskNodeException askEx;
 
-    super(node, message);
+  public UnhandledAskNodeException(final Node node, final AskNodeException askEx) {
+
+    super(node, askEx.getCause());
+
+    this.askEx = askEx;
   }
 
-  public UnhandledAskNodeException(final Node node, final Throwable cause) {
+  public UnhandledAskNodeException(final Node node, final String message,
+      final AskNodeException askEx) {
 
-    super(node, cause);
+    super(node, message, askEx.getCause());
+
+    this.askEx = askEx;
   }
 
-  public UnhandledAskNodeException(final Node node, final String message, final Throwable cause) {
+  public Node getTargetNode() {
+    return askEx.getTargetNode();
+  }
 
-    super(node, message, cause);
+  public int getSlot() {
+    return askEx.getSlot();
   }
 }

@@ -505,7 +505,7 @@ public class RedisClusterTest {
     }
   }
 
-  @Test(expected = UnhandledAskNodeException.class)
+  @Test
   public void testAskResponse() {
 
     final String key = "42";
@@ -528,15 +528,26 @@ public class RedisClusterTest {
       final long numMembers = jce.apply(slot, client -> client.sendCmd(SCmds.SCARD.prim(), key));
       assertEquals(1, numMembers);
 
-      jce.acceptPipeline(slot, pipeline -> {
-        pipeline.sendCmd(SCmds.SADD.prim(), key, "107.6");
-        final FutureLongReply futureReply = pipeline.sendCmd(SCmds.SADD.prim(), key, "107.6");
-        // Jedipus throws an UnhandledAskNodeException here because each KEY CMD needs to ASK.
-        // UnhandledAskNodeException is a RedisRetryableUnhandledException, which depending on the
-        // RedisClusterExecutor configuration, may be retried just like a connection exception.
-        pipeline.sync();
-        assertEquals(0, futureReply.getLong());
-      });
+      try {
+        jce.acceptPipeline(slot, pipeline -> {
+          pipeline.sendCmd(SCmds.SADD.prim(), key, "107.6");
+          final FutureLongReply futureReply = pipeline.sendCmd(SCmds.SADD.prim(), key, "107.6");
+          // Jedipus throws an UnhandledAskNodeException here because each KEY CMD needs to ASK.
+          // UnhandledAskNodeException is a RedisRetryableUnhandledException, which depending on the
+          // RedisClusterExecutor configuration, may be retried just like a connection exception.
+          pipeline.sync();
+          assertEquals(0, futureReply.getLong());
+        });
+      } catch (final UnhandledAskNodeException unhandledAsk) {
+        jce.acceptPipelinedIfPresent(unhandledAsk.getTargetNode(), pipeline -> {
+          pipeline.skip().asking();
+          pipeline.sendCmd(SCmds.SADD.prim(), key, "107.6");
+          pipeline.skip().asking();
+          final FutureLongReply futureReply = pipeline.sendCmd(SCmds.SADD.prim(), key, "107.6");
+          pipeline.sync();
+          assertEquals(0, futureReply.getLong());
+        });
+      }
     }
   }
 

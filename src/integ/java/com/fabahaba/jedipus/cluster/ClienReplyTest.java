@@ -12,7 +12,7 @@ import com.fabahaba.jedipus.cmds.Cmds;
 public class ClienReplyTest extends BaseRedisClientTest {
 
   @Test
-  public void checkCloseableConnections() {
+  public void testReplyModeChanges() {
 
     try (final RedisClient client = defaultClientFactory.create(defaultNode)) {
 

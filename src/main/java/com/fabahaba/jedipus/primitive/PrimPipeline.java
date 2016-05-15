@@ -47,11 +47,10 @@ final class PrimPipeline implements RedisPipeline {
         final StatefulFutureReply<T> futureReply = new DeserializedFutureReply<>(builder);
         pipelineReplies.add(futureReply);
         return futureReply;
-      case OFF:
-        return null;
       case SKIP:
         client.conn.setReplyMode(ReplyMode.ON);
         return null;
+      case OFF:
       default:
         return null;
     }
@@ -122,6 +121,7 @@ final class PrimPipeline implements RedisPipeline {
   public FutureReply<String> replyOn() {
     switch (client.conn.getReplyMode()) {
       case ON:
+        return null;
       case OFF:
       case SKIP:
       default:
@@ -165,7 +165,7 @@ final class PrimPipeline implements RedisPipeline {
         response.setReply(client.conn);
       } catch (final AskNodeException askEx) {
         throw new UnhandledAskNodeException(client.getNode(),
-            "ASK redirects are not supported inside pipelines.");
+            "ASK redirects are not supported inside pipelines.", askEx);
       } catch (final RedisUnhandledException re) {
         response.setException(re);
       }
@@ -192,8 +192,8 @@ final class PrimPipeline implements RedisPipeline {
       try {
         response.setMultiReply(client.conn.getLongArray());
       } catch (final AskNodeException askEx) {
-        throw new UnhandledAskNodeException(null,
-            "ASK redirects are not supported inside pipelines.");
+        throw new UnhandledAskNodeException(client.getNode(),
+            "ASK redirects are not supported inside pipelines.", askEx);
       } catch (final RedisUnhandledException re) {
         response.setException(re);
       }
