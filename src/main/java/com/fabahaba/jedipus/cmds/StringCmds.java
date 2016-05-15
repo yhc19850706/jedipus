@@ -28,7 +28,7 @@ public interface StringCmds extends DirectCmds {
   static final Cmd<Long> INCR = Cmd.createCast("INCR");
   static final Cmd<Long> INCRBY = Cmd.createCast("INCRBY");
   static final Cmd<String> INCRBYFLOAT = Cmd.createStringReply("INCRBYFLOAT");
-  static final Cmd<String[]> MGET = Cmd.createStringArrayReply("MGET");
+  static final Cmd<Object[]> MGET = Cmd.createInPlaceStringArrayReply("MGET");
   static final Cmd<String> MSET = Cmd.createStringReply("MSET");
   static final Cmd<Long> MSETNX = Cmd.createCast("MSETNX");
   static final Cmd<String> PSETEX = Cmd.createStringReply("PSETEX");

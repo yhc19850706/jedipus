@@ -22,8 +22,9 @@ import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cluster.CRC16;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
-import com.fabahaba.jedipus.cmds.ScriptingCmds;
+import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
+import com.fabahaba.jedipus.params.LuaParams;
 
 public interface LuaScript<R> {
 
@@ -87,7 +88,7 @@ public interface LuaScript<R> {
   default R eval(final RedisClient client, final int keyCount, final byte[]... params) {
 
     final byte[][] args =
-        ScriptingCmds.createEvalArgs(getSha1HexBytes(), RESP.toBytes(keyCount), params);
+        LuaParams.createEvalArgs(getSha1HexBytes(), RESP.toBytes(keyCount), params);
 
     return eval(client, args);
   }
@@ -101,7 +102,7 @@ public interface LuaScript<R> {
 
   default R eval(final RedisClient client, final List<byte[]> keys, final List<byte[]> args) {
 
-    return eval(client, ScriptingCmds.createEvalArgs(getSha1HexBytes(), keys, args));
+    return eval(client, LuaParams.createEvalArgs(getSha1HexBytes(), keys, args));
   }
 
   @SuppressWarnings("unchecked")
@@ -114,7 +115,7 @@ public interface LuaScript<R> {
       if (jde.getMessage().startsWith("NOSCRIPT")) {
 
         final RedisPipeline pipeline = client.pipeline();
-        pipeline.sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.LOAD.raw(), getLuaScript());
+        pipeline.sendCmd(Cmds.SCRIPT, Cmds.SCRIPT_LOAD.raw(), getLuaScript());
         final FutureReply<Object> response = pipeline.evalSha1Hex(args);
         pipeline.sync();
         return (R) response.get();
@@ -128,7 +129,7 @@ public interface LuaScript<R> {
       final byte[]... params) {
 
     final byte[][] args =
-        ScriptingCmds.createEvalArgs(getSha1HexBytes(), RESP.toBytes(keyCount), params);
+        LuaParams.createEvalArgs(getSha1HexBytes(), RESP.toBytes(keyCount), params);
 
     return eval(pipeline, args);
   }
@@ -143,7 +144,7 @@ public interface LuaScript<R> {
   default FutureReply<R> eval(final RedisPipeline pipeline, final List<byte[]> keys,
       final List<byte[]> args) {
 
-    return eval(pipeline, ScriptingCmds.createEvalArgs(getSha1HexBytes(), keys, args));
+    return eval(pipeline, LuaParams.createEvalArgs(getSha1HexBytes(), keys, args));
   }
 
   @SuppressWarnings("unchecked")
@@ -286,8 +287,7 @@ public interface LuaScript<R> {
   public static void loadIfNotExists(final RedisClient client, final byte[] scriptSha1HexBytes,
       final LuaScript<?> luaScript) {
 
-    final Object exists =
-        client.sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.EXISTS, scriptSha1HexBytes)[0];
+    final Object exists = client.sendCmd(Cmds.SCRIPT, Cmds.SCRIPT_EXISTS, scriptSha1HexBytes)[0];
 
     if (RESP.longToInt(exists) == 0) {
       client.scriptLoad(RESP.toBytes(luaScript.getLuaScript()));
@@ -304,7 +304,7 @@ public interface LuaScript<R> {
     }
 
     final Object[] existResults =
-        client.sendCmd(ScriptingCmds.SCRIPT, ScriptingCmds.EXISTS, scriptSha1HexBytes);
+        client.sendCmd(Cmds.SCRIPT, Cmds.SCRIPT_EXISTS, scriptSha1HexBytes);
 
     RedisPipeline pipeline = null;
     int index = 0;

@@ -43,7 +43,6 @@ import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.Cmds;
-import com.fabahaba.jedipus.cmds.SCmds;
 import com.fabahaba.jedipus.exceptions.AskNodeException;
 import com.fabahaba.jedipus.exceptions.MaxRedirectsExceededException;
 import com.fabahaba.jedipus.exceptions.RedisClusterDownException;
@@ -523,15 +522,15 @@ public class RedisClusterTest {
 
       jce.accept(slot, client -> client.clusterSetSlotMigrating(slot, importing));
 
-      jce.accept(slot, client -> client.sendCmd(SCmds.SADD.prim(), key, "107.6"));
+      jce.accept(slot, client -> client.sendCmd(Cmds.SADD.prim(), key, "107.6"));
 
-      final long numMembers = jce.apply(slot, client -> client.sendCmd(SCmds.SCARD.prim(), key));
+      final long numMembers = jce.apply(slot, client -> client.sendCmd(Cmds.SCARD.prim(), key));
       assertEquals(1, numMembers);
 
       try {
         jce.acceptPipeline(slot, pipeline -> {
-          pipeline.sendCmd(SCmds.SADD.prim(), key, "107.6");
-          final FutureLongReply futureReply = pipeline.sendCmd(SCmds.SADD.prim(), key, "107.6");
+          pipeline.sendCmd(Cmds.SADD.prim(), key, "107.6");
+          final FutureLongReply futureReply = pipeline.sendCmd(Cmds.SADD.prim(), key, "107.6");
           // Jedipus throws an UnhandledAskNodeException here because each KEY CMD needs to ASK.
           // UnhandledAskNodeException is a RedisRetryableUnhandledException, which depending on the
           // RedisClusterExecutor configuration, may be retried just like a connection exception.
@@ -541,9 +540,9 @@ public class RedisClusterTest {
       } catch (final UnhandledAskNodeException unhandledAsk) {
         jce.acceptPipelinedIfPresent(unhandledAsk.getTargetNode(), pipeline -> {
           pipeline.skip().asking();
-          pipeline.sendCmd(SCmds.SADD.prim(), key, "107.6");
+          pipeline.sendCmd(Cmds.SADD.prim(), key, "107.6");
           pipeline.skip().asking();
-          final FutureLongReply futureReply = pipeline.sendCmd(SCmds.SADD.prim(), key, "107.6");
+          final FutureLongReply futureReply = pipeline.sendCmd(Cmds.SADD.prim(), key, "107.6");
           pipeline.sync();
           assertEquals(0, futureReply.getLong());
         });

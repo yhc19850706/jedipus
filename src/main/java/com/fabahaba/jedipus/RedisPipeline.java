@@ -1,9 +1,8 @@
 package com.fabahaba.jedipus;
 
-import com.fabahaba.jedipus.cmds.pipeline.PipelineClusterCmds;
-import com.fabahaba.jedipus.cmds.pipeline.PipelineScriptingCmds;
+import com.fabahaba.jedipus.cmds.pipeline.PipelineCmds;
 
-public interface RedisPipeline extends PipelineClusterCmds, PipelineScriptingCmds, AutoCloseable {
+public interface RedisPipeline extends PipelineCmds, AutoCloseable {
 
   RedisPipeline skip();
 

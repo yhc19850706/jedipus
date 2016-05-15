@@ -8,12 +8,21 @@ public interface Cmd<R> extends Function<Object, R> {
 
   static final Function<Object, String> STRING_REPLY = RESP::toString;
 
-  static final Function<Object, String[]> STRING_ARRAY_REPLY = obj -> {
+  static final Function<Object, Object[]> IN_PLACE_STRING_ARRAY_REPLY = obj -> {
     final Object[] array = (Object[]) obj;
     for (int i = 0; i < array.length; i++) {
       array[i] = RESP.toString(array[i]);
     }
-    return (String[]) obj;
+    return array;
+  };
+
+  static final Function<Object, String[]> STRING_ARRAY_REPLY = obj -> {
+    final Object[] array = (Object[]) obj;
+    final String[] stringArray = new String[array.length];
+    for (int i = 0; i < array.length; i++) {
+      stringArray[i] = RESP.toString(array[i]);
+    }
+    return stringArray;
   };
 
   public static <R> Cmd<R> create(final String name, final Function<Object, R> responseHandler) {
@@ -26,9 +35,9 @@ public interface Cmd<R> extends Function<Object, R> {
     return new HandledResponseCmd<>(name, STRING_REPLY);
   }
 
-  public static Cmd<String[]> createStringArrayReply(final String name) {
+  public static Cmd<Object[]> createInPlaceStringArrayReply(final String name) {
 
-    return new HandledResponseCmd<>(name, STRING_ARRAY_REPLY);
+    return new HandledResponseCmd<>(name, IN_PLACE_STRING_ARRAY_REPLY);
   }
 
   public static Cmd<Object> create(final String name) {

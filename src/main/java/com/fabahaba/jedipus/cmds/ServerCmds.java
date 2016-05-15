@@ -1,14 +1,14 @@
 package com.fabahaba.jedipus.cmds;
 
-// http://redis.io/commands#server
 public interface ServerCmds extends DirectCmds {
 
+  // http://redis.io/commands#server
   static final Cmd<String> BGREWRITEAOF = Cmd.createStringReply("BGREWRITEAOF");
   static final Cmd<String> BGSAVE = Cmd.createStringReply("BGSAVE");
 
   static final Cmd<Object[]> COMMAND = Cmd.createCast("COMMAND");
   static final Cmd<Long> COMMAND_COUNT = Cmd.createCast("COUNT");
-  static final Cmd<String[]> COMMAND_GETKEYS = Cmd.createStringArrayReply("GETKEYS");
+  static final Cmd<Object[]> COMMAND_GETKEYS = Cmd.createInPlaceStringArrayReply("GETKEYS");
   static final Cmd<Object[]> COMMAND_INFO = Cmd.createCast("GETKEYS");
 
   static final Cmd<Object> CONFIG = Cmd.createCast("CONFIG");
@@ -39,5 +39,5 @@ public interface ServerCmds extends DirectCmds {
   static final Cmd<Long> SLOWLOG_LEN = Cmd.createCast("LEN");
   static final Cmd<String> SLOWLOG_RESET = Cmd.createStringReply("RESET");
 
-  static final Cmd<Object> TIME = Cmd.createCast("TIME");
+  static final Cmd<Object[]> TIME = Cmd.createInPlaceStringArrayReply("TIME");
 }

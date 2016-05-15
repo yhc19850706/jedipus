@@ -64,7 +64,7 @@ public interface ClusterCmds extends DirectCmds {
     return sendCmd(CLUSTER, INFO);
   }
 
-  default String[] clusterGetKeysInSlot(final int slot, final int count) {
+  default Object[] clusterGetKeysInSlot(final int slot, final int count) {
 
     return sendCmd(CLUSTER, GETKEYSINSLOT, RESP.toBytes(slot), NODE.getCmdBytes(),
         RESP.toBytes(count));
@@ -165,7 +165,7 @@ public interface ClusterCmds extends DirectCmds {
   static final Cmd<String> READWRITE = Cmd.createStringReply("READWRITE");
   static final Cmd<Long> KEYSLOT = Cmd.createCast("KEYSLOT");
   static final Cmd<Object[]> SLOTS = Cmd.createCast("SLOTS");
-  static final Cmd<String[]> GETKEYSINSLOT = Cmd.createStringArrayReply("GETKEYSINSLOT");
+  static final Cmd<Object[]> GETKEYSINSLOT = Cmd.createInPlaceStringArrayReply("GETKEYSINSLOT");
   static final Cmd<Long> COUNTKEYSINSLOT = Cmd.createCast("COUNTKEYSINSLOT");
 
   static final Cmd<String> SETSLOT = Cmd.createStringReply("SETSLOT");

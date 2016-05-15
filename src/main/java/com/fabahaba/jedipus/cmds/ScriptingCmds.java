@@ -1,48 +1,12 @@
 package com.fabahaba.jedipus.cmds;
 
-import java.util.List;
-
-import com.fabahaba.jedipus.RESP;
+import com.fabahaba.jedipus.params.LuaParams;
 
 public interface ScriptingCmds extends DirectCmds {
 
-  static byte[][] createEvalArgs(final byte[] sha1Hex, final byte[] keyCount,
-      final byte[][] params) {
-
-    final byte[][] allArgs = new byte[params.length + 2][];
-
-    allArgs[0] = sha1Hex;
-    allArgs[1] = keyCount;
-
-    System.arraycopy(params, 0, allArgs, 2, params.length);
-
-    return allArgs;
-  }
-
-  static byte[][] createEvalArgs(final byte[] sha1Hex, final List<byte[]> keys,
-      final List<byte[]> args) {
-
-    final int numKeys = keys.size();
-    final byte[][] allArgs = new byte[2 + numKeys + args.size()][];
-
-    allArgs[0] = sha1Hex;
-    allArgs[1] = RESP.toBytes(numKeys);
-
-    final int index = 2;
-    for (final byte[] key : keys) {
-      allArgs[index] = key;
-    }
-
-    for (final byte[] arg : args) {
-      allArgs[index] = arg;
-    }
-
-    return allArgs;
-  }
-
   default Object evalSha1Hex(final byte[] sha1Hex, final byte[] keyCount, final byte[][] params) {
 
-    return evalSha1Hex(createEvalArgs(sha1Hex, keyCount, params));
+    return evalSha1Hex(LuaParams.createEvalArgs(sha1Hex, keyCount, params));
   }
 
   default Object evalSha1Hex(final byte[][] allArgs) {
@@ -52,17 +16,18 @@ public interface ScriptingCmds extends DirectCmds {
 
   default String scriptLoad(final byte[] script) {
 
-    return sendCmd(SCRIPT, LOAD, script);
+    return sendCmd(SCRIPT, SCRIPT_LOAD, script);
   }
 
   // http://redis.io/commands#scripting
   static final Cmd<Object> EVAL = Cmd.create("EVAL");
   static final Cmd<Object> EVALSHA = Cmd.create("EVALSHA");
+
   static final Cmd<Object> SCRIPT = Cmd.create("SCRIPT");
-  static final Cmd<Object[]> EXISTS = Cmd.createCast("EXISTS");
-  static final Cmd<String> FLUSH = Cmd.createStringReply("FLUSH");
-  static final Cmd<String> KILL = Cmd.createStringReply("KILL");
-  static final Cmd<String> LOAD = Cmd.createStringReply("LOAD");
+  static final Cmd<Object[]> SCRIPT_EXISTS = Cmd.createCast("EXISTS");
+  static final Cmd<String> SCRIPT_FLUSH = Cmd.createStringReply("FLUSH");
+  static final Cmd<String> SCRIPT_KILL = Cmd.createStringReply("KILL");
+  static final Cmd<String> SCRIPT_LOAD = Cmd.createStringReply("LOAD");
 
   static final Cmd<String> DEBUG = Cmd.createStringReply("DEBUG");
   static final Cmd<String> YES = Cmd.createStringReply("YES");

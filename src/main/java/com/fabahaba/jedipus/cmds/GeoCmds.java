@@ -7,7 +7,7 @@ public interface GeoCmds extends DirectCmds {
   // http://redis.io/commands#geo
   static final Cmd<Long> GEOADD = Cmd.createCast("GEOADD");
   static final Cmd<String> GEODIST = Cmd.createStringReply("GEODIST");
-  static final Cmd<String[]> GEOHASH = Cmd.createStringArrayReply("GEOHASH");
+  static final Cmd<Object[]> GEOHASH = Cmd.createInPlaceStringArrayReply("GEOHASH");
   static final Cmd<String[][]> GEOPOS = Cmd.create("GEOPOS", obj -> {
 
     final Object[][] array = (Object[][]) obj;

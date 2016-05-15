@@ -9,7 +9,7 @@ public interface Cmds extends LCmds, SCmds, HCmds, ZCmds, PFCmds, GeoCmds, Clust
   public static final Cmd<Long> EXISTS = Cmd.createCast("EXISTS");
   public static final Cmd<Long> EXPIRE = Cmd.createCast("EXPIRE");
   public static final Cmd<Long> EXPIREAT = Cmd.createCast("EXPIREAT");
-  public static final Cmd<String[]> KEYS = Cmd.createStringArrayReply("KEYS");
+  public static final Cmd<Object[]> KEYS = Cmd.createInPlaceStringArrayReply("KEYS");
   public static final Cmd<String> MIGRATE = Cmd.createStringReply("MIGRATE");
   public static final Cmd<Object> COPY = Cmd.createCast("COPY");
   public static final Cmd<Object> REPLACE = Cmd.createCast("REPLACE");
@@ -29,7 +29,7 @@ public interface Cmds extends LCmds, SCmds, HCmds, ZCmds, PFCmds, GeoCmds, Clust
   public static final Cmd<Object[]> SCAN = Cmd.createCast("SCAN");
   public static final Cmd<Object> MATCH = Cmd.createCast("MATCH");
   public static final Cmd<Object> COUNT = Cmd.createCast("COUNT");
-  public static final Cmd<String[]> SORT = Cmd.createStringArrayReply("SORT");
+  public static final Cmd<Object[]> SORT = Cmd.createInPlaceStringArrayReply("SORT");
   public static final Cmd<Object> BY = Cmd.createCast("BY");
   public static final Cmd<Object> LIMIT = Cmd.createCast("LIMIT");
   public static final Cmd<Object> ASC = Cmd.createCast("ASC");
