@@ -14,7 +14,6 @@ abstract class RedisConn implements AutoCloseable {
   private final Socket socket;
   private final RedisOutputStream outputStream;
   private final RedisInputStream inputStream;
-  private final int connectionTimeout;
   private final int soTimeout;
   private boolean broken = false;
 
@@ -22,7 +21,6 @@ abstract class RedisConn implements AutoCloseable {
       final int connTimeout, final int soTimeout, final Socket socket) {
 
     this.hostPortMapper = hostPortMapper;
-    this.connectionTimeout = connTimeout;
     this.soTimeout = soTimeout;
     this.socket = socket;
 
@@ -41,7 +39,6 @@ abstract class RedisConn implements AutoCloseable {
 
   @Override
   public void close() {
-
     broken = true;
     try {
       outputStream.flush();
@@ -56,16 +53,15 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
-  public int getConnectionTimeout() {
-    return connectionTimeout;
-  }
-
   public int getSoTimeout() {
-    return soTimeout;
+    try {
+      return socket.getSoTimeout();
+    } catch (final IOException ex) {
+      throw new RedisConnectionException(getNode(), ex);
+    }
   }
 
   public void setTimeoutInfinite() {
-
     try {
       socket.setSoTimeout(0);
     } catch (final SocketException ex) {
@@ -75,7 +71,6 @@ abstract class RedisConn implements AutoCloseable {
   }
 
   public void rollbackTimeout() {
-
     try {
       socket.setSoTimeout(soTimeout);
     } catch (final SocketException ex) {
@@ -85,7 +80,6 @@ abstract class RedisConn implements AutoCloseable {
   }
 
   public void sendCmd(final byte[] cmd) {
-
     try {
       Protocol.sendCmd(outputStream, cmd);
     } catch (final RuntimeException | IOException jcex) {
@@ -95,7 +89,6 @@ abstract class RedisConn implements AutoCloseable {
 
 
   public void sendCmd(final byte[] cmd, final byte[][] args) {
-
     try {
       Protocol.sendCmd(outputStream, cmd, args);
     } catch (final RuntimeException | IOException jcex) {
@@ -104,7 +97,6 @@ abstract class RedisConn implements AutoCloseable {
   }
 
   public void sendSubCmd(final byte[] cmd, final byte[] subcmd) {
-
     try {
       Protocol.sendSubCmd(outputStream, cmd, subcmd);
     } catch (final RuntimeException | IOException jcex) {
@@ -113,7 +105,6 @@ abstract class RedisConn implements AutoCloseable {
   }
 
   public void sendSubCmd(final byte[] cmd, final byte[] subcmd, final byte[] args) {
-
     try {
       Protocol.sendSubCmd(outputStream, cmd, subcmd, args);
     } catch (final RuntimeException | IOException jcex) {
@@ -122,7 +113,6 @@ abstract class RedisConn implements AutoCloseable {
   }
 
   public void sendSubCmd(final byte[] cmd, final byte[] subcmd, final byte[][] args) {
-
     try {
       Protocol.sendSubCmd(outputStream, cmd, subcmd, args);
     } catch (final RuntimeException | IOException jcex) {
@@ -131,7 +121,6 @@ abstract class RedisConn implements AutoCloseable {
   }
 
   public void sendCmd(final byte[] cmd, final String[] args) {
-
     try {
       Protocol.sendCmd(outputStream, cmd, args);
     } catch (final RuntimeException | IOException jcex) {
@@ -140,7 +129,6 @@ abstract class RedisConn implements AutoCloseable {
   }
 
   public void sendSubCmd(final byte[] cmd, final byte[] subcmd, final String[] args) {
-
     try {
       Protocol.sendSubCmd(outputStream, cmd, subcmd, args);
     } catch (final RuntimeException | IOException jcex) {
@@ -162,44 +150,6 @@ abstract class RedisConn implements AutoCloseable {
     throw new RedisConnectionException(getNode(), ioEx);
   }
 
-  @SuppressWarnings("unchecked")
-  protected <R> R getReply() {
-    flush();
-    return (R) readObjBrokenChecked();
-  }
-
-  @SuppressWarnings("unchecked")
-  protected <R> R getReplyNoFlush() {
-    return (R) readObjBrokenChecked();
-  }
-
-  protected long[] getLongArray() {
-    flush();
-    return readLongArrayBrokenChecked();
-  }
-
-  protected long[] getLongArrayNoFlush() {
-    return readLongArrayBrokenChecked();
-  }
-
-  protected long[][] getLongArrayArray() {
-    flush();
-    return readLongArrayArrayBrokenChecked();
-  }
-
-  protected long[][] getLongArrayArrayNoFlush() {
-    return readLongArrayArrayBrokenChecked();
-  }
-
-  protected long getLong() {
-    flush();
-    return readLongBrokenChecked();
-  }
-
-  protected long getLongNoFlush() {
-    return readLongBrokenChecked();
-  }
-
   public boolean isBroken() {
     return broken;
   }
@@ -217,18 +167,17 @@ abstract class RedisConn implements AutoCloseable {
     inputStream.drain();
   }
 
-  protected Object readObjBrokenChecked() {
-
+  @SuppressWarnings("unchecked")
+  protected <R> R getReply() {
     try {
-      return Protocol.read(getNode(), hostPortMapper, inputStream);
+      return (R) Protocol.read(getNode(), hostPortMapper, inputStream);
     } catch (final RedisConnectionException exc) {
       broken = true;
       throw exc;
     }
   }
 
-  protected long[] readLongArrayBrokenChecked() {
-
+  protected long[] getLongArray() {
     try {
       return Protocol.readLongArray(getNode(), hostPortMapper, inputStream);
     } catch (final RedisConnectionException exc) {
@@ -237,8 +186,7 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
-  protected long[][] readLongArrayArrayBrokenChecked() {
-
+  protected long[][] getLongArrayArray() {
     try {
       return Protocol.readLongArrayArray(getNode(), hostPortMapper, inputStream);
     } catch (final RedisConnectionException exc) {
@@ -247,8 +195,7 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
-  protected long readLongBrokenChecked() {
-
+  protected long getLong() {
     try {
       return Protocol.readLong(getNode(), hostPortMapper, inputStream);
     } catch (final RedisConnectionException exc) {
@@ -259,8 +206,7 @@ abstract class RedisConn implements AutoCloseable {
 
   @Override
   public String toString() {
-    return new StringBuilder("RedisConn [node=").append(getNode()).append(", connectionTimeout=")
-        .append(connectionTimeout).append(", soTimeout=").append(soTimeout).append(", broken=")
-        .append(broken).append("]").toString();
+    return new StringBuilder("RedisConn [node=").append(getNode()).append(", soTimeout=")
+        .append(soTimeout).append(", broken=").append(broken).append("]").toString();
   }
 }

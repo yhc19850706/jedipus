@@ -29,8 +29,7 @@ class AdaptedFutureLongArrayReply extends StatefulFutureReply<long[][]> {
 
   @Override
   public AdaptedFutureLongArrayReply setReply(final PrimRedisConn conn) {
-
-    this.reply = conn.getLongArrayArrayNoFlush();
+    this.reply = conn.getLongArrayArray();
     state = State.PENDING;
     return this;
   }

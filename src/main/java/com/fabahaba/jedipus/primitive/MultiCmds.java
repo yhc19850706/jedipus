@@ -2,6 +2,7 @@ package com.fabahaba.jedipus.primitive;
 
 import com.fabahaba.jedipus.cmds.Cmd;
 
+// Package protected on purpose to limit use to library only.
 interface MultiCmds {
 
   public static final Cmd<String> MULTI = Cmd.createStringReply("MULTI");

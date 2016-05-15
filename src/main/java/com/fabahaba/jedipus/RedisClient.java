@@ -14,10 +14,6 @@ public interface RedisClient extends Cmds, AutoCloseable {
 
   RedisClient skip();
 
-  ReplyMode getReplyMode();
-
-  public int getConnectionTimeout();
-
   public int getSoTimeout();
 
   public boolean isBroken();
@@ -40,4 +36,10 @@ public interface RedisClient extends Cmds, AutoCloseable {
 
   @Override
   public void close();
+
+  public String setClientName(final String clientName);
+
+  public String getClientName();
+
+  public String[] getClientList();
 }

@@ -41,14 +41,15 @@ import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
+import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.SCmds;
-import com.fabahaba.jedipus.cmds.ServerCmds;
 import com.fabahaba.jedipus.exceptions.AskNodeException;
 import com.fabahaba.jedipus.exceptions.MaxRedirectsExceededException;
 import com.fabahaba.jedipus.exceptions.RedisClusterDownException;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.SlotMovedException;
+import com.fabahaba.jedipus.exceptions.UnhandledAskNodeException;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
 public class RedisClusterTest {
@@ -504,7 +505,7 @@ public class RedisClusterTest {
     }
   }
 
-  @Test
+  @Test(expected = UnhandledAskNodeException.class)
   public void testAskResponse() {
 
     final String key = "42";
@@ -522,19 +523,24 @@ public class RedisClusterTest {
 
       jce.accept(slot, client -> client.clusterSetSlotMigrating(slot, importing));
 
-      jce.acceptPipeline(slot, client -> {
-        client.sendCmd(SCmds.SADD.prim(), key, "107.6");
-        // Forced asking pending feedback on the following:
-        // https://github.com/antirez/redis/issues/3203
-        client.skip().asking();
-        final FutureLongReply futureReply = client.sendCmd(SCmds.SCARD.prim(), key);
-        client.sync();
-        assertEquals(1, futureReply.getLong());
+      jce.accept(slot, client -> client.sendCmd(SCmds.SADD.prim(), key, "107.6"));
+
+      final long numMembers = jce.apply(slot, client -> client.sendCmd(SCmds.SCARD.prim(), key));
+      assertEquals(1, numMembers);
+
+      jce.acceptPipeline(slot, pipeline -> {
+        pipeline.sendCmd(SCmds.SADD.prim(), key, "107.6");
+        final FutureLongReply futureReply = pipeline.sendCmd(SCmds.SADD.prim(), key, "107.6");
+        // Jedipus throws an UnhandledAskNodeException here because each KEY CMD needs to ASK.
+        // UnhandledAskNodeException is a RedisRetryableUnhandledException, which depending on the
+        // RedisClusterExecutor configuration, may be retried just like a connection exception.
+        pipeline.sync();
+        assertEquals(0, futureReply.getLong());
       });
     }
   }
 
-  @Test(timeout = 3000, expected = MaxRedirectsExceededException.class)
+  @Test(expected = MaxRedirectsExceededException.class)
   public void testRedisClusterMaxRedirections() {
 
     final byte[] key = RESP.toBytes("42");
@@ -699,15 +705,18 @@ public class RedisClusterTest {
   @Test(timeout = 3000)
   public void testRedisClusterClientTimeout() {
 
+    final RedisClientFactory.Builder poolFactoryBuilder =
+        RedisClientFactory.startBuilding().withConnTimeout(1234).withSoTimeout(4321);
+
     final Function<Node, ObjectPool<RedisClient>> poolFactory =
-        node -> new GenericObjectPool<>(RedisClientFactory.startBuilding().withConnTimeout(1234)
-            .withSoTimeout(4321).createPooled(node), new GenericObjectPoolConfig());
+        node -> new GenericObjectPool<>(poolFactoryBuilder.createPooled(node),
+            new GenericObjectPoolConfig());
 
     try (final RedisClusterExecutor jce = RedisClusterExecutor.startBuilding(discoveryNodes)
         .withMasterPoolFactory(poolFactory).create()) {
 
       jce.accept(client -> {
-        assertEquals(1234, client.getConnectionTimeout());
+        assertEquals(1234, poolFactoryBuilder.getConnTimeout());
         assertEquals(4321, client.getSoTimeout());
       });
     }
@@ -760,6 +769,9 @@ public class RedisClusterTest {
     }
   }
 
+  static final Cmd<Object> CLIENT = Cmd.createCast("CLIENT");
+  static final Cmd<String> CLIENT_KILL = Cmd.createStringReply("KILL");
+
   @Test(timeout = 3000)
   public void testReturnConnectionOnRedisConnectionException() {
 
@@ -779,16 +791,16 @@ public class RedisClusterTest {
 
       jce.accept(slot, client -> {
 
-        client.skip().sendCmd(Cmds.CLIENT, Cmds.CLIENT_SETNAME, RESP.toBytes("DEAD"));
+        client.skip().setClientName("DEAD");
 
-        for (final String clientInfo : client.sendCmd(Cmds.CLIENT, Cmds.CLIENT_LIST).split("\n")) {
+        for (final String clientInfo : client.getClientList()) {
 
           final int nameStart = clientInfo.indexOf("name=") + 5;
           if (clientInfo.substring(nameStart, nameStart + 4).equals("DEAD")) {
 
             final int addrStart = clientInfo.indexOf("addr=") + 5;
             final int addrEnd = clientInfo.indexOf(' ', addrStart);
-            client.sendCmd(Cmds.CLIENT, ServerCmds.CLIENT_KILL,
+            client.sendCmd(CLIENT, CLIENT_KILL,
                 RESP.toBytes(clientInfo.substring(addrStart, addrEnd)));
             break;
           }

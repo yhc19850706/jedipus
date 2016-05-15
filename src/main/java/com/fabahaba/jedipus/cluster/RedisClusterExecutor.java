@@ -102,31 +102,31 @@ public interface RedisClusterExecutor extends AutoCloseable {
   default void accept(final String slotKey, final Consumer<RedisClient> clientConsumer,
       final int maxRetries) {
 
-    accept(getDefaultReadMode(), CRC16.getSlot(slotKey), clientConsumer, getMaxRetries());
+    accept(getDefaultReadMode(), CRC16.getSlot(slotKey), clientConsumer, maxRetries);
   }
 
   default void accept(final byte[] slotKey, final Consumer<RedisClient> clientConsumer,
       final int maxRetries) {
 
-    accept(getDefaultReadMode(), CRC16.getSlot(slotKey), clientConsumer, getMaxRetries());
+    accept(getDefaultReadMode(), CRC16.getSlot(slotKey), clientConsumer, maxRetries);
   }
 
   default void accept(final ReadMode readMode, final String slotKey,
       final Consumer<RedisClient> clientConsumer, final int maxRetries) {
 
-    accept(readMode, CRC16.getSlot(slotKey), clientConsumer, getMaxRetries());
+    accept(readMode, CRC16.getSlot(slotKey), clientConsumer, maxRetries);
   }
 
   default void accept(final ReadMode readMode, final byte[] slotKey,
       final Consumer<RedisClient> clientConsumer, final int maxRetries) {
 
-    accept(readMode, CRC16.getSlot(slotKey), clientConsumer, getMaxRetries());
+    accept(readMode, CRC16.getSlot(slotKey), clientConsumer, maxRetries);
   }
 
   default void accept(final int slot, final Consumer<RedisClient> clientConsumer,
       final int maxRetries) {
 
-    accept(getDefaultReadMode(), slot, clientConsumer, getMaxRetries());
+    accept(getDefaultReadMode(), slot, clientConsumer, maxRetries);
   }
 
   default void accept(final ReadMode readMode, final int slot,

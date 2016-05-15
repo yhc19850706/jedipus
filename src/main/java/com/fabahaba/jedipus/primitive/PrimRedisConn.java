@@ -14,14 +14,13 @@ import javax.net.ssl.SSLSocketFactory;
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient.ReplyMode;
 import com.fabahaba.jedipus.cluster.Node;
-import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 final class PrimRedisConn extends RedisConn {
 
-  private boolean isInMulti;
-  private boolean isInWatch;
+  private boolean multi;
+  private boolean watching;
   private ReplyMode replyMode;
 
   static PrimRedisConn create(final Node node, final ReplyMode replyMode,
@@ -83,38 +82,47 @@ final class PrimRedisConn extends RedisConn {
   }
 
   public boolean isInMulti() {
-    return isInMulti;
+    return multi;
   }
 
-  public boolean isInWatch() {
-    return isInWatch;
+  public boolean isWatching() {
+    return watching;
   }
 
   public void multi() {
+    switch (replyMode) {
+      case ON:
+        break;
+      case OFF:
+      case SKIP:
+      default:
+        throw new RedisUnhandledException(getNode(), "CLIENT REPLY must be on for transactions.");
+
+    }
     sendCmd(MultiCmds.MULTI.getCmdBytes());
-    isInMulti = true;
+    multi = true;
   }
 
   public void discard() {
     sendCmd(MultiCmds.DISCARD.getCmdBytes());
-    isInMulti = false;
-    isInWatch = false;
+    multi = false;
+    watching = false;
   }
 
   public void exec() {
     sendCmd(MultiCmds.EXEC.getCmdBytes());
-    isInMulti = false;
-    isInWatch = false;
+    multi = false;
+    watching = false;
   }
 
   public void watch(final byte[]... keys) {
     sendCmd(MultiCmds.WATCH.getCmdBytes(), keys);
-    isInWatch = true;
+    watching = true;
   }
 
   public void unwatch() {
     sendCmd(MultiCmds.UNWATCH.getCmdBytes());
-    isInWatch = false;
+    watching = false;
   }
 
   public void resetState() {
@@ -122,7 +130,7 @@ final class PrimRedisConn extends RedisConn {
       skip().discard();
     }
 
-    if (isInWatch()) {
+    if (isWatching()) {
       skip().unwatch();
     }
   }
@@ -135,6 +143,7 @@ final class PrimRedisConn extends RedisConn {
         setReplyMode(ReplyMode.ON);
         return null;
       case ON:
+        flush();
         return responseHandler.apply(getReply());
       default:
         return null;
@@ -149,6 +158,7 @@ final class PrimRedisConn extends RedisConn {
         setReplyMode(ReplyMode.ON);
         return null;
       case ON:
+        flush();
         return responseHandler.apply(getLongArray());
       default:
         return null;
@@ -163,6 +173,7 @@ final class PrimRedisConn extends RedisConn {
         setReplyMode(ReplyMode.ON);
         return 0;
       case ON:
+        flush();
         return responseHandler.applyAsLong(getLong());
       default:
         return 0;
@@ -173,6 +184,15 @@ final class PrimRedisConn extends RedisConn {
     return replyMode;
   }
 
+  void setReplyMode(final ReplyMode replyMode) {
+    if (isInMulti()) {
+      drain();
+      throw new RedisUnhandledException(getNode(),
+          "Changing CLIENT REPLY mode is not allowed inside a MULTI.");
+    }
+    this.replyMode = replyMode;
+  }
+
   String replyOn() {
     switch (replyMode) {
       case ON:
@@ -180,23 +200,15 @@ final class PrimRedisConn extends RedisConn {
       case OFF:
       case SKIP:
       default:
-        sendSubCmd(Cmds.CLIENT.getCmdBytes(), Cmds.CLIENT_REPLY.getCmdBytes(),
-            Cmds.ON.getCmdBytes());
-        final String reply = Cmds.CLIENT_REPLY.apply(getReply());
+        sendSubCmd(ClientCmds.CLIENT.getCmdBytes(), ClientCmds.CLIENT_REPLY.getCmdBytes(),
+            ClientCmds.ON.getCmdBytes());
+        flush();
+        final String reply = ClientCmds.CLIENT_REPLY.apply(getReply());
         if (reply != null) {
           setReplyMode(ReplyMode.ON);
         }
         return reply;
     }
-  }
-
-  void setReplyMode(final ReplyMode replyMode) {
-    if (isInMulti()) {
-      drain();
-      throw new RedisUnhandledException(null,
-          "Changing CLIENT REPLY mode is not allowed inside a MULTI.");
-    }
-    this.replyMode = replyMode;
   }
 
   void replyOff() {
@@ -206,8 +218,8 @@ final class PrimRedisConn extends RedisConn {
       case SKIP:
       case ON:
       default:
-        sendSubCmd(Cmds.CLIENT.getCmdBytes(), Cmds.CLIENT_REPLY.getCmdBytes(),
-            Cmds.OFF.getCmdBytes());
+        sendSubCmd(ClientCmds.CLIENT.getCmdBytes(), ClientCmds.CLIENT_REPLY.getCmdBytes(),
+            ClientCmds.OFF.getCmdBytes());
         setReplyMode(ReplyMode.OFF);
     }
   }
@@ -219,8 +231,8 @@ final class PrimRedisConn extends RedisConn {
         return this;
       case ON:
       default:
-        sendSubCmd(Cmds.CLIENT.getCmdBytes(), Cmds.CLIENT_REPLY.getCmdBytes(),
-            Cmds.SKIP.getCmdBytes());
+        sendSubCmd(ClientCmds.CLIENT.getCmdBytes(), ClientCmds.CLIENT_REPLY.getCmdBytes(),
+            ClientCmds.SKIP.getCmdBytes());
         setReplyMode(ReplyMode.SKIP);
     }
     return this;
@@ -228,8 +240,8 @@ final class PrimRedisConn extends RedisConn {
 
   @Override
   public String toString() {
-    return new StringBuilder("PrimRedisConn [isInMulti=").append(isInMulti).append(", isInWatch=")
-        .append(isInWatch).append(", replyMode=").append(replyMode).append(", super.toString()=")
+    return new StringBuilder("PrimRedisConn [isInMulti=").append(multi).append(", isInWatch=")
+        .append(watching).append(", replyMode=").append(replyMode).append(", super.toString()=")
         .append(super.toString()).append("]").toString();
   }
 }

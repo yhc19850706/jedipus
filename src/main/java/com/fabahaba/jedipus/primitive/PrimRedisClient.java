@@ -8,6 +8,7 @@ import javax.net.ssl.SSLSocketFactory;
 
 import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cluster.Node;
+import com.fabahaba.jedipus.cmds.Cmd;
 
 final class PrimRedisClient extends BaseRedisClient {
 
@@ -46,5 +47,28 @@ final class PrimRedisClient extends BaseRedisClient {
     }
 
     return pipeline = new PrimPipeline(this);
+  }
+
+  static final Cmd<String> ASKING = Cmd.createStringReply("ASKING");
+
+  @Override
+  public void asking() {
+
+    sendCmd(ASKING);
+  }
+
+  @Override
+  public String setClientName(final String clientName) {
+    return sendCmd(ClientCmds.CLIENT, ClientCmds.CLIENT_SETNAME, clientName);
+  }
+
+  @Override
+  public String[] getClientList() {
+    return sendCmd(ClientCmds.CLIENT, ClientCmds.CLIENT_LIST).split("\n");
+  }
+
+  @Override
+  public String getClientName() {
+    return sendCmd(ClientCmds.CLIENT, ClientCmds.CLIENT_GETNAME);
   }
 }

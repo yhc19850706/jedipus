@@ -67,8 +67,7 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
   protected void handleReply() {}
 
   public StatefulFutureReply<T> setReply(final PrimRedisConn conn) {
-
-    setMultiReply(conn.getReplyNoFlush());
+    setMultiReply(conn.getReply());
     return this;
   }
 

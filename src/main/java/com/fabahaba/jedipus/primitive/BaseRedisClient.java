@@ -24,8 +24,7 @@ abstract class BaseRedisClient implements RedisClient {
     return conn.getNode().getHostPort();
   }
 
-  @Override
-  public ReplyMode getReplyMode() {
+  ReplyMode getReplyMode() {
     return conn.getReplyMode();
   }
 
@@ -44,11 +43,6 @@ abstract class BaseRedisClient implements RedisClient {
   public RedisClient skip() {
     conn.skip();
     return this;
-  }
-
-  @Override
-  public int getConnectionTimeout() {
-    return conn.getConnectionTimeout();
   }
 
   @Override

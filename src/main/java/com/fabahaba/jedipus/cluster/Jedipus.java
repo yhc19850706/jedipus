@@ -244,7 +244,7 @@ public final class Jedipus implements RedisClusterExecutor {
         final Node askNode = previousRedirectEx.getTargetNode();
         pool = connHandler.getAskPool(askNode);
         client = RedisClientPool.borrowClient(pool);
-        client.skip().asking();
+        client.asking();
         final R result = clientConsumer.apply(client);
         connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode(), 0);
         return result;

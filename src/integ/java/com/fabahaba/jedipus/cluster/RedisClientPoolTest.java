@@ -134,16 +134,17 @@ public class RedisClientPoolTest extends BaseRedisClientTest {
     assertTrue(pool.isClosed());
   }
 
-  @Test(timeout = 1000)
+  @Test
   public void customClientName() {
 
-    final GenericObjectPool<RedisClient> pool = new GenericObjectPool<>(
-        RedisClientFactory.startBuilding().withClientName("my_shiny_client_name")
-            .withAuth(REDIS_PASS).createPooled(defaultNode),
-        config);
+    final String clientName = "test_name";
+
+    final GenericObjectPool<RedisClient> pool =
+        new GenericObjectPool<>(RedisClientFactory.startBuilding().withClientName(clientName)
+            .withAuth(REDIS_PASS).createPooled(defaultNode), config);
 
     final RedisClient client = RedisClientPool.borrowClient(pool);
-    assertEquals("my_shiny_client_name", client.sendCmd(Cmds.CLIENT, Cmds.CLIENT_GETNAME));
+    assertEquals(clientName, client.getClientName());
     RedisClientPool.returnClient(pool, client);
 
     pool.close();

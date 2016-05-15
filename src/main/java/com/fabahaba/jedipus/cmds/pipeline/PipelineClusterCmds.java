@@ -5,10 +5,7 @@ import com.fabahaba.jedipus.cmds.Cmds;
 
 public interface PipelineClusterCmds extends PipelineDirectCmds {
 
-  default FutureReply<String> asking() {
-
-    return sendCmd(Cmds.ASKING);
-  }
+  public void asking();
 
   default FutureReply<String> readonly() {
 

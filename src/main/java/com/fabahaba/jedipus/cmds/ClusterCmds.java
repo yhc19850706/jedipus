@@ -6,10 +6,7 @@ import com.fabahaba.jedipus.cluster.RCUtils;
 
 public interface ClusterCmds extends DirectCmds {
 
-  default String asking() {
-
-    return sendCmd(ASKING);
-  }
+  public void asking();
 
   public Node getNode();
 
@@ -162,7 +159,8 @@ public interface ClusterCmds extends DirectCmds {
   // http://redis.io/commands#cluster
   static final Cmd<Object> CLUSTER = Cmd.create("CLUSTER");
   static final Cmd<Object> FLUSHSLOTS = Cmd.create("FLUSHSLOTS");
-  static final Cmd<String> ASKING = Cmd.createStringReply("ASKING");
+  // Hidden on purpose to limit use to library only.
+  // static final Cmd<String> ASKING = Cmd.createStringReply("ASKING");
   static final Cmd<String> READONLY = Cmd.createStringReply("READONLY");
   static final Cmd<String> READWRITE = Cmd.createStringReply("READWRITE");
   static final Cmd<Long> KEYSLOT = Cmd.createCast("KEYSLOT");

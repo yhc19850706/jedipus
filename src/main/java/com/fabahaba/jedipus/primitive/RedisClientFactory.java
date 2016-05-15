@@ -61,7 +61,30 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
     return new Builder();
   }
 
-  protected void initClient(final RedisClient client) {}
+  protected void initClient(final RedisClient client) {
+
+    if (pass != null) {
+      client.sendCmd(Cmds.AUTH.raw(), pass);
+    }
+
+    if (clientName != null) {
+      client.skip().sendCmd(ClientCmds.CLIENT, ClientCmds.CLIENT_SETNAME, clientName);
+    }
+
+    if (initReadOnly) {
+      client.skip().sendCmd(Cmds.READONLY);
+    }
+
+    switch (replyMode) {
+      case OFF:
+        client.replyOff();
+        return;
+      case SKIP:
+      case ON:
+      default:
+        break;
+    }
+  }
 
   @Override
   public RedisClient create() throws Exception {
@@ -152,46 +175,8 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
     public PooledObjectFactory<RedisClient> createPooled(final Node node,
         final boolean initReadOnly) {
 
-      int numInits = 0;
-
-      if (pass != null) {
-        numInits++;
-      }
-
-      if (clientName != null) {
-        numInits++;
-      }
-
-      if (initReadOnly) {
-        numInits++;
-      }
-
-      switch (replyMode) {
-        case OFF:
-          numInits++;
-          break;
-        case SKIP:
-        case ON:
-        default:
-          break;
-      }
-
-      if (numInits == 0) {
-
-        return new RedisClientFactory(node, hostPortMapper, connTimeout, soTimeout, pass,
-            clientName, initReadOnly, replyMode, ssl, sslSocketFactory, sslParameters,
-            hostnameVerifier);
-      }
-
-      if (numInits == 1) {
-
-        return new SingleInitFactory(node, hostPortMapper, connTimeout, soTimeout, pass, clientName,
-            initReadOnly, replyMode, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
-      }
-
-      return new PipelinedInitFactory(node, hostPortMapper, connTimeout, soTimeout, pass,
-          clientName, initReadOnly, replyMode, ssl, sslSocketFactory, sslParameters,
-          hostnameVerifier);
+      return new RedisClientFactory(node, hostPortMapper, connTimeout, soTimeout, pass, clientName,
+          initReadOnly, replyMode, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
     }
 
     public RedisClient create(final Node node) {
@@ -205,18 +190,16 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
           connTimeout, soTimeout, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
 
       if (pass != null) {
-
         client.sendCmd(Cmds.AUTH.raw(), pass);
       }
 
       if (clientName != null) {
-
-        client.sendCmd(Cmds.CLIENT, Cmds.CLIENT_SETNAME.raw(), RESP.toBytes(clientName));
+        client.skip().sendCmd(ClientCmds.CLIENT, ClientCmds.CLIENT_SETNAME,
+            RESP.toBytes(clientName));
       }
 
       if (initReadOnly) {
-
-        client.sendCmd(Cmds.READONLY.raw());
+        client.skip().sendCmd(Cmds.READONLY.raw());
       }
 
       return client;

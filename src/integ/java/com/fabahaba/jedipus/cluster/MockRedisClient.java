@@ -10,12 +10,6 @@ import com.fabahaba.jedipus.cmds.PrimCmd;
 public class MockRedisClient implements RedisClient {
 
   @Override
-  public int getConnectionTimeout() {
-
-    return 0;
-  }
-
-  @Override
   public int getSoTimeout() {
 
     return 0;
@@ -297,7 +291,25 @@ public class MockRedisClient implements RedisClient {
   }
 
   @Override
-  public ReplyMode getReplyMode() {
+  public void asking() {}
+
+
+  @Override
+  public String setClientName(final String clientName) {
+
+    return null;
+  }
+
+
+  @Override
+  public String getClientName() {
+
+    return null;
+  }
+
+
+  @Override
+  public String[] getClientList() {
 
     return null;
   }
