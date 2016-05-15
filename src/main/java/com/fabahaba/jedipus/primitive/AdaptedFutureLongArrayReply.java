@@ -2,19 +2,19 @@ package com.fabahaba.jedipus.primitive;
 
 import java.util.function.Function;
 
-class AdaptedFutureLongArrayReply extends StatefulFutureReply<long[][]> {
+class AdaptedFutureLongArrayReply extends StatefulFutureReply<long[]> {
 
-  private final Function<long[][], long[][]> adapter;
-  private long[][] reply;
-  private long[][] adapted;
+  private final Function<long[], long[]> adapter;
+  private long[] reply;
+  private long[] adapted;
 
-  AdaptedFutureLongArrayReply(final Function<long[][], long[][]> adapter) {
+  AdaptedFutureLongArrayReply(final Function<long[], long[]> adapter) {
 
     this.adapter = adapter;
   }
 
   @Override
-  public long[][] get() {
+  public long[] get() {
 
     checkReply();
 
@@ -29,7 +29,13 @@ class AdaptedFutureLongArrayReply extends StatefulFutureReply<long[][]> {
 
   @Override
   public AdaptedFutureLongArrayReply setReply(final PrimRedisConn conn) {
-    this.reply = conn.getLongArrayArray();
+    setMultiReply(conn.getLongArray());
+    return this;
+  }
+
+  @Override
+  public StatefulFutureReply<long[]> setMultiLongArrayReply(final long[] reply) {
+    this.reply = reply;
     state = State.PENDING;
     return this;
   }

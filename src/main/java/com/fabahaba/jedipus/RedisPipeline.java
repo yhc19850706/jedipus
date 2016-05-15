@@ -17,30 +17,65 @@ public interface RedisPipeline extends PipelineClusterCmds, PipelineScriptingCmd
 
   public FutureReply<Object[]> exec();
 
-  public void sync();
+  default void syncThrow() {
+    sync(true);
+  }
 
-  default FutureReply<Object[]> execSync() {
+  default void sync() {
+    sync(false);
+  }
+
+  public void sync(final boolean throwUnhandled);
+
+  default FutureReply<Object[]> execSyncThrow() {
+    return execSync(true);
+  }
+
+  default FutureReply<Object[]> execSync(final boolean throwUnhandled) {
     final FutureReply<Object[]> execReply = exec();
-    sync();
+    sync(throwUnhandled);
     return execReply;
   }
 
   public FutureReply<long[]> primExec();
 
+  default FutureReply<long[]> primExecSyncThrow() {
+    return primExecSync(true);
+  }
 
   default FutureReply<long[]> primExecSync() {
+    return primExecSync(false);
+  }
+
+  default FutureReply<long[]> primExecSync(final boolean throwUnhandled) {
     final FutureReply<long[]> execReply = primExec();
-    sync();
+    sync(throwUnhandled);
     return execReply;
   }
 
   public FutureReply<long[][]> primArrayExec();
 
-  public void primArraySync();
+  default void primArraySyncThrow() {
+    primArraySync(true);
+  }
+
+  default void primArraySync() {
+    primArraySync(false);
+  }
+
+  public void primArraySync(final boolean throwUnhandled);
+
+  default FutureReply<long[][]> primArrayExecSyncThrow() {
+    return primArrayExecSync(true);
+  }
 
   default FutureReply<long[][]> primArrayExecSync() {
+    return primArrayExecSync(false);
+  }
+
+  default FutureReply<long[][]> primArrayExecSync(final boolean throwUnhandled) {
     final FutureReply<long[][]> execReply = primArrayExec();
-    sync();
+    sync(throwUnhandled);
     return execReply;
   }
 

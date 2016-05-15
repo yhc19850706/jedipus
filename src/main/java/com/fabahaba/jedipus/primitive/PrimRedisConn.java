@@ -150,7 +150,7 @@ final class PrimRedisConn extends RedisConn {
     }
   }
 
-  public long[] getLongArrayReply(final Function<Object, long[]> responseHandler) {
+  public long[] getLongArrayReply(final Function<long[], long[]> responseHandler) {
     switch (replyMode) {
       case OFF:
         return null;

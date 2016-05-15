@@ -10,6 +10,7 @@ import com.fabahaba.jedipus.FutureReply;
 import com.fabahaba.jedipus.RedisClient.ReplyMode;
 import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cmds.Cmd;
+import com.fabahaba.jedipus.cmds.PrimArrayCmd;
 import com.fabahaba.jedipus.cmds.PrimCmd;
 import com.fabahaba.jedipus.exceptions.AskNodeException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
@@ -28,7 +29,6 @@ final class PrimPipeline implements RedisPipeline {
   }
 
   private PrimMulti getMulti() {
-
     if (multi == null) {
       multi = new PrimMulti();
     }
@@ -57,7 +57,6 @@ final class PrimPipeline implements RedisPipeline {
   }
 
   private <T> FutureReply<T> queueMultiPipelinedReply(final Function<Object, T> builder) {
-
     pipelineReplies.add(new DirectFutureReply<>());
     return getMulti().queueMultiPipelinedReply(builder);
   }
@@ -83,9 +82,33 @@ final class PrimPipeline implements RedisPipeline {
   }
 
   private FutureLongReply queueMultiPipelinedReply(final LongUnaryOperator adapter) {
-
     pipelineReplies.add(new DirectFutureReply<>());
     return multi.queueMultiPipelinedReply(adapter);
+  }
+
+  private FutureReply<long[]> queueFutureReply(final PrimArrayCmd builder) {
+    return client.conn.isInMulti() ? queueMultiPipelinedReply(builder)
+        : queuePipelinedReply(builder);
+  }
+
+  private FutureReply<long[]> queuePipelinedReply(final PrimArrayCmd builder) {
+    switch (client.conn.getReplyMode()) {
+      case ON:
+        final StatefulFutureReply<long[]> futureReply = new AdaptedFutureLongArrayReply(builder);
+        pipelineReplies.add(futureReply);
+        return futureReply;
+      case SKIP:
+        client.conn.setReplyMode(ReplyMode.ON);
+        return null;
+      case OFF:
+      default:
+        return null;
+    }
+  }
+
+  private FutureReply<long[]> queueMultiPipelinedReply(final PrimArrayCmd builder) {
+    pipelineReplies.add(new DirectFutureReply<>());
+    return getMulti().queueMultiPipelinedReply(builder);
   }
 
   @Override
@@ -145,7 +168,7 @@ final class PrimPipeline implements RedisPipeline {
   }
 
   @Override
-  public void sync() {
+  public void sync(final boolean throwUnchecked) {
 
     if (client.conn.isInMulti()) {
       client.conn.drain();
@@ -164,16 +187,21 @@ final class PrimPipeline implements RedisPipeline {
       try {
         response.setReply(client.conn);
       } catch (final AskNodeException askEx) {
+        client.conn.drain();
         throw new UnhandledAskNodeException(client.getNode(),
             "ASK redirects are not supported inside pipelines.", askEx);
       } catch (final RedisUnhandledException re) {
+        if (throwUnchecked) {
+          client.conn.drain();
+          throw re;
+        }
         response.setException(re);
       }
     }
   }
 
   @Override
-  public void primArraySync() {
+  public void primArraySync(final boolean throwUnchecked) {
 
     if (client.conn.isInMulti()) {
       client.conn.drain();
@@ -192,9 +220,14 @@ final class PrimPipeline implements RedisPipeline {
       try {
         response.setMultiReply(client.conn.getLongArray());
       } catch (final AskNodeException askEx) {
+        client.conn.drain();
         throw new UnhandledAskNodeException(client.getNode(),
             "ASK redirects are not supported inside pipelines.", askEx);
       } catch (final RedisUnhandledException re) {
+        if (throwUnchecked) {
+          client.conn.drain();
+          throw re;
+        }
         response.setException(re);
       }
     }
@@ -358,6 +391,57 @@ final class PrimPipeline implements RedisPipeline {
 
   @Override
   public FutureLongReply sendCmd(final PrimCmd cmd, final String... args) {
+    client.conn.sendCmd(cmd.getCmdBytes(), args);
+    return queueFutureReply(cmd);
+  }
+
+  @Override
+  public FutureReply<long[]> sendCmd(final PrimArrayCmd cmd) {
+    client.conn.sendCmd(cmd.getCmdBytes());
+    return queueFutureReply(cmd);
+  }
+
+  @Override
+  public FutureReply<long[]> sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd) {
+    client.conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes());
+    return queueFutureReply(subCmd);
+  }
+
+  @Override
+  public FutureReply<long[]> sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd,
+      final byte[] arg) {
+    client.conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), arg);
+    return queueFutureReply(subCmd);
+  }
+
+  @Override
+  public FutureReply<long[]> sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd,
+      final byte[]... args) {
+    client.conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    return queueFutureReply(subCmd);
+  }
+
+  @Override
+  public FutureReply<long[]> sendCmd(final PrimArrayCmd cmd, final byte[] arg) {
+    client.conn.sendSubCmd(cmd.getCmdBytes(), arg);
+    return queueFutureReply(cmd);
+  }
+
+  @Override
+  public FutureReply<long[]> sendCmd(final PrimArrayCmd cmd, final byte[]... args) {
+    client.conn.sendCmd(cmd.getCmdBytes(), args);
+    return queueFutureReply(cmd);
+  }
+
+  @Override
+  public FutureReply<long[]> sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd,
+      final String... args) {
+    client.conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    return queueFutureReply(subCmd);
+  }
+
+  @Override
+  public FutureReply<long[]> sendCmd(final PrimArrayCmd cmd, final String... args) {
     client.conn.sendCmd(cmd.getCmdBytes(), args);
     return queueFutureReply(cmd);
   }

@@ -48,6 +48,11 @@ public interface Cmd<R> extends Function<Object, R> {
     return raw().prim();
   }
 
+  default PrimArrayCmd primArray() {
+
+    return raw().primArray();
+  }
+
   default String name() {
 
     return raw().name();

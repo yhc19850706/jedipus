@@ -7,6 +7,7 @@ import java.util.function.LongUnaryOperator;
 
 import com.fabahaba.jedipus.FutureLongReply;
 import com.fabahaba.jedipus.FutureReply;
+import com.fabahaba.jedipus.cmds.PrimArrayCmd;
 
 class PrimMulti {
 
@@ -78,7 +79,7 @@ class PrimMulti {
   StatefulFutureReply<long[][]> createPrimArrayMultiExecFutureReply() {
 
     final StatefulFutureReply<long[][]> futureMultiExecReply =
-        new AdaptedFutureLongArrayReply(getPrimArrayMultiExecReplyHandler());
+        new AdaptedFutureLong2DArrayReply(getPrimArrayMultiExecReplyHandler());
 
     for (final StatefulFutureReply<?> futureReply : multiReplies) {
       futureReply.setExecDependency(futureMultiExecReply);
@@ -97,6 +98,13 @@ class PrimMulti {
   FutureLongReply queueMultiPipelinedReply(final LongUnaryOperator adapter) {
 
     final StatefulFutureReply<Void> futureReply = new AdaptedFutureLongReply(adapter);
+    multiReplies.add(futureReply);
+    return futureReply;
+  }
+
+  FutureReply<long[]> queueMultiPipelinedReply(final PrimArrayCmd adapter) {
+
+    final StatefulFutureReply<long[]> futureReply = new AdaptedFutureLongArrayReply(adapter);
     multiReplies.add(futureReply);
     return futureReply;
   }

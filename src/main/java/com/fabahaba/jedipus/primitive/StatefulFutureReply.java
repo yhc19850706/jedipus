@@ -75,7 +75,11 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
     throw new RedisUnhandledException(null, "Illegal use of this FutureReply.");
   }
 
-  public StatefulFutureReply<T> setMultiLongReply(final long reply) {
+  public StatefulFutureReply<long[]> setMultiLongArrayReply(final long[] reply) {
+    throw new RedisUnhandledException(null, "Illegal use of this FutureReply.");
+  }
+
+  public StatefulFutureReply<Void> setMultiLongReply(final long reply) {
     throw new RedisUnhandledException(null, "Illegal use of this FutureReply.");
   }
 

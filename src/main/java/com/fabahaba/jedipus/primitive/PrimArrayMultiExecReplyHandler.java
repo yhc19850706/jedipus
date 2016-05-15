@@ -32,8 +32,7 @@ class PrimArrayMultiExecReplyHandler extends BaseMultiReplyHandler<long[][], lon
           return data;
         }
 
-        reply.setMultiReply(data[index]);
-        data[index] = (long[]) reply.get();
+        data[index] = reply.setMultiLongArrayReply(data[index]).get();
       }
     } finally {
       multi.multiReplies.clear();
