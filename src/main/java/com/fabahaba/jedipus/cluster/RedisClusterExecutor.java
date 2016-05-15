@@ -42,15 +42,8 @@ public interface RedisClusterExecutor extends AutoCloseable {
   @Override
   public void close();
 
-  default <R> R apply(final ReadMode readMode, final int slot,
-      final Function<RedisClient, R> clientConsumer, final int maxRetries) {
-
-    return apply(readMode, slot, clientConsumer, maxRetries, false);
-  }
-
   public <R> R apply(final ReadMode readMode, final int slot,
-      final Function<RedisClient, R> clientConsumer, final int maxRetries,
-      final boolean wantsPipeline);
+      final Function<RedisClient, R> clientConsumer, final int maxRetries);
 
   default void accept(final Consumer<RedisClient> clientConsumer) {
 
@@ -428,7 +421,7 @@ public interface RedisClusterExecutor extends AutoCloseable {
         pipelineConsumer.accept(pipeline);
         return null;
       }
-    }, maxRetries, true);
+    }, maxRetries);
   }
 
   default <R> R applyPipelinedTransaction(final Function<RedisPipeline, R> pipelineConsumer) {
@@ -539,7 +532,7 @@ public interface RedisClusterExecutor extends AutoCloseable {
         pipeline.multi();
         return pipelineConsumer.apply(pipeline);
       }
-    }, maxRetries, true);
+    }, maxRetries);
   }
 
   default void acceptPipelinedTransaction(final Consumer<RedisPipeline> pipelineConsumer) {
@@ -646,7 +639,7 @@ public interface RedisClusterExecutor extends AutoCloseable {
         pipelineConsumer.accept(pipeline);
       }
       return null;
-    }, maxRetries, true);
+    }, maxRetries);
   }
 
   default void acceptAllMasters(final Consumer<RedisClient> clientConsumer) {

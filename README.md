@@ -9,7 +9,7 @@
 * Performance focused:
   * Reuse known slot integers for direct O(1) primitive array access to a corresponding `RedisClient` pool.
   * Minimal enforced (de)serialization.  Write directly to the socket output stream buffer, and retrieve raw responses.
-  * Official Fire-And-Forget support using [`CLIENT REPLY ON|OFF|SKIP`](http://redis.io/commands/client-reply); supported in pipelines as well.
+  * Official Fire-And-Forget support using [`CLIENT REPLY ON|OFF|SKIP`](http://redis.io/commands/client-reply).
   * Locking is only applied to threads which are accessing slots that are migrating; there is no known node; or for which a client connection continually cannot be established; all of which will trigger a slot cache refresh.
   * Primitive long, long[] and long[][] return types to avoid auto boxing, nice for BITFIELD commands.
   * Load balance read-only requests across master and/or slave pools.

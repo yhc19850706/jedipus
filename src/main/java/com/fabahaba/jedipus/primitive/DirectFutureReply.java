@@ -5,15 +5,16 @@ class DirectFutureReply<T> extends StatefulFutureReply<T> {
   protected Object reply;
 
   @Override
-  public void setMultiReply(final Object reply) {
+  public DirectFutureReply<T> setMultiReply(final Object reply) {
 
     if (reply == null) {
       state = State.BUILT;
-      return;
+      return this;
     }
 
     this.reply = reply;
     state = State.PENDING;
+    return this;
   }
 
   @SuppressWarnings("unchecked")

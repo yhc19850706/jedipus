@@ -21,17 +21,18 @@ class AdaptedFutureLongReply extends StatefulFutureReply<Void> {
   }
 
   @Override
-  public void setReply(final PrimRedisConn conn) {
+  public AdaptedFutureLongReply setReply(final PrimRedisConn conn) {
 
     setMultiLongReply(conn.getLongNoFlush());
+    return this;
   }
 
-
   @Override
-  public void setMultiLongReply(final long reply) {
+  public AdaptedFutureLongReply setMultiLongReply(final long reply) {
 
     this.reply = reply;
     state = State.PENDING;
+    return this;
   }
 
   @Override

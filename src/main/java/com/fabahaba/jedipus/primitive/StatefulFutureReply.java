@@ -66,14 +66,19 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
 
   protected void handleReply() {}
 
-  public void setReply(final PrimRedisConn conn) {
+  public StatefulFutureReply<T> setReply(final PrimRedisConn conn) {
 
     setMultiReply(conn.getReplyNoFlush());
+    return this;
   }
 
-  public void setMultiReply(final Object reply) {}
+  public StatefulFutureReply<T> setMultiReply(final Object reply) {
+    throw new RedisUnhandledException(null, "Illegal use of this FutureReply.");
+  }
 
-  public void setMultiLongReply(final long reply) {}
+  public StatefulFutureReply<T> setMultiLongReply(final long reply) {
+    throw new RedisUnhandledException(null, "Illegal use of this FutureReply.");
+  }
 
   @Override
   public T get() {

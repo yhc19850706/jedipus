@@ -167,8 +167,7 @@ public final class Jedipus implements RedisClusterExecutor {
 
   @Override
   public <R> R apply(final ReadMode readMode, final int slot,
-      final Function<RedisClient, R> clientConsumer, final int maxRetries,
-      final boolean wantsPipeline) {
+      final Function<RedisClient, R> clientConsumer, final int maxRetries) {
 
     SlotRedirectException previousRedirectEx = null;
 
@@ -245,11 +244,7 @@ public final class Jedipus implements RedisClusterExecutor {
         final Node askNode = previousRedirectEx.getTargetNode();
         pool = connHandler.getAskPool(askNode);
         client = RedisClientPool.borrowClient(pool);
-        if (wantsPipeline) {
-          client.pipeline().asking();
-        } else {
-          client.asking();
-        }
+        client.skip().asking();
         final R result = clientConsumer.apply(client);
         connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode(), 0);
         return result;

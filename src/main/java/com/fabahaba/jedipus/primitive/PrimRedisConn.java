@@ -16,6 +16,7 @@ import com.fabahaba.jedipus.RedisClient.ReplyMode;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
+import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 final class PrimRedisConn extends RedisConn {
 
@@ -131,7 +132,7 @@ final class PrimRedisConn extends RedisConn {
       case OFF:
         return null;
       case SKIP:
-        replyMode = ReplyMode.ON;
+        setReplyMode(ReplyMode.ON);
         return null;
       case ON:
         return responseHandler.apply(getReply());
@@ -145,7 +146,7 @@ final class PrimRedisConn extends RedisConn {
       case OFF:
         return null;
       case SKIP:
-        replyMode = ReplyMode.ON;
+        setReplyMode(ReplyMode.ON);
         return null;
       case ON:
         return responseHandler.apply(getLongArray());
@@ -159,7 +160,7 @@ final class PrimRedisConn extends RedisConn {
       case OFF:
         return 0;
       case SKIP:
-        replyMode = ReplyMode.ON;
+        setReplyMode(ReplyMode.ON);
         return 0;
       case ON:
         return responseHandler.applyAsLong(getLong());
@@ -183,13 +184,18 @@ final class PrimRedisConn extends RedisConn {
             Cmds.ON.getCmdBytes());
         final String reply = Cmds.CLIENT_REPLY.apply(getReply());
         if (reply != null) {
-          replyMode = ReplyMode.ON;
+          setReplyMode(ReplyMode.ON);
         }
         return reply;
     }
   }
 
   void setReplyMode(final ReplyMode replyMode) {
+    if (isInMulti()) {
+      drain();
+      throw new RedisUnhandledException(null,
+          "Changing CLIENT REPLY mode is not allowed inside a MULTI.");
+    }
     this.replyMode = replyMode;
   }
 
@@ -202,7 +208,7 @@ final class PrimRedisConn extends RedisConn {
       default:
         sendSubCmd(Cmds.CLIENT.getCmdBytes(), Cmds.CLIENT_REPLY.getCmdBytes(),
             Cmds.OFF.getCmdBytes());
-        replyMode = ReplyMode.OFF;
+        setReplyMode(ReplyMode.OFF);
     }
   }
 
@@ -215,7 +221,7 @@ final class PrimRedisConn extends RedisConn {
       default:
         sendSubCmd(Cmds.CLIENT.getCmdBytes(), Cmds.CLIENT_REPLY.getCmdBytes(),
             Cmds.SKIP.getCmdBytes());
-        replyMode = ReplyMode.SKIP;
+        setReplyMode(ReplyMode.SKIP);
     }
     return this;
   }

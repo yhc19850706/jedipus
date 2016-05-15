@@ -35,6 +35,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.fabahaba.jedipus.FutureLongReply;
 import com.fabahaba.jedipus.FutureReply;
 import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.RESP;
@@ -113,8 +114,8 @@ public class RedisClusterTest {
 
     for (;;) {
       for (final RedisClient client : masterClients) {
-        client.sendCmd(Cmds.FLUSHALL.raw());
-        client.clusterReset(Cmds.SOFT);
+        client.skip().sendCmd(Cmds.FLUSHALL);
+        client.skip().clusterReset(Cmds.SOFT);
       }
 
       for (int i = 0; i < NUM_MASTERS; i++) {
@@ -122,10 +123,10 @@ public class RedisClusterTest {
         client.clusterAddSlots(slots[i]);
 
         for (final Node meetNode : slaves) {
-          client.clusterMeet(meetNode.getHost(), meetNode.getPort());
+          client.skip().clusterMeet(meetNode.getHost(), meetNode.getPort());
         }
 
-        masterClients[(i == 0 ? NUM_MASTERS : i) - 1].clusterMeet(client.getHost(),
+        masterClients[(i == 0 ? NUM_MASTERS : i) - 1].skip().clusterMeet(client.getHost(),
             client.getPort());
       }
 
@@ -152,7 +153,7 @@ public class RedisClusterTest {
       }
 
       try (final RedisClient client = RedisClientFactory.startBuilding().create(node)) {
-        client.sendCmd(Cmds.FLUSHALL.raw());
+        client.skip().sendCmd(Cmds.FLUSHALL);
         client.clusterReset(Cmds.SOFT);
       }
     }
@@ -162,7 +163,7 @@ public class RedisClusterTest {
   public static void afterClass() {
 
     for (final RedisClient master : masterClients) {
-      master.sendCmd(Cmds.FLUSHALL.raw());
+      master.skip().sendCmd(Cmds.FLUSHALL);
       master.clusterReset(Cmds.SOFT);
       master.close();
     }
@@ -503,7 +504,7 @@ public class RedisClusterTest {
     }
   }
 
-  @Test(timeout = 3000)
+  @Test
   public void testAskResponse() {
 
     final String key = "42";
@@ -522,13 +523,13 @@ public class RedisClusterTest {
       jce.accept(slot, client -> client.clusterSetSlotMigrating(slot, importing));
 
       jce.acceptPipeline(slot, client -> {
-        client.sendCmd(SCmds.SADD.raw(), key, "107.6");
+        client.sendCmd(SCmds.SADD.prim(), key, "107.6");
         // Forced asking pending feedback on the following:
         // https://github.com/antirez/redis/issues/3203
-        client.asking();
-        final FutureReply<Long> response = client.sendCmd(SCmds.SCARD, key);
+        client.skip().asking();
+        final FutureLongReply futureReply = client.sendCmd(SCmds.SCARD.prim(), key);
         client.sync();
-        assertEquals(1, RESP.longToInt(response.get()));
+        assertEquals(1, futureReply.getLong());
       });
     }
   }
@@ -618,7 +619,7 @@ public class RedisClusterTest {
 
       jce.accept(slot, client -> {
         IntStream.range(0, 5)
-            .forEach(index -> client.sendCmd(Cmds.SET.raw(), "foo{bar}" + index, "v"));
+            .forEach(index -> client.skip().sendCmd(Cmds.SET, "foo{bar}" + index, "v"));
         assertEquals(5, client.clusterCountKeysInSlot(slot));
       });
     }
@@ -636,7 +637,7 @@ public class RedisClusterTest {
         RedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
       final String exporting = jce.apply(slot, client -> {
-        client.sendCmd(Cmds.SET.raw(), keyString, "107.6");
+        client.skip().sendCmd(Cmds.SET, keyString, "107.6");
         return client.getNodeId();
       });
 
@@ -670,7 +671,7 @@ public class RedisClusterTest {
     try (final RedisClusterExecutor jce = RedisClusterExecutor.startBuilding(discoveryNodes)
         .withMasterPoolFactory(poolFactory).create()) {
 
-      jce.accept(client -> client.sendCmd(Cmds.SET.raw(), "42", "107.6"));
+      jce.accept(client -> client.sendCmd(Cmds.SET, "42", "107.6"));
     }
   }
 
@@ -688,7 +689,7 @@ public class RedisClusterTest {
     jce.acceptAll(client -> fail("All pools should have been closed."));
 
     try {
-      jce.accept(client -> client.sendCmd(Cmds.PING.raw()));
+      jce.accept(client -> client.sendCmd(Cmds.PING));
       fail("All pools should have been closed.");
     } catch (final RedisConnectionException jcex) {
       // expected
@@ -743,10 +744,10 @@ public class RedisClusterTest {
         final byte[] val = RESP.toBytes(i);
 
         final Future<String> future = executor.submit(() -> jce.applyPipeline(slot, pipeline -> {
-          pipeline.sendCmd(Cmds.SET.raw(), key, val);
-          final FutureReply<String> response = pipeline.sendCmd(Cmds.GET, key);
+          pipeline.skip().sendCmd(Cmds.SET, key, val);
+          final FutureReply<String> futureReply = pipeline.sendCmd(Cmds.GET, key);
           pipeline.sync();
-          return response.get();
+          return futureReply.get();
         }));
 
         futures.add(future);
@@ -759,7 +760,7 @@ public class RedisClusterTest {
     }
   }
 
-  @Test(timeout = 1000)
+  @Test(timeout = 3000)
   public void testReturnConnectionOnRedisConnectionException() {
 
     final String keyString = "42";
@@ -778,7 +779,7 @@ public class RedisClusterTest {
 
       jce.accept(slot, client -> {
 
-        client.sendCmd(Cmds.CLIENT, Cmds.CLIENT_SETNAME.raw(), RESP.toBytes("DEAD"));
+        client.skip().sendCmd(Cmds.CLIENT, Cmds.CLIENT_SETNAME, RESP.toBytes("DEAD"));
 
         for (final String clientInfo : client.sendCmd(Cmds.CLIENT, Cmds.CLIENT_LIST).split("\n")) {
 
@@ -787,7 +788,7 @@ public class RedisClusterTest {
 
             final int addrStart = clientInfo.indexOf("addr=") + 5;
             final int addrEnd = clientInfo.indexOf(' ', addrStart);
-            client.sendCmd(Cmds.CLIENT, ServerCmds.CLIENT_KILL.raw(),
+            client.sendCmd(Cmds.CLIENT, ServerCmds.CLIENT_KILL,
                 RESP.toBytes(clientInfo.substring(addrStart, addrEnd)));
             break;
           }
@@ -810,7 +811,7 @@ public class RedisClusterTest {
 
       final String importing = jce.apply(importingNodeSlot, RedisClient::getNodeId);
       jce.accept(slot, client -> client.clusterSetSlotMigrating(slot, importing));
-      jce.accept(slot, client -> client.sendCmd(Cmds.GET.raw(), key));
+      jce.accept(slot, client -> client.sendCmd(Cmds.GET, key));
     }
   }
 

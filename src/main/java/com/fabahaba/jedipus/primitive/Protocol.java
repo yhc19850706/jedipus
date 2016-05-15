@@ -173,12 +173,12 @@ final class Protocol {
     final int colon = clusterRedirectResponse.lastIndexOf(':');
     final int hostOffset = clusterRedirectResponse.lastIndexOf(' ', colon);
 
-    final String[] response = new String[3];
-    response[0] = clusterRedirectResponse.substring(slotOffset, hostOffset);
-    response[1] = clusterRedirectResponse.substring(hostOffset + 1, colon);
-    response[2] = clusterRedirectResponse.substring(colon + 1);
+    final String[] reply = new String[3];
+    reply[0] = clusterRedirectResponse.substring(slotOffset, hostOffset);
+    reply[1] = clusterRedirectResponse.substring(hostOffset + 1, colon);
+    reply[2] = clusterRedirectResponse.substring(colon + 1);
 
-    return response;
+    return reply;
   }
 
   static Object read(final Node node, final Function<Node, Node> hostPortMapper,
@@ -219,15 +219,15 @@ final class Protocol {
       case PLUS_BYTE:
         is.drain();
         throw new RedisUnhandledException(null,
-            "Expected an Integer (:) response type, received a Simple String (+) response.");
+            "Expected an Integer (:) reply type, received a Simple String (+) reply.");
       case DOLLAR_BYTE:
         is.drain();
         throw new RedisUnhandledException(null,
-            "Expected an Integer (:) response type, received a Bulk String ($) response.");
+            "Expected an Integer (:) reply type, received a Bulk String ($) reply.");
       case ASTERISK_BYTE:
         is.drain();
         throw new RedisUnhandledException(null,
-            "Expected an Integer (:) response type, received an Array (*) response.");
+            "Expected an Integer (:) reply type, received an Array (*) reply.");
       default:
         final String msg = String.format(
             "Unknown reply where data type expected. Recieved '%s'. Supported types are '+', '-', ':', '$' and '*'.",
@@ -297,15 +297,54 @@ final class Protocol {
       case COLON_BYTE:
         is.drain();
         throw new RedisUnhandledException(null,
-            "Expected an Array (*) response type, received an Integer (:) response.");
+            "Expected an Array (*) reply type, received an Integer (:) reply.");
       case PLUS_BYTE:
         is.drain();
         throw new RedisUnhandledException(null,
-            "Expected an Array (*) response type, received a Simple String (+) response.");
+            "Expected an Array (*) reply type, received a Simple String (+) reply.");
       case DOLLAR_BYTE:
         is.drain();
         throw new RedisUnhandledException(null,
-            "Expected an Array (*) response type, received a Bulk String ($) response.");
+            "Expected an Array (*) reply type, received a Bulk String ($) reply.");
+      default:
+        final String msg = String.format(
+            "Unknown reply where data type expected. Recieved '%s'. Supported types are '+', '-', ':', '$' and '*'.",
+            (char) bite);
+        throw new RedisConnectionException(node, msg);
+    }
+  }
+
+  static long[][] readLongArrayArray(final Node node, final Function<Node, Node> hostPortMapper,
+      final RedisInputStream is) {
+
+    final byte bite = is.readByte();
+
+    switch (bite) {
+      case ASTERISK_BYTE:
+        final int num = is.readIntCRLF();
+        if (num == -1) {
+          return null;
+        }
+
+        final long[][] reply = new long[num][];
+        for (int i = 0; i < num; i++) {
+          reply[i] = readLongArray(node, hostPortMapper, is);
+        }
+        return reply;
+      case MINUS_BYTE:
+        throw processError(node, hostPortMapper, is);
+      case COLON_BYTE:
+        is.drain();
+        throw new RedisUnhandledException(null,
+            "Expected an Array (*) reply type, received an Integer (:) reply.");
+      case PLUS_BYTE:
+        is.drain();
+        throw new RedisUnhandledException(null,
+            "Expected an Array (*) reply type, received a Simple String (+) reply.");
+      case DOLLAR_BYTE:
+        is.drain();
+        throw new RedisUnhandledException(null,
+            "Expected an Array (*) reply type, received a Bulk String ($) reply.");
       default:
         final String msg = String.format(
             "Unknown reply where data type expected. Recieved '%s'. Supported types are '+', '-', ':', '$' and '*'.",
