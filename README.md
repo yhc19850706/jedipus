@@ -34,6 +34,7 @@
 ######Gotchas
 * All commands issued within a single lambda should be idempotent.  If they are not, split them into separate calls, use a pipelined transaction, use a Lua script, or compile a new C Module.
 * ASK redirects within pipelines are not supported, instead an `UnhandledAskNodeException` is thrown.  The reason for this is that even if all of the keys point to the same slot Redis requires a new ASKING request in front of each command.  It is cleaner to let the user handle recovery rather than injecting ASKING requests internally.  See this [integration test](src/integ/java/com/fabahaba/jedipus/cluster/RedisClusterTest.java#L514) for an example of how to recover.  MOVE redirects are supported within pipelines.
+* If only using CLIENT REPLY OFF your client will be oblivious to slot migrations.  If you want to be resilient to re-partitioning, refresh the slot cache at a frequency you can tolerate.
 
 ######Dependency Management
 ```groovy
@@ -48,7 +49,7 @@ dependencies {
 }
 ```
 
-#####Basic Usage Demos
+######Basic Usage Demos
 ```java
 try (final RedisClusterExecutor rce =
     RedisClusterExecutor.startBuilding(Node.create("localhost", 7000)).create()) {

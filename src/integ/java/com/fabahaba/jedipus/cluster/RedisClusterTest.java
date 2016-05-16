@@ -634,8 +634,7 @@ public class RedisClusterTest {
         RedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
       rce.accept(slot, client -> {
-        IntStream.range(0, 5)
-            .forEach(index -> client.skip().sendCmd(Cmds.SET, "foo{bar}" + index, "v"));
+        IntStream.range(0, 5).forEach(index -> client.sendCmd(Cmds.SET, "foo{bar}" + index, "v"));
         assertEquals(5, client.clusterCountKeysInSlot(slot));
       });
     }
