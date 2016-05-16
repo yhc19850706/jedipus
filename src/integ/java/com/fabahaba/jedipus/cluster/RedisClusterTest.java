@@ -243,10 +243,10 @@ public class RedisClusterTest {
     final int slot = CRC16.getSlot(key);
     final int invalidSlot = rotateSlotNode(slot);
 
-    try (final RedisClusterExecutor jce =
+    try (final RedisClusterExecutor rce =
         RedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      final int moveToPort = jce.apply(invalidSlot, invalid -> {
+      final int moveToPort = rce.apply(invalidSlot, invalid -> {
 
         try {
           invalid.sendCmd(Cmds.SET, key, new byte[0]);
@@ -261,7 +261,7 @@ public class RedisClusterTest {
             slot, invalidSlot));
       });
 
-      assertTrue(moveToPort == jce.apply(slot, valid -> valid.getPort()));
+      assertTrue(moveToPort == rce.apply(slot, valid -> valid.getPort()));
     }
   }
 
@@ -272,12 +272,12 @@ public class RedisClusterTest {
     final int slot = CRC16.getSlot(key);
     final int importingNodeSlot = rotateSlotNode(slot);
 
-    try (final RedisClusterExecutor jce =
+    try (final RedisClusterExecutor rce =
         RedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      final Node importing = jce.apply(importingNodeSlot, RedisClient::getNode);
+      final Node importing = rce.apply(importingNodeSlot, RedisClient::getNode);
 
-      jce.accept(slot, client -> {
+      rce.accept(slot, client -> {
 
         client.clusterSetSlotMigrating(slot, importing.getId());
 
@@ -301,15 +301,15 @@ public class RedisClusterTest {
       setUpSlaves(RCUtils.getClusterNodes(client.clusterNodes()));
     }
 
-    try (final RedisClusterExecutor jce =
+    try (final RedisClusterExecutor rce =
         RedisClusterExecutor.startBuilding(discoveryNodes).withReadMode(ReadMode.MIXED).create()) {
 
       final int[] numNodes = new int[1];
-      jce.acceptAllMasters(master -> numNodes[0]++);
+      rce.acceptAllMasters(master -> numNodes[0]++);
       assertEquals(NUM_MASTERS, numNodes[0]);
 
       numNodes[0] = 0;
-      jce.acceptAllSlaves(slave -> numNodes[0]++);
+      rce.acceptAllSlaves(slave -> numNodes[0]++);
       assertEquals(NUM_SLAVES, numNodes[0]);
     }
   }
@@ -325,10 +325,10 @@ public class RedisClusterTest {
     final byte[] key = RESP.toBytes("ro");
     final int slot = CRC16.getSlot(key);
 
-    try (final RedisClusterExecutor jce =
+    try (final RedisClusterExecutor rce =
         RedisClusterExecutor.startBuilding(discoveryNodes).withReadMode(ReadMode.SLAVES).create()) {
 
-      jce.accept(slot, client -> {
+      rce.accept(slot, client -> {
         try {
           client.sendCmd(Cmds.SET, key, new byte[0]);
           fail();
@@ -347,18 +347,18 @@ public class RedisClusterTest {
     final int slot = CRC16.getSlot(key);
     final int importingNodeSlot = rotateSlotNode(slot);
 
-    try (final RedisClusterExecutor jce =
+    try (final RedisClusterExecutor rce =
         RedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      final Node exporting = jce.apply(slot, RedisClient::getNode);
-      final Node importing = jce.apply(importingNodeSlot, client -> {
+      final Node exporting = rce.apply(slot, RedisClient::getNode);
+      final Node importing = rce.apply(importingNodeSlot, client -> {
         client.clusterSetSlotImporting(slot, exporting.getId());
         return client.getNode();
       });
 
-      jce.accept(slot, client -> client.clusterSetSlotMigrating(slot, importing.getId()));
+      rce.accept(slot, client -> client.clusterSetSlotMigrating(slot, importing.getId()));
 
-      jce.accept(importingNodeSlot, client -> {
+      rce.accept(importingNodeSlot, client -> {
         try {
           client.sendCmd(Cmds.SET, key, new byte[0]);
           fail(
@@ -369,7 +369,7 @@ public class RedisClusterTest {
         }
       });
 
-      jce.accept(slot, client -> {
+      rce.accept(slot, client -> {
         try {
           client.sendCmd(Cmds.SET, key, new byte[0]);
           fail(
@@ -380,9 +380,9 @@ public class RedisClusterTest {
         }
       });
 
-      jce.accept(slot, client -> client.sendCmd(Cmds.SET, keyString, "val"));
+      rce.accept(slot, client -> client.sendCmd(Cmds.SET, keyString, "val"));
 
-      jce.accept(importingNodeSlot, client -> {
+      rce.accept(importingNodeSlot, client -> {
         try {
           client.sendCmd(Cmds.GET.raw(), key);
           fail(
@@ -393,7 +393,7 @@ public class RedisClusterTest {
         }
       });
 
-      jce.accept(slot, client -> {
+      rce.accept(slot, client -> {
         try {
           client.sendCmd(Cmds.GET.raw(), key);
           fail(
@@ -404,12 +404,12 @@ public class RedisClusterTest {
         }
       });
 
-      assertEquals("val", jce.apply(slot, client -> client.sendCmd(Cmds.GET, keyString)));
-      jce.accept(importingNodeSlot, client -> client.clusterSetSlotNode(slot, client.getNodeId()));
+      assertEquals("val", rce.apply(slot, client -> client.sendCmd(Cmds.GET, keyString)));
+      rce.accept(importingNodeSlot, client -> client.clusterSetSlotNode(slot, client.getNodeId()));
       assertEquals("val",
-          jce.apply(importingNodeSlot, client -> client.sendCmd(Cmds.GET, keyString)));
+          rce.apply(importingNodeSlot, client -> client.sendCmd(Cmds.GET, keyString)));
 
-      jce.accept(slot, migrated -> {
+      rce.accept(slot, migrated -> {
         migrated.sendCmd(Cmds.GET.raw(), key);
         assertEquals(importing, migrated.getNode());
       });
@@ -435,19 +435,19 @@ public class RedisClusterTest {
       } while (!waitForClusterReady(client, 2000));
     }
 
-    try (final RedisClusterExecutor jce =
+    try (final RedisClusterExecutor rce =
         RedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      final Node exporting = jce.apply(slot, RedisClient::getNode);
-      final Node importing = jce.applyUnknown(newNode, client -> {
+      final Node exporting = rce.apply(slot, RedisClient::getNode);
+      final Node importing = rce.applyUnknown(newNode, client -> {
         client.clusterSetSlotImporting(slot, exporting.getId());
         client.getNodeId();
         return client.getNode();
       });
 
-      jce.accept(slot, client -> client.clusterSetSlotMigrating(slot, importing.getId()));
+      rce.accept(slot, client -> client.clusterSetSlotMigrating(slot, importing.getId()));
 
-      jce.acceptUnknown(newNode, client -> {
+      rce.acceptUnknown(newNode, client -> {
         try {
           client.sendCmd(Cmds.SET, key, new byte[0]);
           fail(
@@ -458,7 +458,7 @@ public class RedisClusterTest {
         }
       });
 
-      jce.accept(slot, client -> {
+      rce.accept(slot, client -> {
         try {
           client.sendCmd(Cmds.SET, key, new byte[0]);
           fail(
@@ -469,9 +469,9 @@ public class RedisClusterTest {
         }
       });
 
-      jce.accept(slot, client -> client.sendCmd(Cmds.SET, keyString, "val"));
+      rce.accept(slot, client -> client.sendCmd(Cmds.SET, keyString, "val"));
 
-      jce.acceptUnknown(newNode, client -> {
+      rce.acceptUnknown(newNode, client -> {
         try {
           client.sendCmd(Cmds.GET.raw(), key);
           fail(
@@ -482,7 +482,7 @@ public class RedisClusterTest {
         }
       });
 
-      jce.accept(slot, client -> {
+      rce.accept(slot, client -> {
         try {
           client.sendCmd(Cmds.GET.raw(), key);
           fail(
@@ -493,11 +493,11 @@ public class RedisClusterTest {
         }
       });
 
-      assertEquals("val", jce.apply(slot, client -> client.sendCmd(Cmds.GET, keyString)));
-      jce.acceptUnknown(newNode, client -> client.clusterSetSlotNode(slot, client.getNodeId()));
-      assertEquals("val", jce.applyUnknown(newNode, client -> client.sendCmd(Cmds.GET, keyString)));
+      assertEquals("val", rce.apply(slot, client -> client.sendCmd(Cmds.GET, keyString)));
+      rce.acceptUnknown(newNode, client -> client.clusterSetSlotNode(slot, client.getNodeId()));
+      assertEquals("val", rce.applyUnknown(newNode, client -> client.sendCmd(Cmds.GET, keyString)));
 
-      jce.accept(slot, migrated -> {
+      rce.accept(slot, migrated -> {
         migrated.sendCmd(Cmds.GET.raw(), key);
         assertEquals(newNode, migrated.getNode());
       });
@@ -511,24 +511,24 @@ public class RedisClusterTest {
     final int slot = CRC16.getSlot(key);
     final int importingNodeSlot = rotateSlotNode(slot);
 
-    try (final RedisClusterExecutor jce =
+    try (final RedisClusterExecutor rce =
         RedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      final String exporting = jce.apply(slot, RedisClient::getNodeId);
-      final String importing = jce.apply(importingNodeSlot, client -> {
+      final String exporting = rce.apply(slot, RedisClient::getNodeId);
+      final String importing = rce.apply(importingNodeSlot, client -> {
         client.clusterSetSlotImporting(slot, exporting);
         return client.getNodeId();
       });
 
-      jce.accept(slot, client -> client.clusterSetSlotMigrating(slot, importing));
+      rce.accept(slot, client -> client.clusterSetSlotMigrating(slot, importing));
 
-      jce.accept(slot, client -> client.sendCmd(Cmds.SADD.prim(), key, "107.6"));
+      rce.accept(slot, client -> client.sendCmd(Cmds.SADD.prim(), key, "107.6"));
 
-      final long numMembers = jce.apply(slot, client -> client.sendCmd(Cmds.SCARD.prim(), key));
+      final long numMembers = rce.apply(slot, client -> client.sendCmd(Cmds.SCARD.prim(), key));
       assertEquals(1, numMembers);
 
       try {
-        jce.acceptPipeline(slot, pipeline -> {
+        rce.acceptPipeline(slot, pipeline -> {
           pipeline.sendCmd(Cmds.SADD.prim(), key, "107.6");
           final FutureLongReply futureReply = pipeline.sendCmd(Cmds.SADD.prim(), key, "107.6");
           // Jedipus throws an UnhandledAskNodeException here because each KEY CMD needs to ASK.
@@ -538,7 +538,7 @@ public class RedisClusterTest {
           assertEquals(0, futureReply.getLong());
         });
       } catch (final UnhandledAskNodeException unhandledAsk) {
-        jce.acceptPipelinedIfPresent(unhandledAsk.getTargetNode(), pipeline -> {
+        rce.acceptPipelinedIfPresent(unhandledAsk.getTargetNode(), pipeline -> {
           pipeline.skip().asking();
           pipeline.sendCmd(Cmds.SADD.prim(), key, "107.6");
           pipeline.skip().asking();
@@ -557,28 +557,28 @@ public class RedisClusterTest {
     final int slot = CRC16.getSlot(key);
     final int importingNodeSlot = rotateSlotNode(slot);
 
-    try (final RedisClusterExecutor jce =
+    try (final RedisClusterExecutor rce =
         RedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      final String importing = jce.apply(importingNodeSlot, RedisClient::getNodeId);
-      jce.accept(slot, exporting -> exporting.clusterSetSlotMigrating(slot, importing));
-      jce.accept(slot, client -> client.sendCmd(Cmds.SET, key, new byte[0]));
+      final String importing = rce.apply(importingNodeSlot, RedisClient::getNodeId);
+      rce.accept(slot, exporting -> exporting.clusterSetSlotMigrating(slot, importing));
+      rce.accept(slot, client -> client.sendCmd(Cmds.SET, key, new byte[0]));
     }
   }
 
   @Test(timeout = 3000)
   public void testClusterForgetNode() throws InterruptedException {
 
-    try (final RedisClusterExecutor jce =
+    try (final RedisClusterExecutor rce =
         RedisClusterExecutor.startBuilding(discoveryNodes).withReadMode(ReadMode.MIXED).create()) {
 
       try (final RedisClient client = RedisClientFactory.startBuilding().create(slaves[0])) {
 
-        jce.acceptAll(node -> assertTrue(node.clusterNodes().contains(client.getNodeId())),
+        rce.acceptAll(node -> assertTrue(node.clusterNodes().contains(client.getNodeId())),
             ForkJoinPool.commonPool()).forEach(CompletableFuture::join);
-        jce.acceptAll(node -> node.clusterForget(client.getNodeId()), ForkJoinPool.commonPool())
+        rce.acceptAll(node -> node.clusterForget(client.getNodeId()), ForkJoinPool.commonPool())
             .forEach(CompletableFuture::join);
-        jce.acceptAll(node -> assertFalse(node.clusterNodes().contains(client.getNodeId())),
+        rce.acceptAll(node -> assertFalse(node.clusterNodes().contains(client.getNodeId())),
             ForkJoinPool.commonPool()).forEach(CompletableFuture::join);
       }
     }
@@ -590,34 +590,34 @@ public class RedisClusterTest {
     final byte[] key = RESP.toBytes("42");
     final int slot = CRC16.getSlot(key);
 
-    try (final RedisClusterExecutor jce =
+    try (final RedisClusterExecutor rce =
         RedisClusterExecutor.startBuilding(discoveryNodes).withReadMode(ReadMode.MIXED).create()) {
 
-      final Node node = jce.apply(ReadMode.MASTER, slot, client -> {
+      final Node node = rce.apply(ReadMode.MASTER, slot, client -> {
         client.clusterFlushSlots();
         return client.getNode();
       });
 
       try {
-        jce.accept(ReadMode.MASTER, slot, client -> client.sendCmd(Cmds.SET, key, new byte[0]));
+        rce.accept(ReadMode.MASTER, slot, client -> client.sendCmd(Cmds.SET, key, new byte[0]));
       } catch (final RedisClusterDownException downEx) {
         assertTrue(downEx.getMessage().startsWith("CLUSTERDOWN"));
       }
 
-      jce.acceptIfPresent(node, client -> client
+      rce.acceptIfPresent(node, client -> client
           .clusterAddSlots(slots[(int) ((slot / (double) CRC16.NUM_SLOTS) * slots.length)]));
 
-      jce.accept(ReadMode.MASTER, slot, client -> client.sendCmd(Cmds.SET, key, new byte[0]));
+      rce.accept(ReadMode.MASTER, slot, client -> client.sendCmd(Cmds.SET, key, new byte[0]));
     }
   }
 
   @Test(timeout = 3000)
   public void testClusterKeySlot() {
 
-    try (final RedisClusterExecutor jce =
+    try (final RedisClusterExecutor rce =
         RedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      jce.accept(client -> {
+      rce.accept(client -> {
         assertEquals(client.clusterKeySlot("foo{bar}zap}"), CRC16.getSlot("foo{bar}zap"));
         assertEquals(client.clusterKeySlot("{user1000}.following"),
             CRC16.getSlot("{user1000}.following"));
@@ -630,10 +630,10 @@ public class RedisClusterTest {
 
     final int slot = CRC16.getSlot("foo{bar}");
 
-    try (final RedisClusterExecutor jce =
+    try (final RedisClusterExecutor rce =
         RedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      jce.accept(slot, client -> {
+      rce.accept(slot, client -> {
         IntStream.range(0, 5)
             .forEach(index -> client.skip().sendCmd(Cmds.SET, "foo{bar}" + index, "v"));
         assertEquals(5, client.clusterCountKeysInSlot(slot));
@@ -649,27 +649,27 @@ public class RedisClusterTest {
     final int slot = CRC16.getSlot(key);
     final int importingNodeSlot = rotateSlotNode(slot);
 
-    try (final RedisClusterExecutor jce =
+    try (final RedisClusterExecutor rce =
         RedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      final String exporting = jce.apply(slot, client -> {
+      final String exporting = rce.apply(slot, client -> {
         client.skip().sendCmd(Cmds.SET, keyString, "107.6");
         return client.getNodeId();
       });
 
-      final String importing = jce.apply(importingNodeSlot, client -> {
+      final String importing = rce.apply(importingNodeSlot, client -> {
         client.clusterSetSlotImporting(slot, exporting);
         return client.getNodeId();
       });
 
-      assertEquals("107.6", jce.apply(slot, client -> client.sendCmd(Cmds.GET, keyString)));
-      jce.accept(importingNodeSlot, client -> client.clusterSetSlotStable(slot));
-      assertEquals("107.6", jce.apply(slot, client -> client.sendCmd(Cmds.GET, keyString)));
+      assertEquals("107.6", rce.apply(slot, client -> client.sendCmd(Cmds.GET, keyString)));
+      rce.accept(importingNodeSlot, client -> client.clusterSetSlotStable(slot));
+      assertEquals("107.6", rce.apply(slot, client -> client.sendCmd(Cmds.GET, keyString)));
 
-      jce.accept(slot, client -> client.clusterSetSlotMigrating(slot, importing));
-      assertEquals("107.6", jce.apply(slot, client -> client.sendCmd(Cmds.GET, keyString)));
-      jce.accept(slot, client -> client.clusterSetSlotStable(slot));
-      assertEquals("107.6", jce.apply(slot, client -> client.sendCmd(Cmds.GET, keyString)));
+      rce.accept(slot, client -> client.clusterSetSlotMigrating(slot, importing));
+      assertEquals("107.6", rce.apply(slot, client -> client.sendCmd(Cmds.GET, keyString)));
+      rce.accept(slot, client -> client.clusterSetSlotStable(slot));
+      assertEquals("107.6", rce.apply(slot, client -> client.sendCmd(Cmds.GET, keyString)));
     }
   }
 
@@ -684,28 +684,28 @@ public class RedisClusterTest {
         node -> new GenericObjectPool<>(RedisClientFactory.startBuilding().createPooled(node),
             config);
 
-    try (final RedisClusterExecutor jce = RedisClusterExecutor.startBuilding(discoveryNodes)
+    try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
         .withMasterPoolFactory(poolFactory).create()) {
 
-      jce.accept(client -> client.sendCmd(Cmds.SET, "42", "107.6"));
+      rce.accept(client -> client.sendCmd(Cmds.SET, "42", "107.6"));
     }
   }
 
   @Test(timeout = 3000)
   public void testCloseable() {
 
-    final RedisClusterExecutor jce = RedisClusterExecutor.startBuilding(discoveryNodes).create();
+    final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes).create();
     try {
-      jce.acceptAll(client -> assertEquals("PONG", client.sendCmd(Cmds.PING)),
+      rce.acceptAll(client -> assertEquals("PONG", client.sendCmd(Cmds.PING)),
           ForkJoinPool.commonPool()).forEach(CompletableFuture::join);
     } finally {
-      jce.close();
+      rce.close();
     }
 
-    jce.acceptAll(client -> fail("All pools should have been closed."));
+    rce.acceptAll(client -> fail("All pools should have been closed."));
 
     try {
-      jce.accept(client -> client.sendCmd(Cmds.PING));
+      rce.accept(client -> client.sendCmd(Cmds.PING));
       fail("All pools should have been closed.");
     } catch (final RedisConnectionException jcex) {
       // expected
@@ -722,10 +722,10 @@ public class RedisClusterTest {
         node -> new GenericObjectPool<>(poolFactoryBuilder.createPooled(node),
             new GenericObjectPoolConfig());
 
-    try (final RedisClusterExecutor jce = RedisClusterExecutor.startBuilding(discoveryNodes)
+    try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
         .withMasterPoolFactory(poolFactory).create()) {
 
-      jce.accept(client -> {
+      rce.accept(client -> {
         assertEquals(1234, poolFactoryBuilder.getConnTimeout());
         assertEquals(4321, client.getSoTimeout());
       });
@@ -753,7 +753,7 @@ public class RedisClusterTest {
     final byte[] key = RESP.toBytes(keyString);
     final int slot = CRC16.getSlot(key);
 
-    try (final RedisClusterExecutor jce = RedisClusterExecutor.startBuilding(discoveryNodes)
+    try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
         .withMasterPoolFactory(poolFactory).create()) {
 
       final int numSets = 200;
@@ -762,7 +762,7 @@ public class RedisClusterTest {
 
         final byte[] val = RESP.toBytes(i);
 
-        final Future<String> future = executor.submit(() -> jce.applyPipeline(slot, pipeline -> {
+        final Future<String> future = executor.submit(() -> rce.applyPipeline(slot, pipeline -> {
           pipeline.skip().sendCmd(Cmds.SET, key, val);
           final FutureReply<String> futureReply = pipeline.sendCmd(Cmds.GET, key);
           pipeline.sync();
@@ -796,10 +796,10 @@ public class RedisClusterTest {
         node -> new GenericObjectPool<>(RedisClientFactory.startBuilding().createPooled(node),
             config);
 
-    try (final RedisClusterExecutor jce = RedisClusterExecutor.startBuilding(discoveryNodes)
+    try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
         .withMasterPoolFactory(poolFactory).create()) {
 
-      jce.accept(slot, client -> {
+      rce.accept(slot, client -> {
 
         client.skip().setClientName("DEAD");
 
@@ -817,7 +817,7 @@ public class RedisClusterTest {
         }
       });
 
-      assertEquals("PONG", jce.apply(slot, client -> client.sendCmd(Cmds.PING)));
+      assertEquals("PONG", rce.apply(slot, client -> client.sendCmd(Cmds.PING)));
     }
   }
 
@@ -828,23 +828,23 @@ public class RedisClusterTest {
     final int slot = CRC16.getSlot(key);
     final int importingNodeSlot = rotateSlotNode(slot);
 
-    try (final RedisClusterExecutor jce =
+    try (final RedisClusterExecutor rce =
         RedisClusterExecutor.startBuilding(discoveryNodes).create()) {
 
-      final String importing = jce.apply(importingNodeSlot, RedisClient::getNodeId);
-      jce.accept(slot, client -> client.clusterSetSlotMigrating(slot, importing));
-      jce.accept(slot, client -> client.sendCmd(Cmds.GET, key));
+      final String importing = rce.apply(importingNodeSlot, RedisClient::getNodeId);
+      rce.accept(slot, client -> client.clusterSetSlotMigrating(slot, importing));
+      rce.accept(slot, client -> client.sendCmd(Cmds.GET, key));
     }
   }
 
   @Test(timeout = 3000)
   public void testLocalhostNodeNotAddedWhen127Present() {
 
-    try (final RedisClusterExecutor jce =
+    try (final RedisClusterExecutor rce =
         RedisClusterExecutor.startBuilding(Node.create("localhost", STARTING_PORT)).create()) {
 
       final int[] count = new int[1];
-      jce.acceptAll(client -> {
+      rce.acceptAll(client -> {
         assertNotEquals("localhost", client.getHost());
         count[0]++;
       });
@@ -855,12 +855,12 @@ public class RedisClusterTest {
   @Test(timeout = 3000)
   public void testInvalidStartNodeNotAdded() {
 
-    try (final RedisClusterExecutor jce =
+    try (final RedisClusterExecutor rce =
         RedisClusterExecutor.startBuilding(Node.create("not-a-real-host", STARTING_PORT),
             Node.create("127.0.0.1", STARTING_PORT)).create()) {
 
       final int[] count = new int[1];
-      jce.acceptAll(client -> {
+      rce.acceptAll(client -> {
         assertNotEquals("not-a-real-host", client.getHost());
         count[0]++;
       });

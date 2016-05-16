@@ -33,7 +33,7 @@
 
 ######Gotchas
 * All commands issued within a single lambda should be idempotent.  If they are not, split them into separate calls, use a pipelined transaction, use a Lua script, or compile a new C Module.
-* ASK redirects within pipelines are not supported, instead an `UnhandledAskNodeException` is thrown.  The reason for this is that even if all of the keys point to the same slot Redis requires a new ASKING request in front of each command.  It is cleaner to let the user handle recovery rather than injecting ASKING requests internally.  See this [integration test](src/integ/java/com/fabahaba/jedipus/cluster/RedisClusterTest.java) for an example of how to recover.  MOVE redirects are supported within pipelines.
+* ASK redirects within pipelines are not supported, instead an `UnhandledAskNodeException` is thrown.  The reason for this is that even if all of the keys point to the same slot Redis requires a new ASKING request in front of each command.  It is cleaner to let the user handle recovery rather than injecting ASKING requests internally.  See this [integration test](src/integ/java/com/fabahaba/jedipus/cluster/RedisClusterTest.java#L514) for an example of how to recover.  MOVE redirects are supported within pipelines.
 
 ######Dependency Management
 ```groovy

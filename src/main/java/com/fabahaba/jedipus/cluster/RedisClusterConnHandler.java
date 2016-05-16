@@ -178,6 +178,4 @@ class RedisClusterConnHandler implements AutoCloseable {
     return new StringBuilder("RedisClusterConnHandler [slotPoolCache=").append(slotPoolCache)
         .append("]").toString();
   }
-
-
 }

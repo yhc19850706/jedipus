@@ -484,10 +484,10 @@ public final class Jedipus implements RedisClusterExecutor {
         final R result = clientConsumer.apply(client);
         connHandler.getClusterNodeRetryDelay().markSuccess(node, retries);
         return result;
-      } catch (final RedisConnectionException jce) {
+      } catch (final RedisConnectionException rce) {
 
         retries =
-            connHandler.getClusterNodeRetryDelay().markFailure(node, maxRetries, jce, retries);
+            connHandler.getClusterNodeRetryDelay().markFailure(node, maxRetries, rce, retries);
       } catch (final RedisRetryableUnhandledException retryableEx) {
 
         if (!retryUnhandledRetryableExceptions) {
@@ -552,10 +552,10 @@ public final class Jedipus implements RedisClusterExecutor {
         final R result = clientConsumer.apply(client);
         connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode(), retries);
         return result;
-      } catch (final RedisConnectionException jce) {
+      } catch (final RedisConnectionException rce) {
 
         retries = connHandler.getClusterNodeRetryDelay()
-            .markFailure(client == null ? node : client.getNode(), maxRetries, jce, retries);
+            .markFailure(client == null ? node : client.getNode(), maxRetries, rce, retries);
       } catch (final RedisRetryableUnhandledException retryableEx) {
 
         if (!retryUnhandledRetryableExceptions) {
