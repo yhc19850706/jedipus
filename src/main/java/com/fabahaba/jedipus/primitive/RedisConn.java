@@ -81,7 +81,7 @@ abstract class RedisConn implements AutoCloseable {
 
   public void sendCmd(final byte[] cmd) {
     try {
-      Protocol.sendCmd(outputStream, cmd);
+      RESProtocol.sendCmd(outputStream, cmd);
     } catch (final RuntimeException | IOException jcex) {
       handleWriteException(jcex);
     }
@@ -90,7 +90,7 @@ abstract class RedisConn implements AutoCloseable {
 
   public void sendCmd(final byte[] cmd, final byte[][] args) {
     try {
-      Protocol.sendCmd(outputStream, cmd, args);
+      RESProtocol.sendCmd(outputStream, cmd, args);
     } catch (final RuntimeException | IOException jcex) {
       handleWriteException(jcex);
     }
@@ -98,7 +98,7 @@ abstract class RedisConn implements AutoCloseable {
 
   public void sendSubCmd(final byte[] cmd, final byte[] subcmd) {
     try {
-      Protocol.sendSubCmd(outputStream, cmd, subcmd);
+      RESProtocol.sendSubCmd(outputStream, cmd, subcmd);
     } catch (final RuntimeException | IOException jcex) {
       handleWriteException(jcex);
     }
@@ -106,7 +106,7 @@ abstract class RedisConn implements AutoCloseable {
 
   public void sendSubCmd(final byte[] cmd, final byte[] subcmd, final byte[] args) {
     try {
-      Protocol.sendSubCmd(outputStream, cmd, subcmd, args);
+      RESProtocol.sendSubCmd(outputStream, cmd, subcmd, args);
     } catch (final RuntimeException | IOException jcex) {
       handleWriteException(jcex);
     }
@@ -114,7 +114,7 @@ abstract class RedisConn implements AutoCloseable {
 
   public void sendSubCmd(final byte[] cmd, final byte[] subcmd, final byte[][] args) {
     try {
-      Protocol.sendSubCmd(outputStream, cmd, subcmd, args);
+      RESProtocol.sendSubCmd(outputStream, cmd, subcmd, args);
     } catch (final RuntimeException | IOException jcex) {
       handleWriteException(jcex);
     }
@@ -122,7 +122,7 @@ abstract class RedisConn implements AutoCloseable {
 
   public void sendCmd(final byte[] cmd, final String[] args) {
     try {
-      Protocol.sendCmd(outputStream, cmd, args);
+      RESProtocol.sendCmd(outputStream, cmd, args);
     } catch (final RuntimeException | IOException jcex) {
       handleWriteException(jcex);
     }
@@ -130,7 +130,7 @@ abstract class RedisConn implements AutoCloseable {
 
   public void sendSubCmd(final byte[] cmd, final byte[] subcmd, final String[] args) {
     try {
-      Protocol.sendSubCmd(outputStream, cmd, subcmd, args);
+      RESProtocol.sendSubCmd(outputStream, cmd, subcmd, args);
     } catch (final RuntimeException | IOException jcex) {
       handleWriteException(jcex);
     }
@@ -140,7 +140,7 @@ abstract class RedisConn implements AutoCloseable {
 
     broken = true;
 
-    final String errorMessage = Protocol.readErrorLineIfPossible(inputStream);
+    final String errorMessage = RESProtocol.readErrorLineIfPossible(inputStream);
 
     if (errorMessage != null && errorMessage.length() > 0) {
 
@@ -170,7 +170,7 @@ abstract class RedisConn implements AutoCloseable {
   @SuppressWarnings("unchecked")
   protected <R> R getReply() {
     try {
-      return (R) Protocol.read(getNode(), hostPortMapper, inputStream);
+      return (R) RESProtocol.read(getNode(), hostPortMapper, inputStream);
     } catch (final RedisConnectionException exc) {
       broken = true;
       throw exc;
@@ -179,7 +179,7 @@ abstract class RedisConn implements AutoCloseable {
 
   protected long[] getLongArray() {
     try {
-      return Protocol.readLongArray(getNode(), hostPortMapper, inputStream);
+      return RESProtocol.readLongArray(getNode(), hostPortMapper, inputStream);
     } catch (final RedisConnectionException exc) {
       broken = true;
       throw exc;
@@ -188,7 +188,7 @@ abstract class RedisConn implements AutoCloseable {
 
   protected long[][] getLongArrayArray() {
     try {
-      return Protocol.readLongArrayArray(getNode(), hostPortMapper, inputStream);
+      return RESProtocol.readLongArrayArray(getNode(), hostPortMapper, inputStream);
     } catch (final RedisConnectionException exc) {
       broken = true;
       throw exc;
@@ -197,7 +197,7 @@ abstract class RedisConn implements AutoCloseable {
 
   protected long getLong() {
     try {
-      return Protocol.readLong(getNode(), hostPortMapper, inputStream);
+      return RESProtocol.readLong(getNode(), hostPortMapper, inputStream);
     } catch (final RedisConnectionException exc) {
       broken = true;
       throw exc;

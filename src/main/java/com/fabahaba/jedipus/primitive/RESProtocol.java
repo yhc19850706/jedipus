@@ -12,9 +12,9 @@ import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.exceptions.SlotMovedException;
 
-final class Protocol {
+final class RESProtocol {
 
-  private Protocol() {}
+  private RESProtocol() {}
 
   private static final String ASK_RESPONSE = "ASK";
   private static final String MOVED_RESPONSE = "MOVED";

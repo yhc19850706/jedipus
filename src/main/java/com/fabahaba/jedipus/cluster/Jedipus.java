@@ -601,7 +601,6 @@ public final class Jedipus implements RedisClusterExecutor {
     private ElementRetryDelay<Node> clusterNodeRetryDelay = DEFAULT_RETRY_DELAY;
     private int tryRandomAfter = DEFAULT_TRY_RANDOM_AFTER;
     private boolean retryUnhandledRetryableExceptions = false;
-    private GenericObjectPoolConfig poolConfig = DEFAULT_POOL_CONFIG;
     private Function<Node, ObjectPool<RedisClient>> masterPoolFactory = DEFAULT_MASTER_POOL_FACTORY;
     private Function<Node, ObjectPool<RedisClient>> slavePoolFactory = DEFAULT_SLAVE_POOL_FACTORY;
     // Used for ASK requests if no pool already exists and random node discovery.
@@ -730,15 +729,6 @@ public final class Jedipus implements RedisClusterExecutor {
       return this;
     }
 
-    public GenericObjectPoolConfig getPoolConfig() {
-      return poolConfig;
-    }
-
-    public Builder withPoolConfig(final GenericObjectPoolConfig poolConfig) {
-      this.poolConfig = poolConfig;
-      return this;
-    }
-
     public Function<Node, ObjectPool<RedisClient>> getMasterPoolFactory() {
       return masterPoolFactory;
     }
@@ -785,10 +775,9 @@ public final class Jedipus implements RedisClusterExecutor {
           .append(maxRedirections).append(", maxRetries=").append(maxRetries)
           .append(", tryRandomAfter=").append(tryRandomAfter)
           .append(", retryUnhandledRetryableExceptions=").append(retryUnhandledRetryableExceptions)
-          .append(", poolConfig=").append(poolConfig).append(", optimisticReads=")
-          .append(optimisticReads).append(", durationBetweenCacheRefresh=")
-          .append(durationBetweenCacheRefresh).append(", maxAwaitCacheRefresh=")
-          .append(maxAwaitCacheRefresh).append("]").toString();
+          .append(", optimisticReads=").append(optimisticReads)
+          .append(", durationBetweenCacheRefresh=").append(durationBetweenCacheRefresh)
+          .append(", maxAwaitCacheRefresh=").append(maxAwaitCacheRefresh).append("]").toString();
     }
   }
 }

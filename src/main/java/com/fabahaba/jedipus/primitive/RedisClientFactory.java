@@ -35,7 +35,7 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
   private final SSLParameters sslParameters;
   private final HostnameVerifier hostnameVerifier;
 
-  RedisClientFactory(final Node node, final Function<Node, Node> hostPortMapper,
+  protected RedisClientFactory(final Node node, final Function<Node, Node> hostPortMapper,
       final int connTimeout, final int soTimeout, final String pass, final String clientName,
       final boolean initReadOnly, final ReplyMode replyMode, final boolean ssl,
       final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,

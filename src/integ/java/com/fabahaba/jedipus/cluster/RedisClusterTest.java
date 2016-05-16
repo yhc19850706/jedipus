@@ -298,7 +298,7 @@ public class RedisClusterTest {
 
     try (final RedisClient client = RedisClientFactory.startBuilding().create(masters[0])) {
 
-      setUpSlaves(RCUtils.getClusterNodes(client.clusterNodes()));
+      setUpSlaves(client.getClusterNodeMap());
     }
 
     try (final RedisClusterExecutor rce =
@@ -319,7 +319,7 @@ public class RedisClusterTest {
 
     try (final RedisClient client = RedisClientFactory.startBuilding().create(masters[0])) {
 
-      setUpSlaves(RCUtils.getClusterNodes(client.clusterNodes()));
+      setUpSlaves(client.getClusterNodeMap());
     }
 
     final byte[] key = RESP.toBytes("ro");

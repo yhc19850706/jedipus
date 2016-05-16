@@ -1,8 +1,11 @@
 package com.fabahaba.jedipus.cmds;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import com.fabahaba.jedipus.HostPort;
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.cluster.Node;
-import com.fabahaba.jedipus.cluster.RCUtils;
 
 public interface ClusterCmds extends DirectCmds {
 
@@ -19,7 +22,7 @@ public interface ClusterCmds extends DirectCmds {
       synchronized (node) {
         id = node.getId();
         if (id == null) {
-          return node.updateId(RCUtils.getId(node.getHostPort(), clusterNodes())).getId();
+          return node.updateId(getId(node.getHostPort(), clusterNodes())).getId();
         }
       }
     }
@@ -30,6 +33,11 @@ public interface ClusterCmds extends DirectCmds {
   default String clusterNodes() {
 
     return sendCmd(CLUSTER, NODES);
+  }
+
+  default Map<HostPort, Node> getClusterNodeMap() {
+
+    return getClusterNodes(sendCmd(CLUSTER, NODES));
   }
 
   default String clusterMeet(final String ip, final int port) {
@@ -191,4 +199,63 @@ public interface ClusterCmds extends DirectCmds {
   static final Cmd<String> RESET = Cmd.createStringReply("RESET");
   static final Cmd<String> SOFT = Cmd.createStringReply("SOFT");
   static final Cmd<String> HARD = Cmd.createStringReply("HARD");
+
+  public static String getId(final HostPort hostPort, final String clusterNodes) {
+
+    final String[] lines = clusterNodes.split("\\r?\\n");
+
+    for (final String nodeInfo : lines) {
+
+      final int startPort = nodeInfo.indexOf(':', 42);
+      final String host = nodeInfo.substring(41, startPort);
+
+      if (!host.equals(hostPort.getHost())) {
+        continue;
+      }
+
+      for (int endPort = startPort + 2;; endPort++) {
+
+        if (!Character.isDigit(nodeInfo.charAt(endPort))) {
+
+          final String port = nodeInfo.substring(startPort + 1, endPort);
+          if (Integer.parseInt(port) == hostPort.getPort()) {
+            return nodeInfo.substring(0, 40);
+          }
+
+          break;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  public static Map<HostPort, Node> getClusterNodes(final String clusterNodes) {
+
+    final String[] lines = clusterNodes.split("\\r?\\n");
+    final Map<HostPort, Node> nodes = new HashMap<>(lines.length);
+
+    for (final String nodeInfo : lines) {
+
+      // 1c02bc94ed7c84d0d13a52079aeef9b259e58ef1 127.0.0.1:7379@17379
+      final String nodeId = nodeInfo.substring(0, 40);
+
+      final int startPort = nodeInfo.indexOf(':', 42);
+      final String host = nodeInfo.substring(41, startPort);
+
+      for (int endPort = startPort + 2;; endPort++) {
+
+        if (!Character.isDigit(nodeInfo.charAt(endPort))) {
+
+          final String port = nodeInfo.substring(startPort + 1, endPort);
+
+          final HostPort hostPort = HostPort.create(host, port);
+          nodes.put(hostPort, Node.create(hostPort, nodeId));
+          break;
+        }
+      }
+    }
+
+    return nodes;
+  }
 }
