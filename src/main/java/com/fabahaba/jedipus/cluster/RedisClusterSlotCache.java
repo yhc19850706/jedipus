@@ -117,12 +117,12 @@ class RedisClusterSlotCache implements AutoCloseable {
     final Map<Node, ObjectPool<RedisClient>> masterPools =
         defaultReadMode == ReadMode.SLAVES ? Collections.emptyMap() : new ConcurrentHashMap<>();
     final ObjectPool<RedisClient>[] masterSlots =
-        defaultReadMode == ReadMode.SLAVES ? new ObjectPool[0] : new ObjectPool[CRC16.HASHSLOTS];
+        defaultReadMode == ReadMode.SLAVES ? new ObjectPool[0] : new ObjectPool[CRC16.NUM_SLOTS];
 
     final Map<Node, ObjectPool<RedisClient>> slavePools =
         defaultReadMode == ReadMode.MASTER ? Collections.emptyMap() : new ConcurrentHashMap<>();
     final LoadBalancedPools<RedisClient, ReadMode>[] slaveSlots = defaultReadMode == ReadMode.MASTER
-        ? new LoadBalancedPools[0] : new LoadBalancedPools[CRC16.HASHSLOTS];
+        ? new LoadBalancedPools[0] : new LoadBalancedPools[CRC16.NUM_SLOTS];
 
     return create(defaultReadMode, optimisticReads, durationBetweenCacheRefresh,
         maxAwaitCacheRefresh, discoveryNodes, hostPortMapper, masterPoolFactory, slavePoolFactory,

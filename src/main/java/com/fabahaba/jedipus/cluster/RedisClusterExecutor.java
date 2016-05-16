@@ -12,7 +12,7 @@ import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cluster.Jedipus.Builder;
 
-public interface RedisClusterExecutor extends AutoCloseable {
+public interface RedisClusterExecutor extends PrimClientExecutor, AutoCloseable {
 
   public static enum ReadMode {
     MASTER, SLAVES, MIXED, MIXED_SLAVES;
@@ -132,8 +132,8 @@ public interface RedisClusterExecutor extends AutoCloseable {
   default void accept(final ReadMode readMode, final int slot,
       final Consumer<RedisClient> clientConsumer, final int maxRetries) {
 
-    apply(readMode, slot, j -> {
-      clientConsumer.accept(j);
+    apply(readMode, slot, client -> {
+      clientConsumer.accept(client);
       return null;
     }, maxRetries);
   }

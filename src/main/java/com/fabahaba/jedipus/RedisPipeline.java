@@ -26,6 +26,10 @@ public interface RedisPipeline extends PipelineCmds, AutoCloseable {
 
   public void sync(final boolean throwUnhandled);
 
+  default FutureReply<Object[]> execSync() {
+    return execSync(false);
+  }
+
   default FutureReply<Object[]> execSyncThrow() {
     return execSync(true);
   }

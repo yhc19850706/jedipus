@@ -9,7 +9,8 @@ public final class CRC16 {
 
   private CRC16() {}
 
-  public static final short HASHSLOTS = 16384;
+  public static final short NUM_SLOTS = 16384;
+  public static final short MAX_SLOT = NUM_SLOTS - 1;
 
   private static final int[] CRC16_TABLE = {0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6,
       0x70e7, 0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef, 0x1231, 0x0210,
@@ -36,9 +37,49 @@ public final class CRC16 {
       0x1ce0, 0x0cc1, 0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8, 0x6e17,
       0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0};
 
+  private static final String[] KNOWN_SLOT_HASHTAGS = new String[NUM_SLOTS];
+  private static final byte[][] KNOWN_SLOT_HASHTAG_BYTES = new byte[NUM_SLOTS][];
+
+  static {
+    for (int slot = 0, key = 0; slot < NUM_SLOTS; slot++) {
+
+      if (KNOWN_SLOT_HASHTAGS[slot] != null) {
+        continue;
+      }
+
+      for (;; key++) {
+        final String keyString = Integer.toString(key);
+        final int discoveredSlot = getSlot(RESP.toBytes(key));
+
+        if (discoveredSlot == slot) {
+          final String hashtag = createHashTag(keyString);
+          KNOWN_SLOT_HASHTAGS[slot] = hashtag;
+          KNOWN_SLOT_HASHTAG_BYTES[slot] = RESP.toBytes(hashtag);
+          break;
+        }
+
+        if (discoveredSlot > slot && KNOWN_SLOT_HASHTAGS[discoveredSlot] == null) {
+          final String hashtag = createHashTag(keyString);
+          KNOWN_SLOT_HASHTAGS[discoveredSlot] = hashtag;
+          KNOWN_SLOT_HASHTAG_BYTES[discoveredSlot] = RESP.toBytes(hashtag);
+        }
+      }
+    }
+  }
+
+  public String getSlotHashTag(final int slot) {
+
+    return KNOWN_SLOT_HASHTAGS[slot];
+  }
+
+  public byte[] getSlotHashTagBytes(final int slot) {
+
+    return KNOWN_SLOT_HASHTAG_BYTES[slot];
+  }
+
   public static int getRandomSlot() {
 
-    return ThreadLocalRandom.current().nextInt(HASHSLOTS);
+    return ThreadLocalRandom.current().nextInt(NUM_SLOTS);
   }
 
   public static int getSlot(final byte[]... params) {
@@ -51,6 +92,11 @@ public final class CRC16 {
     return keys.isEmpty() ? getRandomSlot() : CRC16.getSlot(keys.get(0));
   }
 
+  public static int getSlot(final String... params) {
+
+    return params.length == 0 ? getRandomSlot() : CRC16.getSlot(params[0]);
+  }
+
   public static int getSlot(final String key) {
 
     final int s = key.indexOf('{');
@@ -58,11 +104,11 @@ public final class CRC16 {
 
       final int e = key.indexOf('}', s + 2);
       if (e > -1) {
-        return getCRC16(key.substring(s + 1, e)) & (HASHSLOTS - 1);
+        return getCRC16(key.substring(s + 1, e)) & MAX_SLOT;
       }
     }
 
-    return getCRC16(key) & (HASHSLOTS - 1);
+    return getCRC16(key) & MAX_SLOT;
   }
 
   public static int getSlot(final byte[] key) {
@@ -75,7 +121,7 @@ public final class CRC16 {
 
           if (key[i] == '}') {
 
-            return getCRC16(key, s, i) & (HASHSLOTS - 1);
+            return getCRC16(key, s, i) & MAX_SLOT;
           }
         }
 
@@ -83,7 +129,7 @@ public final class CRC16 {
       }
     }
 
-    return getCRC16(key) & (HASHSLOTS - 1);
+    return getCRC16(key) & MAX_SLOT;
   }
 
   public static int getCRC16(final byte[] bytes) {
@@ -113,5 +159,43 @@ public final class CRC16 {
   public static int getCRC16(final String key) {
 
     return getCRC16(RESP.toBytes(key));
+  }
+
+  public static String createHashTag(final int key) {
+
+    return createHashTag(Integer.toString(key));
+  }
+
+  public static String createHashTag(final String shardKey) {
+
+    return "{" + shardKey + "}";
+  }
+
+  public static final String NAMESPACE_DELIM = ":";
+
+  public static String createNameSpacedHashTag(final String shardKey) {
+
+    return createNameSpacedHashTag(shardKey, NAMESPACE_DELIM);
+  }
+
+  public static String createNameSpacedHashTag(final String shardKey, final String namespaceDelim) {
+
+    return createHashTag(shardKey) + namespaceDelim;
+  }
+
+  public static String prefixHashTag(final String shardKey, final String postFix) {
+
+    return createHashTag(shardKey) + postFix;
+  }
+
+  public static String prefixNameSpacedHashTag(final String shardKey, final String postFix) {
+
+    return prefixNameSpacedHashTag(shardKey, NAMESPACE_DELIM, postFix);
+  }
+
+  public static String prefixNameSpacedHashTag(final String shardKey, final String namespaceDelim,
+      final String postFix) {
+
+    return createNameSpacedHashTag(shardKey, namespaceDelim) + postFix;
   }
 }

@@ -78,7 +78,7 @@ public class RedisClusterTest {
 
   private static final Node[] masters = new Node[NUM_MASTERS];
   private static final Node[] slaves = new Node[NUM_SLAVES];
-  private static final int MAX_SLOT_RANGE = (int) Math.ceil(CRC16.HASHSLOTS / (double) NUM_MASTERS);
+  private static final int MAX_SLOT_RANGE = (int) Math.ceil(CRC16.NUM_SLOTS / (double) NUM_MASTERS);
   private static final int[][] slots = new int[NUM_MASTERS][];
 
   private static Set<Node> discoveryNodes;
@@ -98,7 +98,7 @@ public class RedisClusterTest {
       final RedisClient client = RedisClientFactory.startBuilding().create(master);
       masterClients[i] = client;
 
-      final int endSlot = Math.min(slotOffset + MAX_SLOT_RANGE, CRC16.HASHSLOTS);
+      final int endSlot = Math.min(slotOffset + MAX_SLOT_RANGE, CRC16.NUM_SLOTS);
       slots[i] = IntStream.range(slotOffset, endSlot).toArray();
     }
 
@@ -233,7 +233,7 @@ public class RedisClusterTest {
 
   private static int rotateSlotNode(final int slot) {
 
-    return (slot + MAX_SLOT_RANGE) % CRC16.HASHSLOTS;
+    return (slot + MAX_SLOT_RANGE) % CRC16.NUM_SLOTS;
   }
 
   @Test(timeout = 3000)
@@ -605,7 +605,7 @@ public class RedisClusterTest {
       }
 
       jce.acceptIfPresent(node, client -> client
-          .clusterAddSlots(slots[(int) ((slot / (double) CRC16.HASHSLOTS) * slots.length)]));
+          .clusterAddSlots(slots[(int) ((slot / (double) CRC16.NUM_SLOTS) * slots.length)]));
 
       jce.accept(ReadMode.MASTER, slot, client -> client.sendCmd(Cmds.SET, key, new byte[0]));
     }

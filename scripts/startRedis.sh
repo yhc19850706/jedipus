@@ -13,8 +13,8 @@ announceIp=$6
 docker ps -a -q -f name="$name" | xargs docker rm -f
 
 DOCKER_IMAGE="jamespedwards42/alpine-redis-testing:unstable"
-MOUNT_MODULES="/redis/modules:/redis/modules"
-
+MOUNT_MODULES="$(pwd)/redis/modules:/redis/modules"
+ 
 docker run -d --name="$name-$serverPort" -p "$serverPort:$serverPort" -v "$MOUNT_MODULES" "$DOCKER_IMAGE" "$serverPort" 1 \
    --requirepass "$pass" --protected-mode no --save \"\" --repl-diskless-sync yes --appendfsync no --activerehashing no &
 

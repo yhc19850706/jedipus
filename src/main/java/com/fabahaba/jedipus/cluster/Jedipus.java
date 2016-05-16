@@ -24,6 +24,7 @@ import com.fabahaba.jedipus.exceptions.MaxRedirectsExceededException;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisRetryableUnhandledException;
 import com.fabahaba.jedipus.exceptions.SlotRedirectException;
+import com.fabahaba.jedipus.primitive.LongAdapter;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
 public final class Jedipus implements RedisClusterExecutor {
@@ -163,6 +164,139 @@ public final class Jedipus implements RedisClusterExecutor {
   public int getMaxRetries() {
 
     return maxRetries;
+  }
+
+  @Override
+  public long applyPrim(final ReadMode readMode, final int slot,
+      final LongAdapter<RedisClient> clientConsumer, final int maxRetries) {
+
+    SlotRedirectException previousRedirectEx = null;
+
+    long retries = 0;
+    int redirections = 0;
+
+    // Optimistic first try
+    ObjectPool<RedisClient> pool = null;
+    RedisClient client = null;
+    try {
+
+      pool = connHandler.getSlotPool(readMode, slot);
+      client = RedisClientPool.borrowClient(pool);
+      final long result = clientConsumer.apply(client);
+      connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode(), retries);
+      return result;
+    } catch (final RedisConnectionException rcex) {
+
+      retries = connHandler.getClusterNodeRetryDelay()
+          .markFailure(client == null ? rcex.getNode() : client.getNode(), maxRetries, rcex, 0);
+    } catch (final AskNodeException askEx) {
+
+      if (maxRedirections == 0) {
+        throw new MaxRedirectsExceededException(askEx);
+      }
+
+      try {
+        RedisClientPool.returnClient(pool, client);
+      } finally {
+        client = null;
+      }
+
+      previousRedirectEx = askEx;
+    } catch (final SlotRedirectException moveEx) {
+
+      if (++redirections > maxRedirections) {
+        throw new MaxRedirectsExceededException(moveEx);
+      }
+
+      if (client == null) {
+        connHandler.renewSlotCache(readMode);
+      } else {
+        connHandler.renewSlotCache(readMode, client);
+      }
+
+      previousRedirectEx = moveEx;
+    } catch (final RedisRetryableUnhandledException retryableEx) {
+
+      if (!retryUnhandledRetryableExceptions) {
+        throw retryableEx;
+      }
+
+      retries = connHandler.getClusterNodeRetryDelay().markFailure(
+          client == null ? retryableEx.getNode() : client.getNode(), maxRetries, retryableEx, 0);
+    } finally {
+      RedisClientPool.returnClient(pool, client);
+      pool = null;
+      client = null;
+    }
+
+    for (;;) {
+      try {
+        if (previousRedirectEx == null || !(previousRedirectEx instanceof AskNodeException)) {
+
+          pool = retries > tryRandomAfter ? connHandler.getRandomPool(readMode)
+              : connHandler.getSlotPool(readMode, slot);
+          client = RedisClientPool.borrowClient(pool);
+
+          final long result = clientConsumer.apply(client);
+          connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode(), retries);
+          return result;
+        }
+
+        final Node askNode = previousRedirectEx.getTargetNode();
+        pool = connHandler.getAskPool(askNode);
+        client = RedisClientPool.borrowClient(pool);
+        client.asking();
+        final long result = clientConsumer.apply(client);
+        connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode(), 0);
+        return result;
+      } catch (final RedisConnectionException jncex) {
+
+        retries = connHandler.getClusterNodeRetryDelay().markFailure(
+            client == null ? jncex.getNode() : client.getNode(), maxRetries, jncex, retries);
+        continue;
+      } catch (final AskNodeException askEx) {
+
+        askEx.setPrevious(previousRedirectEx);
+
+        try {
+          RedisClientPool.returnClient(pool, client);
+        } finally {
+          client = null;
+        }
+
+        previousRedirectEx = askEx;
+        continue;
+      } catch (final SlotRedirectException moveEx) {
+
+        moveEx.setPrevious(previousRedirectEx);
+
+        if (++redirections > maxRedirections) {
+          throw new MaxRedirectsExceededException(moveEx);
+        }
+
+        if (client == null) {
+          connHandler.renewSlotCache(readMode);
+        } else {
+          connHandler.renewSlotCache(readMode, client);
+        }
+
+        previousRedirectEx = moveEx;
+        continue;
+      } catch (final RedisRetryableUnhandledException retryableEx) {
+
+        if (!retryUnhandledRetryableExceptions) {
+          throw retryableEx;
+        }
+
+        retries = connHandler.getClusterNodeRetryDelay().markFailure(
+            client == null ? retryableEx.getNode() : client.getNode(), maxRetries, retryableEx,
+            retries);
+      } finally {
+        RedisClientPool.returnClient(pool, client);
+        pool = null;
+        client = null;
+      }
+    }
   }
 
   @Override

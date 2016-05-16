@@ -31,6 +31,10 @@
 * MIXED_SLAVES: Pools are managed for both masters and slave nodes.  Calls are only load balanced across slave pools. Individual calls can be overridden with `ReadMode.MASTER` or `ReadMode.MIXED`.  When no slave pools are available the master pool is used.
 * MIXED: Pools are managed for both masters and slave nodes.  Calls are load balanced across both master and slave pools. Individual calls can be overridden with `ReadMode.MASTER` or `ReadMode.SLAVES`.  When overriding with `ReadMode.SLAVES` and no slave pools are available the master pool is used.
 
+######Gotchas
+* All commands issued within a single lambda should be idempotent.  If they are not, split them into separate calls, use a pipelined transaction, use a Lua script, or compile a new C Module.
+* ASK redirects within pipelines are not supported, instead an `UnhandledAskNodeException` is thrown.  The reason for this is that even if all of the keys point to the same slot Redis requires a new ASKING request in front of each command.  It is cleaner to let the user handle recovery rather than injecting ASKING requests internally.  See this [integration test](src/integ/java/com/fabahaba/jedipus/cluster/RedisClusterTest.java) for an example of how to recover.  MOVE redirects are supported within pipelines.
+
 ######Dependency Management
 ```groovy
 repositories {
@@ -50,8 +54,7 @@ try (final RedisClusterExecutor rce =
     RedisClusterExecutor.startBuilding(Node.create("localhost", 7000)).create()) {
 
   final String key = "42";
-  // skip() issues a pipelined CLIENT REPLY SKIP
-  rce.accept(key, client -> client.skip().sendCmd(Cmds.SET, key, "107.6"));
+  rce.accept(key, client -> client.sendCmd(Cmds.SET, key, "107.6"));
 
   final String temp = rce.apply(key, client -> client.sendCmd(Cmds.GET, key));
   if (temp.equals("107.6")) {
@@ -67,13 +70,13 @@ try (final RedisClusterExecutor rce =
   final String skey = "skey";
 
   final FutureLongReply numMembers = rce.applyPipeline(skey, pipeline -> {
-    // Fire and forget SADD.
+    // Fire-And-Forget: skip() issues a pipelined CLIENT REPLY SKIP
     pipeline.skip().sendCmd(Cmds.SADD, skey, "member");
-    // Optional primitive return types.
-    final FutureLongReply response = pipeline.sendCmd(Cmds.SCARD.prim(), skey);
+    // Specify primitve return types with Cmd#prim() and Cmd#primArray()
+    final FutureLongReply futureReply = pipeline.sendCmd(Cmds.SCARD.prim(), skey);
     pipeline.sync();
     // Check reply to leverage library error handling.
-    return response.checkReply();
+    return futureReply.checkReply();
   });
 
   // This long was never auto boxed.
@@ -88,26 +91,24 @@ try (final RedisClusterExecutor rce =
         .withReadMode(ReadMode.MIXED_SLAVES).create()) {
 
   // Hash tagged pipelined transaction.
-  final String hashTag = RCUtils.createNameSpacedHashTag("HT");
+  final String hashTag = CRC16.createNameSpacedHashTag("HT");
   final int slot = CRC16.getSlot(hashTag);
 
-  final String hashTaggedKey = hashTag + "key";
   final String fooKey = hashTag + "foo";
 
   // Implicit multi applied.
   final Object[] sortedBars = rce.applyPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
 
-    pipeline.sendCmd(Cmds.SET, hashTaggedKey, "value");
     pipeline.sendCmd(Cmds.ZADD, fooKey, "NX", "-1", "barowitch");
-    pipeline.sendCmd(Cmds.ZADD, fooKey, "XX", "-2", "barowitch");
+    // New key will still be hashtag pinned to the same server.
+    pipeline.sendCmd(Cmds.ZADD, fooKey + "a", "XX", "-2", "barowitch");
     // Handle different ZADD return types with flexible command design.
-    pipeline.sendCmd(Cmds.ZADD_INCR, fooKey, "XX", "INCR", "-1", "barowitch");
+    pipeline.sendCmd(Cmds.ZADD_INCR, fooKey + "b", "XX", "INCR", "-1", "barowitch");
     // Utilities to avoid extra array creation.
     pipeline.sendCmd(Cmds.ZADD, ZAddParams.fillNX(new byte[][] {RESP.toBytes(fooKey), null,
         RESP.toBytes(.37), RESP.toBytes("barinsky")}));
     pipeline.sendCmd(Cmds.ZADD, fooKey, "42", "barikoviev");
 
-    final FutureReply<String> valueResponse = pipeline.sendCmd(Cmds.GET, hashTaggedKey);
     final FutureReply<Object[]> barsResponse =
         pipeline.sendCmd(Cmds.ZRANGE, fooKey, "0", "-1", "WITHSCORES");
 
@@ -117,28 +118,20 @@ try (final RedisClusterExecutor rce =
 
     // Note: Responses must be captured within this lambda closure in order to properly
     // leverage error handling.
-
-    // '{HT}:key': value
-    System.out.format("'%s': %s%n", hashTaggedKey, valueResponse.get());
-
     return barsResponse.get();
   });
 
   // '{HT}:foo': [barowitch (-1.0), barinsky (0.37), barikoviev (42.0)]
   System.out.format("%n'%s':", fooKey);
+
   for (int i = 0; i < sortedBars.length;) {
     System.out.format(" %s (%s)", RESP.toString(sortedBars[i++]),
         RESP.toDouble(sortedBars[i++]));
   }
 
-  // Read from load balanced slave.
-  final String roResult =
-      rce.apply(ReadMode.SLAVES, slot, client -> client.sendCmd(Cmds.GET, hashTaggedKey));
-  System.out.format("%n'%s': %s%n", hashTaggedKey, roResult);
-
   // Optional primitive return types; no auto boxing!
-  final long numRemoved = rce.apply(ReadMode.MASTER, slot,
-      client -> client.sendCmd(Cmds.DEL.prim(), hashTaggedKey, fooKey));
+  final long numRemoved =
+      rce.applyPrim(ReadMode.MASTER, slot, client -> client.sendCmd(Cmds.DEL.prim(), fooKey));
   System.out.format("%nRemoved %d keys.%n", numRemoved);
 }
 ```
@@ -154,8 +147,8 @@ try (final RedisClusterExecutor rce =
 
   // Ping-Pong all slaves concurrently.
   rce.applyAllSlaves(
-      slave -> String.format("%s from %s", slave.sendCmd(Cmds.PING, "Howdy"), slave.getNode()), 1,
-      ForkJoinPool.commonPool()).stream().map(CompletableFuture::join)
+      slave -> String.format("%s from %s", slave.sendCmd(Cmds.PING, "Howdy"), slave.getNode()),
+      1, ForkJoinPool.commonPool()).stream().map(CompletableFuture::join)
       .forEach(System.out::println);
 }
 ```
