@@ -866,4 +866,40 @@ public class RedisClusterTest {
       assertEquals(NUM_MASTERS, count[0]);
     }
   }
+
+  @Test
+  public void testPipelinedTransaction() {
+
+    final String key = "42";
+    final int slot = CRC16.getSlot(key);
+
+    try (final RedisClusterExecutor rce =
+        RedisClusterExecutor.startBuilding(Node.create("localhost", STARTING_PORT)).create()) {
+
+      final String[] bitfieldOverflowExample = new String[] {key, Cmds.BITFIELD_INCRBY.name(), "u2",
+          "100", "1", Cmds.BITFIELD_OVERFLOW.name(), Cmds.BITFIELD_SAT.name(),
+          Cmds.BITFIELD_INCRBY.name(), "u2", "102", "1"};
+
+      rce.acceptPipelinedTransaction(slot, pipeline -> {
+
+        final FutureReply<long[]> fr1 =
+            pipeline.sendCmd(Cmds.BITFIELD.primArray(), bitfieldOverflowExample);
+        pipeline.sendCmd(Cmds.BITFIELD.primArray(), bitfieldOverflowExample);
+        pipeline.sendCmd(Cmds.BITFIELD.primArray(), bitfieldOverflowExample);
+        final FutureReply<long[]> fr4 =
+            pipeline.sendCmd(Cmds.BITFIELD.primArray(), bitfieldOverflowExample);
+
+        int expected = 1;
+        for (final long[] reply : pipeline.primArrayExecSyncThrow().get()) {
+          assertEquals(expected % 4, reply[0]);
+          assertEquals(Math.min(3, expected++), reply[1]);
+        }
+
+        assertEquals(1, fr1.get()[0]);
+        assertEquals(1, fr1.get()[1]);
+        assertEquals(0, fr4.get()[0]);
+        assertEquals(3, fr4.get()[1]);
+      });
+    }
+  }
 }

@@ -11,7 +11,7 @@
   * Minimal enforced (de)serialization.  Write directly to the socket output stream buffer, and retrieve raw responses.
   * Official Fire-And-Forget support using [`CLIENT REPLY ON|OFF|SKIP`](http://redis.io/commands/client-reply).
   * Locking is only applied to threads which are accessing slots that are migrating; there is no known node; or for which a client connection continually cannot be established; all of which will trigger a slot cache refresh.
-  * Primitive long, long[] return types to avoid auto boxing, nice for BITFIELD commands.
+  * Primitive long, long[] return types to avoid auto boxing, [nice for BITFIELD commands](https://gist.github.com/jamespedwards42/3f99095e1addac8f6e4afd7dbe9ec2ee).
   * Load balance read-only requests across master and/or slave pools.
 * Single dependency on `org.apache.commons:commons-pool2:+`.
 * PGP signed releases.  [Bintray](https://bintray.com/jamespedwards42/libs/jedipus/_latestVersion) verifies signatures automatically.  See [verifying your Jedipus jar](scripts/gpgVerifyJedipus.sh).
@@ -50,6 +50,9 @@ dependencies {
 ```
 
 ######Basic Usage Demos
+
+>Note: The examples auto close the `RedisClusterExecutor` but you probably want it to be a long lived object.
+
 ```java
 try (final RedisClusterExecutor rce =
     RedisClusterExecutor.startBuilding(Node.create("localhost", 7000)).create()) {
@@ -101,7 +104,7 @@ try (final RedisClusterExecutor rce =
   final Object[] sortedBars = rce.applyPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
 
     pipeline.sendCmd(Cmds.ZADD, fooKey, "NX", "-1", "barowitch");
-    // New key will still be hashtag pinned to the same server.
+    // New key will still be hashtag pinned to the same slot/node.
     pipeline.sendCmd(Cmds.ZADD, fooKey + "a", "XX", "-2", "barowitch");
     // Handle different ZADD return types with flexible command design.
     pipeline.sendCmd(Cmds.ZADD_INCR, fooKey + "b", "XX", "INCR", "-1", "barowitch");
