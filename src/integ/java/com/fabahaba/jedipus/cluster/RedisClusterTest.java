@@ -26,8 +26,6 @@ import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
-import org.apache.commons.pool2.ObjectPool;
-import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -35,6 +33,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.fabahaba.jedipus.ClientPool;
 import com.fabahaba.jedipus.FutureLongReply;
 import com.fabahaba.jedipus.FutureReply;
 import com.fabahaba.jedipus.HostPort;
@@ -49,6 +48,7 @@ import com.fabahaba.jedipus.exceptions.RedisClusterDownException;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.SlotMovedException;
 import com.fabahaba.jedipus.exceptions.UnhandledAskNodeException;
+import com.fabahaba.jedipus.pool.FinalClientPool;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
 public class RedisClusterTest {
@@ -679,9 +679,8 @@ public class RedisClusterTest {
     config.setMaxTotal(0);
     config.setMaxWaitMillis(0);
 
-    final Function<Node, ObjectPool<RedisClient>> poolFactory =
-        node -> new GenericObjectPool<>(RedisClientFactory.startBuilding().createPooled(node),
-            config);
+    final Function<Node, ClientPool<RedisClient>> poolFactory =
+        node -> new FinalClientPool<>(RedisClientFactory.startBuilding().createPooled(node), config);
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
         .withMasterPoolFactory(poolFactory).create()) {
@@ -717,8 +716,8 @@ public class RedisClusterTest {
     final RedisClientFactory.Builder poolFactoryBuilder =
         RedisClientFactory.startBuilding().withConnTimeout(1234).withSoTimeout(4321);
 
-    final Function<Node, ObjectPool<RedisClient>> poolFactory =
-        node -> new GenericObjectPool<>(poolFactoryBuilder.createPooled(node),
+    final Function<Node, ClientPool<RedisClient>> poolFactory =
+        node -> new FinalClientPool<>(poolFactoryBuilder.createPooled(node),
             new GenericObjectPoolConfig());
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
@@ -740,9 +739,8 @@ public class RedisClusterTest {
     final GenericObjectPoolConfig config = new GenericObjectPoolConfig();
     config.setMaxTotal(numCpus * 2);
 
-    final Function<Node, ObjectPool<RedisClient>> poolFactory =
-        node -> new GenericObjectPool<>(RedisClientFactory.startBuilding().createPooled(node),
-            config);
+    final Function<Node, ClientPool<RedisClient>> poolFactory =
+        node -> new FinalClientPool<>(RedisClientFactory.startBuilding().createPooled(node), config);
 
     final int numThreads = numCpus * 4;
     final ThreadPoolExecutor executor = new ThreadPoolExecutor(numThreads, numThreads,
@@ -791,9 +789,8 @@ public class RedisClusterTest {
     final GenericObjectPoolConfig config = new GenericObjectPoolConfig();
     config.setMaxTotal(1);
 
-    final Function<Node, ObjectPool<RedisClient>> poolFactory =
-        node -> new GenericObjectPool<>(RedisClientFactory.startBuilding().createPooled(node),
-            config);
+    final Function<Node, ClientPool<RedisClient>> poolFactory =
+        node -> new FinalClientPool<>(RedisClientFactory.startBuilding().createPooled(node), config);
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
         .withMasterPoolFactory(poolFactory).create()) {

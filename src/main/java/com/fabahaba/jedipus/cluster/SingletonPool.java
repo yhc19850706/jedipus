@@ -1,10 +1,9 @@
 package com.fabahaba.jedipus.cluster;
 
-import org.apache.commons.pool2.ObjectPool;
-
+import com.fabahaba.jedipus.ClientPool;
 import com.fabahaba.jedipus.RedisClient;
 
-class SingletonPool implements ObjectPool<RedisClient> {
+class SingletonPool implements ClientPool<RedisClient> {
 
   private volatile RedisClient client;
 

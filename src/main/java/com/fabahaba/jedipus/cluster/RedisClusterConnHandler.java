@@ -5,8 +5,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.apache.commons.pool2.ObjectPool;
-
+import com.fabahaba.jedipus.ClientPool;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.cmds.Cmds;
@@ -22,10 +21,10 @@ class RedisClusterConnHandler implements AutoCloseable {
   RedisClusterConnHandler(final ReadMode defaultReadMode, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
       final Collection<Node> discoveryNodes, final Function<Node, Node> hostPortMapper,
-      final Function<Node, ObjectPool<RedisClient>> masterPoolFactory,
-      final Function<Node, ObjectPool<RedisClient>> slavePoolFactory,
+      final Function<Node, ClientPool<RedisClient>> masterPoolFactory,
+      final Function<Node, ClientPool<RedisClient>> slavePoolFactory,
       final Function<Node, RedisClient> nodeUnknownFactory,
-      final Function<ObjectPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> lbFactory,
+      final Function<ClientPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> lbFactory,
       final ElementRetryDelay<Node> clusterNodeRetryDelay) {
 
     this.slotPoolCache = RedisClusterSlotCache.create(defaultReadMode, optimisticReads,
@@ -48,14 +47,14 @@ class RedisClusterConnHandler implements AutoCloseable {
     return slotPoolCache.getNodeUnknownFactory().apply(unknown);
   }
 
-  ObjectPool<RedisClient> getRandomPool(final ReadMode readMode) {
+  ClientPool<RedisClient> getRandomPool(final ReadMode readMode) {
 
     return getPool(readMode, -1);
   }
 
-  private ObjectPool<RedisClient> getPool(final ReadMode readMode, final int slot) {
+  private ClientPool<RedisClient> getPool(final ReadMode readMode, final int slot) {
 
-    Collection<ObjectPool<RedisClient>> pools = slotPoolCache.getPools(readMode).values();
+    Collection<ClientPool<RedisClient>> pools = slotPoolCache.getPools(readMode).values();
 
     if (pools.isEmpty()) {
 
@@ -63,7 +62,7 @@ class RedisClusterConnHandler implements AutoCloseable {
 
       if (slot >= 0) {
 
-        final ObjectPool<RedisClient> pool = slotPoolCache.getSlotPool(readMode, slot);
+        final ClientPool<RedisClient> pool = slotPoolCache.getSlotPool(readMode, slot);
         if (pool != null) {
           return pool;
         }
@@ -72,7 +71,7 @@ class RedisClusterConnHandler implements AutoCloseable {
       pools = slotPoolCache.getPools(readMode).values();
     }
 
-    for (final ObjectPool<RedisClient> pool : pools) {
+    for (final ClientPool<RedisClient> pool : pools) {
 
       RedisClient client = null;
       try {
@@ -94,51 +93,51 @@ class RedisClusterConnHandler implements AutoCloseable {
     throw new RedisConnectionException(null, "No reachable node in cluster.");
   }
 
-  ObjectPool<RedisClient> getSlotPool(final ReadMode readMode, final int slot) {
+  ClientPool<RedisClient> getSlotPool(final ReadMode readMode, final int slot) {
 
-    final ObjectPool<RedisClient> pool = slotPoolCache.getSlotPool(readMode, slot);
+    final ClientPool<RedisClient> pool = slotPoolCache.getSlotPool(readMode, slot);
 
     return pool == null ? getPool(readMode, slot) : pool;
   }
 
-  ObjectPool<RedisClient> getAskPool(final Node askNode) {
+  ClientPool<RedisClient> getAskPool(final Node askNode) {
 
     return slotPoolCache.getAskPool(askNode);
   }
 
-  Map<Node, ObjectPool<RedisClient>> getMasterPools() {
+  Map<Node, ClientPool<RedisClient>> getMasterPools() {
 
     return slotPoolCache.getMasterPools();
   }
 
-  Map<Node, ObjectPool<RedisClient>> getSlavePools() {
+  Map<Node, ClientPool<RedisClient>> getSlavePools() {
 
     return slotPoolCache.getSlavePools();
   }
 
-  Map<Node, ObjectPool<RedisClient>> getAllPools() {
+  Map<Node, ClientPool<RedisClient>> getAllPools() {
 
     return slotPoolCache.getAllPools();
   }
 
-  ObjectPool<RedisClient> getMasterPoolIfPresent(final Node node) {
+  ClientPool<RedisClient> getMasterPoolIfPresent(final Node node) {
 
     return slotPoolCache.getMasterPoolIfPresent(node);
   }
 
-  ObjectPool<RedisClient> getSlavePoolIfPresent(final Node node) {
+  ClientPool<RedisClient> getSlavePoolIfPresent(final Node node) {
 
     return slotPoolCache.getSlavePoolIfPresent(node);
   }
 
-  ObjectPool<RedisClient> getPoolIfPresent(final Node node) {
+  ClientPool<RedisClient> getPoolIfPresent(final Node node) {
 
     return slotPoolCache.getPoolIfPresent(node);
   }
 
   void renewSlotCache(final ReadMode readMode) {
 
-    for (final ObjectPool<RedisClient> pool : slotPoolCache.getPools(readMode).values()) {
+    for (final ClientPool<RedisClient> pool : slotPoolCache.getPools(readMode).values()) {
 
       RedisClient client = null;
       try {

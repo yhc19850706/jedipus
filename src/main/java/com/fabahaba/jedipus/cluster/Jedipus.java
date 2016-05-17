@@ -11,11 +11,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.apache.commons.pool2.ObjectPool;
 import org.apache.commons.pool2.impl.DefaultEvictionPolicy;
-import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
+import com.fabahaba.jedipus.ClientPool;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
@@ -24,6 +23,7 @@ import com.fabahaba.jedipus.exceptions.MaxRedirectsExceededException;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisRetryableUnhandledException;
 import com.fabahaba.jedipus.exceptions.SlotRedirectException;
+import com.fabahaba.jedipus.pool.FinalClientPool;
 import com.fabahaba.jedipus.primitive.LongAdapter;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
@@ -63,18 +63,16 @@ public final class Jedipus implements RedisClusterExecutor {
   private static final RedisClientFactory.Builder DEFAULT_REDIS_FACTORY =
       RedisClientFactory.startBuilding();
 
-  private static final Function<Node, ObjectPool<RedisClient>> DEFAULT_MASTER_POOL_FACTORY =
-      node -> new GenericObjectPool<>(DEFAULT_REDIS_FACTORY.createPooled(node),
-          DEFAULT_POOL_CONFIG);
+  private static final Function<Node, ClientPool<RedisClient>> DEFAULT_MASTER_POOL_FACTORY =
+      node -> new FinalClientPool<>(DEFAULT_REDIS_FACTORY.createPooled(node), DEFAULT_POOL_CONFIG);
 
-  private static final Function<Node, ObjectPool<RedisClient>> DEFAULT_SLAVE_POOL_FACTORY =
-      node -> new GenericObjectPool<>(DEFAULT_REDIS_FACTORY.createPooled(node, true),
-          DEFAULT_POOL_CONFIG);
+  private static final Function<Node, ClientPool<RedisClient>> DEFAULT_SLAVE_POOL_FACTORY =
+      node -> new FinalClientPool<>(DEFAULT_REDIS_FACTORY.createPooled(node, true), DEFAULT_POOL_CONFIG);
 
   private static final Function<Node, RedisClient> DEFAULT_UNKOWN_NODE_FACTORY =
       DEFAULT_REDIS_FACTORY::create;
 
-  private static final BiFunction<ReadMode, ObjectPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> DEFAULT_LB_FACTORIES =
+  private static final BiFunction<ReadMode, ClientPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> DEFAULT_LB_FACTORIES =
       (defaultReadMode, slavePools) -> {
 
         if (slavePools.length == 0) {
@@ -89,7 +87,7 @@ public final class Jedipus implements RedisClusterExecutor {
 
             if (slavePools.length == 1) {
 
-              final ObjectPool<RedisClient> pool = slavePools[0];
+              final ClientPool<RedisClient> pool = slavePools[0];
 
               return (rm, def) -> pool;
             }
@@ -99,7 +97,7 @@ public final class Jedipus implements RedisClusterExecutor {
 
             if (slavePools.length == 1) {
 
-              final ObjectPool<RedisClient> pool = slavePools[0];
+              final ClientPool<RedisClient> pool = slavePools[0];
 
               return (rm, def) -> {
                 switch (rm) {
@@ -133,10 +131,10 @@ public final class Jedipus implements RedisClusterExecutor {
       final int tryRandomAfter, final ElementRetryDelay<Node> clusterNodeRetryDelay,
       final boolean retryUnhandledRetryableExceptions, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
-      final Function<Node, ObjectPool<RedisClient>> masterPoolFactory,
-      final Function<Node, ObjectPool<RedisClient>> slavePoolFactory,
+      final Function<Node, ClientPool<RedisClient>> masterPoolFactory,
+      final Function<Node, ClientPool<RedisClient>> slavePoolFactory,
       final Function<Node, RedisClient> nodeUnknownFactory,
-      final Function<ObjectPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> lbFactory) {
+      final Function<ClientPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> lbFactory) {
 
     this.connHandler = new RedisClusterConnHandler(defaultReadMode, optimisticReads,
         durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes, hostPortMapper,
@@ -176,7 +174,7 @@ public final class Jedipus implements RedisClusterExecutor {
     int redirections = 0;
 
     // Optimistic first try
-    ObjectPool<RedisClient> pool = null;
+    ClientPool<RedisClient> pool = null;
     RedisClient client = null;
     try {
 
@@ -309,7 +307,7 @@ public final class Jedipus implements RedisClusterExecutor {
     int redirections = 0;
 
     // Optimistic first try
-    ObjectPool<RedisClient> pool = null;
+    ClientPool<RedisClient> pool = null;
     RedisClient client = null;
     try {
 
@@ -438,7 +436,7 @@ public final class Jedipus implements RedisClusterExecutor {
 
     for (long retries = 0;;) {
 
-      ObjectPool<RedisClient> pool = connHandler.getPoolIfPresent(node);
+      ClientPool<RedisClient> pool = connHandler.getPoolIfPresent(node);
       if (pool == null) {
 
         connHandler.renewSlotCache(getDefaultReadMode());
@@ -523,7 +521,7 @@ public final class Jedipus implements RedisClusterExecutor {
     return applyAll(connHandler.getAllPools(), clientConsumer, maxRetries, executor);
   }
 
-  private <R> List<CompletableFuture<R>> applyAll(final Map<Node, ObjectPool<RedisClient>> pools,
+  private <R> List<CompletableFuture<R>> applyAll(final Map<Node, ClientPool<RedisClient>> pools,
       final Function<RedisClient, R> clientConsumer, final int maxRetries,
       final ExecutorService executor) {
 
@@ -540,7 +538,7 @@ public final class Jedipus implements RedisClusterExecutor {
     return futures;
   }
 
-  private <R> R acceptPool(final Node node, final ObjectPool<RedisClient> pool,
+  private <R> R acceptPool(final Node node, final ClientPool<RedisClient> pool,
       final Function<RedisClient, R> clientConsumer, final int maxRetries) {
 
     for (long retries = 0;;) {
@@ -601,11 +599,11 @@ public final class Jedipus implements RedisClusterExecutor {
     private ElementRetryDelay<Node> clusterNodeRetryDelay = DEFAULT_RETRY_DELAY;
     private int tryRandomAfter = DEFAULT_TRY_RANDOM_AFTER;
     private boolean retryUnhandledRetryableExceptions = false;
-    private Function<Node, ObjectPool<RedisClient>> masterPoolFactory = DEFAULT_MASTER_POOL_FACTORY;
-    private Function<Node, ObjectPool<RedisClient>> slavePoolFactory = DEFAULT_SLAVE_POOL_FACTORY;
+    private Function<Node, ClientPool<RedisClient>> masterPoolFactory = DEFAULT_MASTER_POOL_FACTORY;
+    private Function<Node, ClientPool<RedisClient>> slavePoolFactory = DEFAULT_SLAVE_POOL_FACTORY;
     // Used for ASK requests if no pool already exists and random node discovery.
     private Function<Node, RedisClient> nodeUnknownFactory = DEFAULT_UNKOWN_NODE_FACTORY;
-    private BiFunction<ReadMode, ObjectPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> lbFactory =
+    private BiFunction<ReadMode, ClientPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> lbFactory =
         DEFAULT_LB_FACTORIES;
     // If true, access to slot pool cache will not lock when retreiving a pool/client during a slot
     // migration.
@@ -729,22 +727,22 @@ public final class Jedipus implements RedisClusterExecutor {
       return this;
     }
 
-    public Function<Node, ObjectPool<RedisClient>> getMasterPoolFactory() {
+    public Function<Node, ClientPool<RedisClient>> getMasterPoolFactory() {
       return masterPoolFactory;
     }
 
     public Builder withMasterPoolFactory(
-        final Function<Node, ObjectPool<RedisClient>> masterPoolFactory) {
+        final Function<Node, ClientPool<RedisClient>> masterPoolFactory) {
       this.masterPoolFactory = masterPoolFactory;
       return this;
     }
 
-    public Function<Node, ObjectPool<RedisClient>> getSlavePoolFactory() {
+    public Function<Node, ClientPool<RedisClient>> getSlavePoolFactory() {
       return slavePoolFactory;
     }
 
     public Builder withSlavePoolFactory(
-        final Function<Node, ObjectPool<RedisClient>> slavePoolFactory) {
+        final Function<Node, ClientPool<RedisClient>> slavePoolFactory) {
       this.slavePoolFactory = slavePoolFactory;
       return this;
     }
@@ -758,12 +756,12 @@ public final class Jedipus implements RedisClusterExecutor {
       return this;
     }
 
-    public BiFunction<ReadMode, ObjectPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> getLbFactory() {
+    public BiFunction<ReadMode, ClientPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> getLbFactory() {
       return lbFactory;
     }
 
     public Builder withLbFactory(
-        final BiFunction<ReadMode, ObjectPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> lbFactory) {
+        final BiFunction<ReadMode, ClientPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> lbFactory) {
       this.lbFactory = lbFactory;
       return this;
     }

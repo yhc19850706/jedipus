@@ -1,6 +1,6 @@
 package com.fabahaba.jedipus.concurrent;
 
-import org.apache.commons.pool2.ObjectPool;
+import com.fabahaba.jedipus.ClientPool;
 
 public interface LoadBalancedPools<T, M> {
 
@@ -11,9 +11,9 @@ public interface LoadBalancedPools<T, M> {
    *        balancing rotation. The default pool may be null.
    * @return The next pool that should be used.
    */
-  ObjectPool<T> next(final M mode, final ObjectPool<T> defaultPool);
+  ClientPool<T> next(final M mode, final ClientPool<T> defaultPool);
 
-  default ObjectPool<T> next(final M mode) {
+  default ClientPool<T> next(final M mode) {
 
     return next(mode, null);
   }

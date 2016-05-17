@@ -1,7 +1,6 @@
 package com.fabahaba.jedipus.cluster;
 
-import org.apache.commons.pool2.ObjectPool;
-
+import com.fabahaba.jedipus.ClientPool;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.exceptions.RedisException;
 
@@ -9,7 +8,7 @@ final class RedisClientPool {
 
   private RedisClientPool() {}
 
-  static RedisClient borrowClient(final ObjectPool<RedisClient> pool) {
+  static RedisClient borrowClient(final ClientPool<RedisClient> pool) {
 
     try {
       return pool.borrowObject();
@@ -20,7 +19,7 @@ final class RedisClientPool {
     }
   }
 
-  static void returnClient(final ObjectPool<RedisClient> pool, final RedisClient client) {
+  static void returnClient(final ClientPool<RedisClient> pool, final RedisClient client) {
 
     if (client == null || pool == null) {
       return;
