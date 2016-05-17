@@ -87,7 +87,7 @@ public final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
 
     this.allObjLock = new StampedLock();
     this.allObjects = new IdentityHashMap<>(Math.min(128, maxTotal));
-    this.idleQLock = new ReentrantLock(conf.getFairness());
+    this.idleQLock = new ReentrantLock(fairness);
     this.newIdleObject = idleQLock.newCondition();
     this.idleQ = new ArrayDeque<>(evictionConfig.getMinIdle());
 
@@ -96,7 +96,6 @@ public final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
       this.testQueue = new ArrayDeque<>(Math.min(numTestsPerEvictionRun, maxIdle));
       evictionExecutor.scheduleWithFixedDelay(() -> {
         evict();
-        // Re-create idle instances.
         try {
           ensureMinIdle();
         } catch (final InterruptedException ie) {
