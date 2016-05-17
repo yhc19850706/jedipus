@@ -11,10 +11,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.apache.commons.pool2.impl.DefaultEvictionPolicy;
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-
-import com.fabahaba.jedipus.ClientPool;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
@@ -23,7 +19,9 @@ import com.fabahaba.jedipus.exceptions.MaxRedirectsExceededException;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisRetryableUnhandledException;
 import com.fabahaba.jedipus.exceptions.SlotRedirectException;
-import com.fabahaba.jedipus.pool.FinalClientPool;
+import com.fabahaba.jedipus.pool.ClientPool;
+import com.fabahaba.jedipus.pool.EvictionStrategy;
+import com.fabahaba.jedipus.pool.EvictionStrategy.DefaultEvictionStrategy;
 import com.fabahaba.jedipus.primitive.LongAdapter;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
@@ -41,33 +39,25 @@ public final class Jedipus implements RedisClusterExecutor {
   // are available.
   private static final Duration DEFAULT_MAX_AWAIT_CACHE_REFRESH = Duration.ofNanos(0);
 
-  private static final GenericObjectPoolConfig DEFAULT_POOL_CONFIG = new GenericObjectPoolConfig();
-
-  static {
-    DEFAULT_POOL_CONFIG.setMaxIdle(2);
-    DEFAULT_POOL_CONFIG.setMaxTotal(GenericObjectPoolConfig.DEFAULT_MAX_TOTAL); // 8
-
-    DEFAULT_POOL_CONFIG.setMinEvictableIdleTimeMillis(30000);
-    DEFAULT_POOL_CONFIG.setTimeBetweenEvictionRunsMillis(15000);
-    DEFAULT_POOL_CONFIG.setEvictionPolicyClassName(DefaultEvictionPolicy.class.getName());
-
-    DEFAULT_POOL_CONFIG.setTestWhileIdle(true);
-    // test all idle
-    DEFAULT_POOL_CONFIG.setNumTestsPerEvictionRun(DEFAULT_POOL_CONFIG.getMaxTotal());
-
-    // block forever
-    DEFAULT_POOL_CONFIG.setBlockWhenExhausted(true);
-    DEFAULT_POOL_CONFIG.setMaxWaitMillis(GenericObjectPoolConfig.DEFAULT_MAX_WAIT_MILLIS);
-  }
+  private static final ClientPool.Builder DEFAULT_POOL_BUILDER =
+      ClientPool.startBuilding().withMaxIdle(4).withMinIdle(2).withMaxTotal(8)
+          .withTimeBetweenEvictionRunsDuration(Duration.ofSeconds(15)).withTestWhileIdle(true)
+          .withNumTestsPerEvictionRun(4).withBlockWhenExhausted(true).withMaxWaitDuration(null);
 
   private static final RedisClientFactory.Builder DEFAULT_REDIS_FACTORY =
       RedisClientFactory.startBuilding();
 
+  private static final EvictionStrategy<RedisClient> DEFAULT_EVICTION_STRATEGY =
+      new DefaultEvictionStrategy<>(ClientPool.DEFAULT_SOFT_MIN_EVICTABLE_IDLE_DURATION,
+          ClientPool.DEFAULT_MIN_EVICTABLE_IDLE_DURATION, 2);
+
   private static final Function<Node, ClientPool<RedisClient>> DEFAULT_MASTER_POOL_FACTORY =
-      node -> new FinalClientPool<>(DEFAULT_REDIS_FACTORY.createPooled(node), DEFAULT_POOL_CONFIG);
+      node -> DEFAULT_POOL_BUILDER.create(DEFAULT_REDIS_FACTORY.createPooled(node),
+          DEFAULT_EVICTION_STRATEGY);
 
   private static final Function<Node, ClientPool<RedisClient>> DEFAULT_SLAVE_POOL_FACTORY =
-      node -> new FinalClientPool<>(DEFAULT_REDIS_FACTORY.createPooled(node, true), DEFAULT_POOL_CONFIG);
+      node -> DEFAULT_POOL_BUILDER.create(DEFAULT_REDIS_FACTORY.createPooled(node, true),
+          DEFAULT_EVICTION_STRATEGY);
 
   private static final Function<Node, RedisClient> DEFAULT_UNKOWN_NODE_FACTORY =
       DEFAULT_REDIS_FACTORY::create;

@@ -7,18 +7,15 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocketFactory;
 
-import org.apache.commons.pool2.BasePooledObjectFactory;
-import org.apache.commons.pool2.PooledObject;
-import org.apache.commons.pool2.PooledObjectFactory;
-import org.apache.commons.pool2.impl.DefaultPooledObject;
-
 import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.RedisClient.ReplyMode;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.Cmds;
+import com.fabahaba.jedipus.pool.PooledClient;
+import com.fabahaba.jedipus.pool.PooledClientFactory;
 
-public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
+public class RedisClientFactory implements PooledClientFactory<RedisClient> {
 
   private final Node node;
   private final Function<Node, Node> hostPortMapper;
@@ -87,30 +84,25 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
   }
 
   @Override
-  public RedisClient create() throws Exception {
+  public PooledClient<RedisClient> makeObject() throws Exception {
 
-    final PrimRedisClient client = new PrimRedisClient(node, replyMode, hostPortMapper, connTimeout,
-        soTimeout, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
+    final PooledRedisClient client = new PooledRedisClient(node, replyMode, hostPortMapper,
+        connTimeout, soTimeout, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
 
     initClient(client);
 
     return client;
   }
 
-  @Override
-  public PooledObject<RedisClient> wrap(final RedisClient client) {
-
-    return new DefaultPooledObject<>(client);
-  }
 
   @Override
-  public void destroyObject(final PooledObject<RedisClient> pooledClient) throws Exception {
+  public void destroyObject(final PooledClient<RedisClient> pooledClient) throws Exception {
 
     pooledClient.getObject().close();
   }
 
   @Override
-  public boolean validateObject(final PooledObject<RedisClient> pooledClient) {
+  public boolean validateObject(final PooledClient<RedisClient> pooledClient) {
 
     try {
       pooledClient.getObject().sendCmd(Cmds.PING.raw());
@@ -119,6 +111,12 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
       return false;
     }
   }
+
+  @Override
+  public void activateObject(final PooledClient<RedisClient> pooledObj) throws Exception {}
+
+  @Override
+  public void passivateObject(final PooledClient<RedisClient> pooledObj) throws Exception {}
 
   @Override
   public String toString() {
@@ -151,28 +149,28 @@ public class RedisClientFactory extends BasePooledObjectFactory<RedisClient> {
 
     private Builder() {}
 
-    public PooledObjectFactory<RedisClient> createPooled() {
+    public PooledClientFactory<RedisClient> createPooled() {
 
       return createPooled(host, port);
     }
 
-    public PooledObjectFactory<RedisClient> createPooled(final String host, final int port) {
+    public PooledClientFactory<RedisClient> createPooled(final String host, final int port) {
 
       return createPooled(Node.create(host, port));
     }
 
-    public PooledObjectFactory<RedisClient> createPooled(final String host, final int port,
+    public PooledClientFactory<RedisClient> createPooled(final String host, final int port,
         final boolean initReadOnly) {
 
       return createPooled(Node.create(host, port), initReadOnly);
     }
 
-    public PooledObjectFactory<RedisClient> createPooled(final Node node) {
+    public PooledClientFactory<RedisClient> createPooled(final Node node) {
 
       return createPooled(node, initReadOnly);
     }
 
-    public PooledObjectFactory<RedisClient> createPooled(final Node node,
+    public PooledClientFactory<RedisClient> createPooled(final Node node,
         final boolean initReadOnly) {
 
       return new RedisClientFactory(node, hostPortMapper, connTimeout, soTimeout, pass, clientName,

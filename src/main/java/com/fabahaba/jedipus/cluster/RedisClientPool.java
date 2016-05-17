@@ -1,8 +1,8 @@
 package com.fabahaba.jedipus.cluster;
 
-import com.fabahaba.jedipus.ClientPool;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.exceptions.RedisException;
+import com.fabahaba.jedipus.pool.ClientPool;
 
 final class RedisClientPool {
 

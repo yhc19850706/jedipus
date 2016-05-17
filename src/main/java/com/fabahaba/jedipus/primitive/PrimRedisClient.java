@@ -10,7 +10,7 @@ import com.fabahaba.jedipus.RedisPipeline;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.Cmd;
 
-final class PrimRedisClient extends BaseRedisClient {
+class PrimRedisClient extends BaseRedisClient {
 
   private PrimPipeline pipeline;
 

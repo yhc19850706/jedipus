@@ -16,7 +16,6 @@ public class MockRedisClient implements RedisClient {
     return 0;
   }
 
-
   @Override
   public HostPort getHostPort() {
 

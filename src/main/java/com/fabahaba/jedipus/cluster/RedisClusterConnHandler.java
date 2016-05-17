@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.function.Function;
 
-import com.fabahaba.jedipus.ClientPool;
 import com.fabahaba.jedipus.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.cmds.Cmds;
@@ -13,6 +12,7 @@ import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisException;
+import com.fabahaba.jedipus.pool.ClientPool;
 
 class RedisClusterConnHandler implements AutoCloseable {
 

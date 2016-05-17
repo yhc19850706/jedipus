@@ -47,13 +47,8 @@ model {
 
          targetPlatform 'java8'
 
-         repositories {
-            maven { url "http://oss.sonatype.org/content/repositories/snapshots" }
+         repositories { 
             jcenter()
-         }
-
-         dependencies {
-            module 'org.apache.commons:commons-pool2:+'
          }
       }
    }
@@ -62,10 +57,6 @@ model {
       integ(JUnitTestSuiteSpec) {
          jUnitVersion '+'
          testing $.components.main
-
-         dependencies {
-            module 'org.apache.commons:commons-pool2:+'
-         }
 
          /*test {
             systemProperty 'jedipus.redis.port', project.redisServerPort

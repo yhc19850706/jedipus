@@ -1,6 +1,6 @@
 package com.fabahaba.jedipus.concurrent;
 
-import com.fabahaba.jedipus.ClientPool;
+import com.fabahaba.jedipus.pool.ClientPool;
 
 public interface LoadBalancedPools<T, M> {
 

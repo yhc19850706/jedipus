@@ -31,14 +31,11 @@ project.version = scmVersion.version
 
 sourceCompatibility = 1.8
 
-repositories {
-   maven { url "http://oss.sonatype.org/content/repositories/snapshots" }
+repositories { 
    jcenter()
 }
 
 dependencies {
-   compile 'org.apache.commons:commons-pool2:+'
-
    testCompile 'junit:junit:+'
 }
 

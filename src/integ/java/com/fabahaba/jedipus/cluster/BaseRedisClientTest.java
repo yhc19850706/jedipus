@@ -1,10 +1,11 @@
 package com.fabahaba.jedipus.cluster;
 
+import java.time.Duration;
 import java.util.Optional;
 
-import org.apache.commons.pool2.PooledObjectFactory;
-
 import com.fabahaba.jedipus.RedisClient;
+import com.fabahaba.jedipus.pool.ClientPool;
+import com.fabahaba.jedipus.pool.PooledClientFactory;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
 public class BaseRedisClientTest {
@@ -15,11 +16,17 @@ public class BaseRedisClientTest {
   protected static final String REDIS_PASS =
       Optional.ofNullable(System.getProperty("jedipus.redis.pass")).orElse("42");
 
-  protected static final Node defaultNode = Node.create("localhost", REDIS_PORT);
+  protected static final Node DEFAULT_NODE = Node.create("localhost", REDIS_PORT);
 
-  protected static final RedisClientFactory.Builder defaultClientFactory =
+  protected static final RedisClientFactory.Builder DEFAULT_POOLED_CLIENT_FACTORY_BUILDER =
       RedisClientFactory.startBuilding().withAuth(REDIS_PASS);
 
-  protected static final PooledObjectFactory<RedisClient> defaultPoolFactory =
-      defaultClientFactory.createPooled(defaultNode);
+  protected static final PooledClientFactory<RedisClient> DEFAULT_POOLED_CLIENT_FACTORY =
+      DEFAULT_POOLED_CLIENT_FACTORY_BUILDER.createPooled(DEFAULT_NODE);
+
+  protected static final ClientPool.Builder DEFAULT_POOL_BUILDER =
+      ClientPool.startBuilding().withMaxIdle(4).withMinIdle(2).withMaxTotal(8)
+          .withTimeBetweenEvictionRunsDuration(Duration.ofSeconds(15)).withTestWhileIdle(true)
+          .withNumTestsPerEvictionRun(4).withBlockWhenExhausted(true)
+          .withMaxWaitDuration(Duration.ofMillis(200));
 }
