@@ -8,7 +8,7 @@ detachedSig="$jar.asc"
 
 wget "$REPO_PATH$detachedSig"
 wget "$REPO_PATH$jar"
-
+ 
 gpg --keyserver pgpkeys.mit.edu --recv-key 83D56348
 gpg --verify "$detachedSig" "$jar"
 
