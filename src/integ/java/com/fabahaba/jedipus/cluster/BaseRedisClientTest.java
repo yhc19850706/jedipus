@@ -3,7 +3,7 @@ package com.fabahaba.jedipus.cluster;
 import java.time.Duration;
 import java.util.Optional;
 
-import com.fabahaba.jedipus.RedisClient;
+import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.pool.ClientPool;
 import com.fabahaba.jedipus.pool.PooledClientFactory;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;

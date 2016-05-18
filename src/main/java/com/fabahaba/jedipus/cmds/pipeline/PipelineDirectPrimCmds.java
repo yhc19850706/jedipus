@@ -1,11 +1,11 @@
 package com.fabahaba.jedipus.cmds.pipeline;
 
-import com.fabahaba.jedipus.FutureLongReply;
-import com.fabahaba.jedipus.FutureReply;
-import com.fabahaba.jedipus.RESP;
+import com.fabahaba.jedipus.client.FutureLongReply;
+import com.fabahaba.jedipus.client.FutureReply;
 import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.PrimArrayCmd;
 import com.fabahaba.jedipus.cmds.PrimCmd;
+import com.fabahaba.jedipus.cmds.RESP;
 
 public interface PipelineDirectPrimCmds {
 

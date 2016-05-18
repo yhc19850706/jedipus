@@ -2,7 +2,7 @@ package com.fabahaba.jedipus.params;
 
 import java.util.List;
 
-import com.fabahaba.jedipus.RESP;
+import com.fabahaba.jedipus.cmds.RESP;
 
 public final class LuaParams {
 

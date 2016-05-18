@@ -11,7 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import com.fabahaba.jedipus.RedisClient;
+import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 import com.fabahaba.jedipus.exceptions.AskNodeException;
@@ -19,10 +19,10 @@ import com.fabahaba.jedipus.exceptions.MaxRedirectsExceededException;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisRetryableUnhandledException;
 import com.fabahaba.jedipus.exceptions.SlotRedirectException;
+import com.fabahaba.jedipus.generic.LongAdapter;
 import com.fabahaba.jedipus.pool.ClientPool;
 import com.fabahaba.jedipus.pool.EvictionStrategy;
 import com.fabahaba.jedipus.pool.EvictionStrategy.DefaultEvictionStrategy;
-import com.fabahaba.jedipus.primitive.LongAdapter;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
 public final class Jedipus implements RedisClusterExecutor {

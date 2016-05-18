@@ -1,7 +1,5 @@
 package com.fabahaba.jedipus.cmds;
 
-import com.fabahaba.jedipus.RESP;
-
 public interface GeoCmds extends DirectCmds {
 
   // http://redis.io/commands#geo

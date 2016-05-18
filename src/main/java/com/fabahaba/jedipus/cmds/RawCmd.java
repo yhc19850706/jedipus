@@ -2,8 +2,6 @@ package com.fabahaba.jedipus.cmds;
 
 import java.util.Locale;
 
-import com.fabahaba.jedipus.RESP;
-
 class RawCmd implements Cmd<Object> {
 
   private final String cmd;

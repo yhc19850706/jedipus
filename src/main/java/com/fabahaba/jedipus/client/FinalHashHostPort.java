@@ -1,4 +1,4 @@
-package com.fabahaba.jedipus;
+package com.fabahaba.jedipus.client;
 
 final class FinalHashHostPort implements HostPort {
 

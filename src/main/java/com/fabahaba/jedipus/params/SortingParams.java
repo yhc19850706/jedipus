@@ -1,7 +1,7 @@
 package com.fabahaba.jedipus.params;
 
-import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.cmds.Cmds;
+import com.fabahaba.jedipus.cmds.RESP;
 
 public final class SortingParams {
 

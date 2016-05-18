@@ -1,4 +1,4 @@
-package com.fabahaba.jedipus;
+package com.fabahaba.jedipus.cmds;
 
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;

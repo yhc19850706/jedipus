@@ -5,8 +5,8 @@ import java.util.Queue;
 import java.util.function.Function;
 import java.util.function.LongUnaryOperator;
 
-import com.fabahaba.jedipus.FutureLongReply;
-import com.fabahaba.jedipus.FutureReply;
+import com.fabahaba.jedipus.client.FutureLongReply;
+import com.fabahaba.jedipus.client.FutureReply;
 import com.fabahaba.jedipus.cmds.PrimArrayCmd;
 
 class PrimMulti {

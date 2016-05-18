@@ -14,10 +14,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.StampedLock;
 import java.util.function.Function;
 
-import com.fabahaba.jedipus.HostPort;
-import com.fabahaba.jedipus.RESP;
-import com.fabahaba.jedipus.RedisClient;
+import com.fabahaba.jedipus.client.HostPort;
+import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
+import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;

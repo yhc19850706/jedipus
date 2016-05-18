@@ -1,4 +1,4 @@
-package com.fabahaba.jedipus.primitive;
+package com.fabahaba.jedipus.generic;
 
 @FunctionalInterface
 public interface LongAdapter<T> {

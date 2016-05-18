@@ -7,12 +7,12 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocketFactory;
 
-import com.fabahaba.jedipus.RedisClient;
+import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.pool.PooledClient;
 import com.fabahaba.jedipus.pool.PooledClientState;
 
-public class PooledRedisClient extends PrimRedisClient implements PooledClient<RedisClient> {
+class PooledRedisClient extends PrimRedisClient implements PooledClient<RedisClient> {
 
   private PooledClientState state = PooledClientState.IDLE;
   private final long createTime = System.currentTimeMillis();

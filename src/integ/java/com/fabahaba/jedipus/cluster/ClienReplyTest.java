@@ -5,9 +5,9 @@ import static org.junit.Assert.assertNull;
 
 import org.junit.Test;
 
-import com.fabahaba.jedipus.RESP;
-import com.fabahaba.jedipus.RedisClient;
+import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cmds.Cmds;
+import com.fabahaba.jedipus.cmds.RESP;
 
 public class ClienReplyTest extends BaseRedisClientTest {
 

@@ -8,8 +8,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import com.fabahaba.jedipus.RedisClient;
-import com.fabahaba.jedipus.RedisPipeline;
+import com.fabahaba.jedipus.client.RedisClient;
+import com.fabahaba.jedipus.client.RedisPipeline;
 import com.fabahaba.jedipus.cluster.Jedipus.Builder;
 
 public interface RedisClusterExecutor extends PrimClientExecutor, AutoCloseable {

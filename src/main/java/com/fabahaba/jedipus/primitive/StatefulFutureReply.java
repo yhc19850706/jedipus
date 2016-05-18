@@ -1,7 +1,7 @@
 package com.fabahaba.jedipus.primitive;
 
-import com.fabahaba.jedipus.FutureLongReply;
-import com.fabahaba.jedipus.FutureReply;
+import com.fabahaba.jedipus.client.FutureLongReply;
+import com.fabahaba.jedipus.client.FutureReply;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply {

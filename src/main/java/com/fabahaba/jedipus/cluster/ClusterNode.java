@@ -1,6 +1,6 @@
 package com.fabahaba.jedipus.cluster;
 
-import com.fabahaba.jedipus.HostPort;
+import com.fabahaba.jedipus.client.HostPort;
 
 class ClusterNode implements Node {
 

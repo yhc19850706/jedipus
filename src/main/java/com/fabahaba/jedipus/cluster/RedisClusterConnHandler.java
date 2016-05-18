@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.function.Function;
 
-import com.fabahaba.jedipus.RedisClient;
+import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;

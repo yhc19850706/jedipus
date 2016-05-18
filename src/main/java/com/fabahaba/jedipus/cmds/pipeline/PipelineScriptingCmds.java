@@ -1,6 +1,6 @@
 package com.fabahaba.jedipus.cmds.pipeline;
 
-import com.fabahaba.jedipus.FutureReply;
+import com.fabahaba.jedipus.client.FutureReply;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.params.LuaParams;
 

@@ -2,8 +2,6 @@ package com.fabahaba.jedipus.cmds;
 
 import java.util.function.Function;
 
-import com.fabahaba.jedipus.RESP;
-
 public interface Cmd<R> extends Function<Object, R> {
 
   static final Function<Object, String> STRING_REPLY = RESP::toString;

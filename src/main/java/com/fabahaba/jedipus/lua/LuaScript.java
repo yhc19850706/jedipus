@@ -9,20 +9,17 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.xml.bind.DatatypeConverter;
-
-import com.fabahaba.jedipus.FutureReply;
-import com.fabahaba.jedipus.RESP;
-import com.fabahaba.jedipus.RedisClient;
-import com.fabahaba.jedipus.RedisPipeline;
+import com.fabahaba.jedipus.client.FutureReply;
+import com.fabahaba.jedipus.client.RedisClient;
+import com.fabahaba.jedipus.client.RedisPipeline;
 import com.fabahaba.jedipus.cluster.CRC16;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.cmds.Cmds;
+import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.params.LuaParams;
 
@@ -59,15 +56,23 @@ public interface LuaScript<R> {
   }
 
   public static String sha1(final String script) {
-
     try {
-      return DatatypeConverter
-          .printHexBinary(
-              MessageDigest.getInstance("SHA-1").digest(script.getBytes(StandardCharsets.UTF_8)))
-          .toLowerCase(Locale.ENGLISH);
+      return printHexBinary(
+          MessageDigest.getInstance("SHA-1").digest(script.getBytes(StandardCharsets.UTF_8)));
     } catch (final NoSuchAlgorithmException e) {
       throw new AssertionError(e);
     }
+  }
+
+  static final char[] hexCode = "0123456789abcdef".toCharArray();
+
+  public static String printHexBinary(final byte[] data) {
+    final StringBuilder r = new StringBuilder(data.length * 2);
+    for (final byte b : data) {
+      r.append(hexCode[(b >> 4) & 0xF]);
+      r.append(hexCode[(b & 0xF)]);
+    }
+    return r.toString();
   }
 
   public String getLuaScript();

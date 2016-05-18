@@ -1,7 +1,7 @@
 package com.fabahaba.jedipus.primitive;
 
-import com.fabahaba.jedipus.HostPort;
-import com.fabahaba.jedipus.RedisClient;
+import com.fabahaba.jedipus.client.HostPort;
+import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.Cmds;

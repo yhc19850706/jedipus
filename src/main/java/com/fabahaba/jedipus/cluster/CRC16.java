@@ -3,7 +3,7 @@ package com.fabahaba.jedipus.cluster;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-import com.fabahaba.jedipus.RESP;
+import com.fabahaba.jedipus.cmds.RESP;
 
 public final class CRC16 {
 

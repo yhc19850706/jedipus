@@ -1,9 +1,9 @@
 package com.fabahaba.jedipus.cluster;
 
-import com.fabahaba.jedipus.RedisClient;
-import com.fabahaba.jedipus.RedisPipeline;
+import com.fabahaba.jedipus.client.RedisClient;
+import com.fabahaba.jedipus.client.RedisPipeline;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
-import com.fabahaba.jedipus.primitive.LongAdapter;
+import com.fabahaba.jedipus.generic.LongAdapter;
 
 public interface PrimClientExecutor {
 

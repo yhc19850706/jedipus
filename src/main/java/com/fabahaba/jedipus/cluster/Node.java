@@ -2,8 +2,8 @@ package com.fabahaba.jedipus.cluster;
 
 import java.util.function.Function;
 
-import com.fabahaba.jedipus.HostPort;
-import com.fabahaba.jedipus.RESP;
+import com.fabahaba.jedipus.client.HostPort;
+import com.fabahaba.jedipus.cmds.RESP;
 
 public interface Node extends HostPort {
 

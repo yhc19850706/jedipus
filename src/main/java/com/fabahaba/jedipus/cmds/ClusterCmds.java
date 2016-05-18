@@ -3,8 +3,7 @@ package com.fabahaba.jedipus.cmds;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.fabahaba.jedipus.HostPort;
-import com.fabahaba.jedipus.RESP;
+import com.fabahaba.jedipus.client.HostPort;
 import com.fabahaba.jedipus.cluster.Node;
 
 public interface ClusterCmds extends DirectCmds {

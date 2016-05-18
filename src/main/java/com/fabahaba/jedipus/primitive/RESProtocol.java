@@ -3,8 +3,8 @@ package com.fabahaba.jedipus.primitive;
 import java.io.IOException;
 import java.util.function.Function;
 
-import com.fabahaba.jedipus.RESP;
 import com.fabahaba.jedipus.cluster.Node;
+import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.AskNodeException;
 import com.fabahaba.jedipus.exceptions.RedisBusyException;
 import com.fabahaba.jedipus.exceptions.RedisClusterDownException;
