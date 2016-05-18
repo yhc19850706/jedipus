@@ -5,7 +5,7 @@ import java.util.NoSuchElementException;
 
 import com.fabahaba.jedipus.pool.EvictionStrategy.DefaultEvictionStrategy;
 
-public interface ClientPool<C> {
+public interface ClientPool<C> extends AutoCloseable {
 
   C borrowObject() throws Exception, NoSuchElementException, IllegalStateException;
 
@@ -13,14 +13,13 @@ public interface ClientPool<C> {
 
   void invalidateObject(C obj) throws Exception;
 
-  void addObject() throws Exception, IllegalStateException, UnsupportedOperationException;
-
   int getNumIdle();
 
   int getNumActive();
 
   void clear() throws Exception, UnsupportedOperationException;
 
+  @Override
   void close();
 
   boolean isClosed();

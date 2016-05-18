@@ -13,7 +13,7 @@ class AdaptedFutureLongReply extends StatefulFutureReply<Void> {
   }
 
   @Override
-  public long getLong() {
+  public long getAsLong() {
 
     checkReply();
 

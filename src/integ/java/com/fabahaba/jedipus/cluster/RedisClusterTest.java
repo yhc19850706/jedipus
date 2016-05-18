@@ -534,7 +534,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
           // UnhandledAskNodeException is a RedisRetryableUnhandledException, which depending on the
           // RedisClusterExecutor configuration, may be retried just like a connection exception.
           pipeline.sync();
-          assertEquals(0, futureReply.getLong());
+          assertEquals(0, futureReply.getAsLong());
         });
       } catch (final UnhandledAskNodeException unhandledAsk) {
         rce.acceptPipelinedIfPresent(unhandledAsk.getTargetNode(), pipeline -> {
@@ -543,7 +543,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
           pipeline.skip().asking();
           final FutureLongReply futureReply = pipeline.sendCmd(Cmds.SADD.prim(), key, "107.6");
           pipeline.sync();
-          assertEquals(0, futureReply.getLong());
+          assertEquals(0, futureReply.getAsLong());
         });
       }
     }

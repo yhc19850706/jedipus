@@ -1,8 +1,8 @@
 package com.fabahaba.jedipus.client;
 
-public interface FutureLongReply {
+import java.util.function.LongSupplier;
+
+public interface FutureLongReply extends LongSupplier {
 
   FutureLongReply checkReply();
-
-  long getLong();
 }

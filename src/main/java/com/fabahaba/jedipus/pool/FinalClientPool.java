@@ -13,7 +13,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.StampedLock;
 
-final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
+final class FinalClientPool<C> implements ClientPool<C> {
 
   private final int maxIdle;
   private final int maxTotal;
@@ -28,23 +28,23 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
   private final int numTestsPerEvictionRun;
   private final EvictionConfig evictionConfig;
 
-  private final EvictionStrategy<T> evictionPolicy;
+  private final EvictionStrategy<C> evictionPolicy;
 
-  private final PooledClientFactory<T> factory;
+  private final PooledClientFactory<C> factory;
 
   private final AtomicLong createCount;
   private final StampedLock allObjLock;
-  private final IdentityHashMap<T, PooledClient<T>> allObjects;
+  private final IdentityHashMap<C, PooledClient<C>> allObjects;
 
   private final ReentrantLock idleQLock;
   private final Condition newIdleObject;
-  private final ArrayDeque<PooledClient<T>> idleQ;
+  private final ArrayDeque<PooledClient<C>> idleQ;
 
   private final ScheduledThreadPoolExecutor evictionExecutor;
   private volatile boolean closed = false;
 
-  FinalClientPool(final PooledClientFactory<T> factory, final Builder builder,
-      final EvictionStrategy<T> evictionStrategy) {
+  FinalClientPool(final PooledClientFactory<C> factory, final Builder builder,
+      final EvictionStrategy<C> evictionStrategy) {
 
     this.lifo = builder.isLifo();
     this.fairness = builder.isFair();
@@ -151,7 +151,7 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
     return evictionConfig.getIdleSoftEvictDuration();
   }
 
-  private PooledClient<T> create() throws Exception {
+  private PooledClient<C> create() throws Exception {
 
     final long newCreateCount = createCount.incrementAndGet();
 
@@ -161,7 +161,7 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
     }
 
     try {
-      final PooledClient<T> pooledObj = factory.makeObject();
+      final PooledClient<C> pooledObj = factory.makeObject();
 
       final long writeStamp = allObjLock.writeLock();
       try {
@@ -181,7 +181,7 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
     }
   }
 
-  private void destroy(final PooledClient<T> toDestory) {
+  private void destroy(final PooledClient<C> toDestory) {
 
     toDestory.invalidate();
 
@@ -204,7 +204,7 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
     }
   }
 
-  private void destroyIdle(final PooledClient<T> toDestory) {
+  private void destroyIdle(final PooledClient<C> toDestory) {
 
     toDestory.invalidate();
 
@@ -238,17 +238,17 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
   }
 
   @Override
-  public T borrowObject() throws Exception {
+  public C borrowObject() throws Exception {
 
     return maxWaitMillis <= 0 ? pollOrCreate() : pollOrCreate(maxWaitMillis);
   }
 
-  T pollOrCreate(final long maxWaitMillis) throws Exception {
+  C pollOrCreate(final long maxWaitMillis) throws Exception {
 
     CREATE: for (final long deadline = System.currentTimeMillis() + maxWaitMillis;;) {
       assertOpen();
 
-      PooledClient<T> pooledObj = null;
+      PooledClient<C> pooledObj = null;
 
       if (!idleQ.isEmpty()) {
         idleQLock.lock();
@@ -291,6 +291,7 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
             throw new NoSuchElementException("Pool exhausted, timed out waiting for object.");
           }
           assertOpen();
+
           pooledObj = idleQ.pollFirst();
           if (pooledObj != null) {
             break;
@@ -310,12 +311,12 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
     }
   }
 
-  T pollOrCreate() throws Exception {
+  C pollOrCreate() throws Exception {
 
     CREATE: for (;;) {
       assertOpen();
 
-      PooledClient<T> pooledObj = null;
+      PooledClient<C> pooledObj = null;
 
       if (!idleQ.isEmpty()) {
         idleQLock.lock();
@@ -355,6 +356,7 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
 
           newIdleObject.await();
           assertOpen();
+
           pooledObj = idleQ.pollFirst();
           if (pooledObj != null) {
             break;
@@ -374,7 +376,7 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
     }
   }
 
-  private boolean activate(final PooledClient<T> pooledObj, final boolean created) {
+  private boolean activate(final PooledClient<C> pooledObj, final boolean created) {
 
     try {
       if (pooledObj.allocate()) {
@@ -395,7 +397,7 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
     return false;
   }
 
-  private boolean testBorrowed(final PooledClient<T> pooledObj, final boolean created) {
+  private boolean testBorrowed(final PooledClient<C> pooledObj, final boolean created) {
 
     if (!testOnBorrow || testOnCreate && !created) {
       return true;
@@ -420,7 +422,7 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
     return false;
   }
 
-  private PooledClient<T> getPooledObj(final T obj) {
+  private PooledClient<C> getPooledObj(final C obj) {
 
     final long readStamp = allObjLock.readLock();
     try {
@@ -431,9 +433,9 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
   }
 
   @Override
-  public void returnObject(final T obj) {
+  public void returnObject(final C obj) {
 
-    final PooledClient<T> pooledObj = getPooledObj(obj);
+    final PooledClient<C> pooledObj = getPooledObj(obj);
 
     if (pooledObj == null) {
       return; // Object was abandoned and removed
@@ -444,6 +446,7 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
       throw new IllegalStateException(
           "Object has already been returned to this pool or is invalid");
     }
+
     pooledObj.markReturning(); // Keep from being marked abandoned
 
     if (testOnReturn) {
@@ -487,7 +490,7 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
     addIdleObj(pooledObj);
   }
 
-  private void addIdleObj(final PooledClient<T> pooledObj) {
+  private void addIdleObj(final PooledClient<C> pooledObj) {
 
     idleQLock.lock();
     try {
@@ -522,7 +525,7 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
     return (int) (Math.ceil(idleQ.size() / Math.abs((double) numTestsPerEvictionRun)));
   }
 
-  private void tryEvict(final PooledClient<T> underTest) {
+  private void tryEvict(final PooledClient<C> underTest) {
 
     if (closed || !underTest.startEvictionTest()) {
       return;
@@ -572,11 +575,11 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
 
     idleQLock.lock();
     try {
-      final Iterator<PooledClient<T>> evictionIterator =
+      final Iterator<PooledClient<C>> evictionIterator =
           lifo ? idleQ.descendingIterator() : idleQ.iterator();
 
       for (int numTested = 0, maxTests = getNumTests(); numTested < maxTests;) {
-        final PooledClient<T> underTest = evictionIterator.next();
+        final PooledClient<C> underTest = evictionIterator.next();
         if (underTest == null) {
           continue;
         }
@@ -596,7 +599,7 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
 
     while (!closed && idleQ.size() < idleCount) {
 
-      final PooledClient<T> pooledObj = create();
+      final PooledClient<C> pooledObj = create();
 
       if (pooledObj == null) {
         return;
@@ -604,19 +607,6 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
 
       addIdleObj(pooledObj);
     }
-  }
-
-  @Override
-  public void addObject() throws Exception {
-    assertOpen();
-
-    final PooledClient<T> pooledObj = create();
-    if (pooledObj == null) {
-      return;
-    }
-
-    factory.passivateObject(pooledObj);
-    addIdleObj(pooledObj);
   }
 
   @Override
@@ -630,9 +620,9 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
   }
 
   @Override
-  public void invalidateObject(final T obj) throws Exception {
+  public void invalidateObject(final C obj) throws Exception {
 
-    final PooledClient<T> pooledObj = getPooledObj(obj);
+    final PooledClient<C> pooledObj = getPooledObj(obj);
 
     if (pooledObj == null) {
       throw new IllegalStateException("Invalidated object not currently part of this pool");
@@ -650,7 +640,7 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
 
     idleQLock.lock();
     try {
-      for (PooledClient<T> pooledObj = idleQ.poll(); pooledObj != null; pooledObj = idleQ.poll()) {
+      for (PooledClient<C> pooledObj = idleQ.poll(); pooledObj != null; pooledObj = idleQ.poll()) {
         destroy(pooledObj);
       }
     } finally {
@@ -690,8 +680,6 @@ final class FinalClientPool<T> implements ClientPool<T>, AutoCloseable {
 
       clear();
       newIdleObject.signalAll();
-
-
     } finally {
       idleQLock.unlock();
     }

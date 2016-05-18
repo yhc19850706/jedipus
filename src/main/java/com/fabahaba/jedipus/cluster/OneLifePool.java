@@ -3,12 +3,12 @@ package com.fabahaba.jedipus.cluster;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.pool.ClientPool;
 
-class SingletonPool implements ClientPool<RedisClient> {
+class OneLifePool implements ClientPool<RedisClient> {
 
   private volatile RedisClient client;
   private volatile int numActive;
 
-  SingletonPool(final RedisClient client) {
+  OneLifePool(final RedisClient client) {
     this.client = client;
     this.numActive = 0;
   }
@@ -31,9 +31,6 @@ class SingletonPool implements ClientPool<RedisClient> {
   public void invalidateObject(final RedisClient client) throws Exception {
     close();
   }
-
-  @Override
-  public void addObject() {}
 
   @Override
   public int getNumIdle() {

@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.ToLongFunction;
 
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
@@ -19,7 +20,6 @@ import com.fabahaba.jedipus.exceptions.MaxRedirectsExceededException;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisRetryableUnhandledException;
 import com.fabahaba.jedipus.exceptions.SlotRedirectException;
-import com.fabahaba.jedipus.generic.LongAdapter;
 import com.fabahaba.jedipus.pool.ClientPool;
 import com.fabahaba.jedipus.pool.EvictionStrategy;
 import com.fabahaba.jedipus.pool.EvictionStrategy.DefaultEvictionStrategy;
@@ -156,7 +156,7 @@ public final class Jedipus implements RedisClusterExecutor {
 
   @Override
   public long applyPrim(final ReadMode readMode, final int slot,
-      final LongAdapter<RedisClient> clientConsumer, final int maxRetries) {
+      final ToLongFunction<RedisClient> clientConsumer, final int maxRetries) {
 
     SlotRedirectException previousRedirectEx = null;
 
@@ -170,7 +170,7 @@ public final class Jedipus implements RedisClusterExecutor {
 
       pool = connHandler.getSlotPool(readMode, slot);
       client = RedisClientPool.borrowClient(pool);
-      final long result = clientConsumer.apply(client);
+      final long result = clientConsumer.applyAsLong(client);
       connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode(), retries);
       return result;
     } catch (final RedisConnectionException rcex) {
@@ -225,7 +225,7 @@ public final class Jedipus implements RedisClusterExecutor {
               : connHandler.getSlotPool(readMode, slot);
           client = RedisClientPool.borrowClient(pool);
 
-          final long result = clientConsumer.apply(client);
+          final long result = clientConsumer.applyAsLong(client);
           connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode(), retries);
           return result;
         }
@@ -234,7 +234,7 @@ public final class Jedipus implements RedisClusterExecutor {
         pool = connHandler.getAskPool(askNode);
         client = RedisClientPool.borrowClient(pool);
         client.asking();
-        final long result = clientConsumer.apply(client);
+        final long result = clientConsumer.applyAsLong(client);
         connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode(), 0);
         return result;
       } catch (final RedisConnectionException jncex) {

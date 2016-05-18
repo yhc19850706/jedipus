@@ -40,7 +40,7 @@ class PrimMultiExecReplyHandler implements Function<Object, long[]> {
         }
 
         inPlaceAdaptedReplies[index] =
-            reply.setMultiLongReply(inPlaceAdaptedReplies[index]).getLong();
+            reply.setMultiLongReply(inPlaceAdaptedReplies[index]).getAsLong();
       }
     } finally {
       multi.multiReplies.clear();

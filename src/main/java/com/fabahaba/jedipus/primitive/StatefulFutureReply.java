@@ -90,7 +90,7 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
   }
 
   @Override
-  public long getLong() {
+  public long getAsLong() {
 
     return Long.MIN_VALUE;
   }

@@ -36,7 +36,7 @@ class OptimisticRedisClusterSlotCache extends RedisClusterSlotCache {
 
     final ClientPool<RedisClient> pool = getAskPoolGuarded(askNode);
 
-    return pool == null ? new SingletonPool(nodeUnknownFactory.apply(askNode)) : pool;
+    return pool == null ? new OneLifePool(nodeUnknownFactory.apply(askNode)) : pool;
   }
 
   @Override

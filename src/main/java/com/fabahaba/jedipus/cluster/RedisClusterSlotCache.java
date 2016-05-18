@@ -434,7 +434,7 @@ class RedisClusterSlotCache implements AutoCloseable {
       }
     }
 
-    return pool == null ? new SingletonPool(nodeUnknownFactory.apply(askNode)) : pool;
+    return pool == null ? new OneLifePool(nodeUnknownFactory.apply(askNode)) : pool;
   }
 
   protected ClientPool<RedisClient> getAskPoolGuarded(final Node askNode) {
