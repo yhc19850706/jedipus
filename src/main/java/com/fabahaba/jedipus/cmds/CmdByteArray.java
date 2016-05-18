@@ -39,7 +39,7 @@ public class CmdByteArray<R> {
 
   public abstract static class Builder<R> {
 
-    protected final Cmd<R> cmd;
+    private final Cmd<R> cmd;
     protected int numArgs;
     protected int numArgBytes;
 
@@ -50,7 +50,12 @@ public class CmdByteArray<R> {
       this.cmd = cmd;
     }
 
-    public abstract CmdByteArray<R> create();
+    public CmdByteArray<R> create() {
+
+      return create(cmd);
+    }
+
+    public abstract <O> CmdByteArray<O> create(final Cmd<O> overrideReturnTypeCmd);
 
     public abstract Builder<R> addArg(final byte[] arg);
 
@@ -69,6 +74,26 @@ public class CmdByteArray<R> {
 
     public Builder<R> addSubCmd(final Cmd<?> cmd) {
       return addArg(cmd.getCmdBytes());
+    }
+
+    public Builder<R> addSubCmd(final Cmd<?> cmd, final String arg) {
+      addArg(cmd.getCmdBytes());
+      return addArg(arg);
+    }
+
+    public Builder<R> addSubCmd(final Cmd<?> cmd, final String... args) {
+      addArg(cmd.getCmdBytes());
+      return addArgs(args);
+    }
+
+    public Builder<R> addSubCmd(final Cmd<?> cmd, final byte[] arg) {
+      addArg(cmd.getCmdBytes());
+      return addArg(arg);
+    }
+
+    public Builder<R> addSubCmd(final Cmd<?> cmd, final byte[]... args) {
+      addArg(cmd.getCmdBytes());
+      return addArgs(args);
     }
 
     public Builder<R> addArg(final String arg) {
@@ -107,7 +132,7 @@ public class CmdByteArray<R> {
     }
 
     @Override
-    public CmdByteArray<R> create() {
+    public <O> CmdByteArray<O> create(final Cmd<O> overrideReturnTypeCmd) {
 
       final byte[] cmdArgsBytes = createArray();
 
@@ -116,7 +141,7 @@ public class CmdByteArray<R> {
         offset += cmdArg.length;
       }
 
-      return new CmdByteArray<>(cmd, cmdArgsBytes);
+      return new CmdByteArray<>(overrideReturnTypeCmd, cmdArgsBytes);
     }
 
     @Override
@@ -164,7 +189,7 @@ public class CmdByteArray<R> {
     }
 
     @Override
-    public CmdByteArray<R> create() {
+    public <O> CmdByteArray<O> create(final Cmd<O> overrideReturnTypeCmd) {
 
       final byte[] cmdArgsBytes = createArray();
 
@@ -173,7 +198,7 @@ public class CmdByteArray<R> {
         offset += cmdArg.length;
       }
 
-      return new CmdByteArray<>(cmd, cmdArgsBytes);
+      return new CmdByteArray<>(overrideReturnTypeCmd, cmdArgsBytes);
     }
 
     @Override
