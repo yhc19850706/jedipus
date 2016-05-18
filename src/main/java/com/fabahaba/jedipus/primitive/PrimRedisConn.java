@@ -136,6 +136,7 @@ final class PrimRedisConn extends RedisConn {
   }
 
   public <T> T getReply(final Function<Object, T> responseHandler) {
+    flushOS();
     switch (replyMode) {
       case OFF:
         return null;
@@ -143,7 +144,6 @@ final class PrimRedisConn extends RedisConn {
         setReplyMode(ReplyMode.ON);
         return null;
       case ON:
-        flush();
         return responseHandler.apply(getReply());
       default:
         return null;
@@ -151,6 +151,7 @@ final class PrimRedisConn extends RedisConn {
   }
 
   public long[] getLongArrayReply(final Function<long[], long[]> responseHandler) {
+    flushOS();
     switch (replyMode) {
       case OFF:
         return null;
@@ -158,7 +159,6 @@ final class PrimRedisConn extends RedisConn {
         setReplyMode(ReplyMode.ON);
         return null;
       case ON:
-        flush();
         return responseHandler.apply(getLongArray());
       default:
         return null;
@@ -166,6 +166,7 @@ final class PrimRedisConn extends RedisConn {
   }
 
   public long getReply(final LongUnaryOperator responseHandler) {
+    flushOS();
     switch (replyMode) {
       case OFF:
         return 0;
@@ -173,7 +174,6 @@ final class PrimRedisConn extends RedisConn {
         setReplyMode(ReplyMode.ON);
         return 0;
       case ON:
-        flush();
         return responseHandler.applyAsLong(getLong());
       default:
         return 0;
@@ -202,7 +202,7 @@ final class PrimRedisConn extends RedisConn {
       default:
         sendSubCmd(ClientCmds.CLIENT.getCmdBytes(), ClientCmds.CLIENT_REPLY.getCmdBytes(),
             ClientCmds.ON.getCmdBytes());
-        flush();
+        flushOS();
         final String reply = ClientCmds.CLIENT_REPLY.apply(getReply());
         if (reply != null) {
           setReplyMode(ReplyMode.ON);

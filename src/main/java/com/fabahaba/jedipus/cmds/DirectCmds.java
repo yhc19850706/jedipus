@@ -31,4 +31,10 @@ public interface DirectCmds extends DirectPrimCmds {
   public <T> T sendBlockingCmd(final Cmd<T> cmd, final byte[]... args);
 
   public <T> T sendBlockingCmd(final Cmd<T> cmd, final String... args);
+
+  default <R> R sendDirect(final CmdByteArray<R> cmdArgs) {
+    return sendDirect(cmdArgs.getCmd(), cmdArgs.getCmdArgs());
+  }
+
+  public <R> R sendDirect(final Cmd<R> cmd, final byte[] cmdArgs);
 }

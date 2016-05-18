@@ -57,6 +57,24 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
+  public <R> R sendDirect(final Cmd<R> cmd, final byte[] cmdArgs) {
+    conn.sendDirect(cmdArgs);
+    return conn.getReply(cmd);
+  }
+
+  @Override
+  public long sendDirect(final PrimCmd cmd, final byte[] cmdArgs) {
+    conn.sendDirect(cmdArgs);
+    return conn.getReply(cmd);
+  }
+
+  @Override
+  public long[] sendDirect(final PrimArrayCmd cmd, final byte[] cmdArgs) {
+    conn.sendDirect(cmdArgs);
+    return conn.getLongArrayReply(cmd);
+  }
+
+  @Override
   public <T> T sendCmd(final Cmd<T> cmd) {
     conn.sendCmd(cmd.getCmdBytes());
     return conn.getReply(cmd);

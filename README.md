@@ -3,7 +3,7 @@
 >Jedipus is a Redis Cluster Java client that manages client object pools and command execution.
 
 ######Features
-* Execute `Consumer<RedisClient>` and `Function<RedisClient, R>` lambas.
+* Executes `Consumer<RedisClient>` and `Function<RedisClient, R>` lambas.
 * Flexible generic or primitive return types to match the dynamic return type design of Redis.
 * Flexible command interface allows for calling [Modules](https://github.com/antirez/redis/blob/unstable/src/modules/API.md) or renamed commands.
 * Performance focused:

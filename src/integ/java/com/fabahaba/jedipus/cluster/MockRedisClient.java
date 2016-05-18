@@ -251,77 +251,95 @@ public class MockRedisClient implements RedisClient {
 
   @Override
   public long[] sendCmd(final PrimArrayCmd cmd) {
-    // TODO Auto-generated method stub
+
     return null;
   }
 
 
   @Override
   public long[] sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd) {
-    // TODO Auto-generated method stub
+
     return null;
   }
 
 
   @Override
   public long[] sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd, final byte[] arg) {
-    // TODO Auto-generated method stub
+
     return null;
   }
 
 
   @Override
   public long[] sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd, final byte[]... args) {
-    // TODO Auto-generated method stub
+
     return null;
   }
 
 
   @Override
   public long[] sendCmd(final PrimArrayCmd cmd, final byte[] arg) {
-    // TODO Auto-generated method stub
+
     return null;
   }
 
 
   @Override
   public long[] sendCmd(final PrimArrayCmd cmd, final byte[]... args) {
-    // TODO Auto-generated method stub
+
     return null;
   }
 
 
   @Override
   public long[] sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd, final String... args) {
-    // TODO Auto-generated method stub
+
     return null;
   }
 
 
   @Override
   public long[] sendCmd(final PrimArrayCmd cmd, final String... args) {
-    // TODO Auto-generated method stub
+
     return null;
   }
 
 
   @Override
   public long[] sendBlockingCmd(final PrimArrayCmd cmd) {
-    // TODO Auto-generated method stub
+
     return null;
   }
 
 
   @Override
   public long[] sendBlockingCmd(final PrimArrayCmd cmd, final byte[]... args) {
-    // TODO Auto-generated method stub
+
     return null;
   }
 
 
   @Override
   public long[] sendBlockingCmd(final PrimArrayCmd cmd, final String... args) {
-    // TODO Auto-generated method stub
+
+    return null;
+  }
+
+  @Override
+  public <R> R sendDirect(final Cmd<R> cmd, final byte[] cmdArgs) {
+
+    return null;
+  }
+
+  @Override
+  public long sendDirect(final PrimCmd cmd, final byte[] cmdArgs) {
+
+    return 0;
+  }
+
+  @Override
+  public long[] sendDirect(final PrimArrayCmd cmd, final byte[] cmdArgs) {
+
     return null;
   }
 }

@@ -27,13 +27,18 @@ final class RESProtocol {
   private static final byte MINUS_BYTE = '-';
   private static final byte COLON_BYTE = ':';
 
-  private static final byte[] ONE_CMD = RESP.toBytes(1);
-  private static final byte[] TWO_CMD = RESP.toBytes(2);
-  private static final byte[] THREE_CMD = RESP.toBytes(3);
+  private static final byte[] ONE_CMD = RedisOutputStream.createIntCRLF(ASTERISK_BYTE, 1);
+  private static final byte[] TWO_CMD = RedisOutputStream.createIntCRLF(ASTERISK_BYTE, 2);
+  private static final byte[] THREE_CMD = RedisOutputStream.createIntCRLF(ASTERISK_BYTE, 3);
+
+  static void sendDirect(final RedisOutputStream os, final byte[] data) throws IOException {
+
+    os.writeDirect(data, 0, data.length);
+  }
 
   static void sendCmd(final RedisOutputStream os, final byte[] cmd) throws IOException {
 
-    startWrite(os, ONE_CMD);
+    os.write(ONE_CMD);
     writeArg(os, cmd);
   }
 
@@ -58,7 +63,7 @@ final class RESProtocol {
   static void sendSubCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
       final byte[] arg) throws IOException {
 
-    startWrite(os, THREE_CMD);
+    os.write(THREE_CMD);
     writeArg(os, cmd);
     writeArg(os, subcmd);
     writeArg(os, arg);
@@ -67,7 +72,7 @@ final class RESProtocol {
   static void sendSubCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd)
       throws IOException {
 
-    startWrite(os, TWO_CMD);
+    os.write(TWO_CMD);
     writeArg(os, cmd);
     writeArg(os, subcmd);
   }
@@ -94,14 +99,6 @@ final class RESProtocol {
 
     os.write(ASTERISK_BYTE);
     os.write(numArgs);
-  }
-
-  private static void startWrite(final RedisOutputStream os, final byte[] numArgs)
-      throws IOException {
-
-    os.write(ASTERISK_BYTE);
-    os.write(numArgs);
-    os.writeCRLF();
   }
 
   private static void writeArg(final RedisOutputStream os, final byte[] arg) throws IOException {

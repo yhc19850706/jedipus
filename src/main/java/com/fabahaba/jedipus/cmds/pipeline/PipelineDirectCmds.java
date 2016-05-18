@@ -2,6 +2,7 @@ package com.fabahaba.jedipus.cmds.pipeline;
 
 import com.fabahaba.jedipus.client.FutureReply;
 import com.fabahaba.jedipus.cmds.Cmd;
+import com.fabahaba.jedipus.cmds.CmdByteArray;
 import com.fabahaba.jedipus.cmds.RESP;
 
 public interface PipelineDirectCmds extends PipelineDirectPrimCmds {
@@ -31,4 +32,10 @@ public interface PipelineDirectCmds extends PipelineDirectPrimCmds {
   }
 
   public <T> FutureReply<T> sendCmd(final Cmd<T> cmd, final String... args);
+
+  default <R> FutureReply<R> sendDirect(final CmdByteArray<R> cmdArgs) {
+    return sendDirect(cmdArgs.getCmd(), cmdArgs.getCmdArgs());
+  }
+
+  public <R> FutureReply<R> sendDirect(final Cmd<R> cmd, final byte[] cmdArgs);
 }

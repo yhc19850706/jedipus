@@ -7,8 +7,8 @@ import java.util.function.LongUnaryOperator;
 
 import com.fabahaba.jedipus.client.FutureLongReply;
 import com.fabahaba.jedipus.client.FutureReply;
-import com.fabahaba.jedipus.client.RedisPipeline;
 import com.fabahaba.jedipus.client.RedisClient.ReplyMode;
+import com.fabahaba.jedipus.client.RedisPipeline;
 import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.PrimArrayCmd;
 import com.fabahaba.jedipus.cmds.PrimCmd;
@@ -175,7 +175,7 @@ final class PrimPipeline implements RedisPipeline {
       throw new RedisUnhandledException(client.getNode(), "EXEC your MULTI before calling SYNC.");
     }
 
-    client.conn.flush();
+    client.conn.flushOS();
 
     for (;;) {
       final StatefulFutureReply<?> response = pipelineReplies.poll();
@@ -208,7 +208,7 @@ final class PrimPipeline implements RedisPipeline {
       throw new RedisUnhandledException(client.getNode(), "EXEC your MULTI before calling SYNC.");
     }
 
-    client.conn.flush();
+    client.conn.flushOS();
 
     for (;;) {
       final StatefulFutureReply<?> response = pipelineReplies.poll();
@@ -297,6 +297,24 @@ final class PrimPipeline implements RedisPipeline {
     pipelineReplies.add(futureMultiExecReply);
 
     return futureMultiExecReply;
+  }
+
+  @Override
+  public <R> FutureReply<R> sendDirect(final Cmd<R> cmd, final byte[] cmdArgs) {
+    client.conn.sendDirect(cmdArgs);
+    return queueFutureReply(cmd);
+  }
+
+  @Override
+  public FutureLongReply sendDirect(final PrimCmd cmd, final byte[] cmdArgs) {
+    client.conn.sendDirect(cmdArgs);
+    return queueFutureReply(cmd);
+  }
+
+  @Override
+  public FutureReply<long[]> sendDirect(final PrimArrayCmd cmd, final byte[] cmdArgs) {
+    client.conn.sendDirect(cmdArgs);
+    return queueFutureReply(cmd);
   }
 
   @Override

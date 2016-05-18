@@ -79,6 +79,14 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
+  public void sendDirect(final byte[] cmdArgs) {
+    try {
+      RESProtocol.sendDirect(outputStream, cmdArgs);
+    } catch (final RuntimeException | IOException jcex) {
+      handleWriteException(jcex);
+    }
+  }
+
   public void sendCmd(final byte[] cmd) {
     try {
       RESProtocol.sendCmd(outputStream, cmd);
@@ -86,7 +94,6 @@ abstract class RedisConn implements AutoCloseable {
       handleWriteException(jcex);
     }
   }
-
 
   public void sendCmd(final byte[] cmd, final byte[][] args) {
     try {
@@ -154,7 +161,7 @@ abstract class RedisConn implements AutoCloseable {
     return broken;
   }
 
-  void flush() {
+  void flushOS() {
     try {
       outputStream.flush();
     } catch (final IOException ex) {

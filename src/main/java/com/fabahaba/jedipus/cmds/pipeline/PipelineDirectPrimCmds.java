@@ -3,6 +3,7 @@ package com.fabahaba.jedipus.cmds.pipeline;
 import com.fabahaba.jedipus.client.FutureLongReply;
 import com.fabahaba.jedipus.client.FutureReply;
 import com.fabahaba.jedipus.cmds.Cmd;
+import com.fabahaba.jedipus.cmds.CmdByteArray;
 import com.fabahaba.jedipus.cmds.PrimArrayCmd;
 import com.fabahaba.jedipus.cmds.PrimCmd;
 import com.fabahaba.jedipus.cmds.RESP;
@@ -61,4 +62,16 @@ public interface PipelineDirectPrimCmds {
   }
 
   public FutureReply<long[]> sendCmd(final PrimArrayCmd cmd, final String... args);
+
+  default FutureLongReply sendDirectPrim(final CmdByteArray<?> cmdArgs) {
+    return sendDirect(cmdArgs.getCmd().prim(), cmdArgs.getCmdArgs());
+  }
+
+  default FutureReply<long[]> sendDirectPrimArray(final CmdByteArray<?> cmdArgs) {
+    return sendDirect(cmdArgs.getCmd().primArray(), cmdArgs.getCmdArgs());
+  }
+
+  public FutureLongReply sendDirect(final PrimCmd cmd, final byte[] cmdArgs);
+
+  public FutureReply<long[]> sendDirect(final PrimArrayCmd cmd, final byte[] cmdArgs);
 }

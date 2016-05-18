@@ -61,4 +61,16 @@ public interface DirectPrimCmds {
   public long[] sendBlockingCmd(final PrimArrayCmd cmd, final byte[]... args);
 
   public long[] sendBlockingCmd(final PrimArrayCmd cmd, final String... args);
+
+  default long sendDirectPrim(final CmdByteArray<?> cmdArgs) {
+    return sendDirect(cmdArgs.getCmd().prim(), cmdArgs.getCmdArgs());
+  }
+
+  default long[] sendDirectPrimArray(final CmdByteArray<?> cmdArgs) {
+    return sendDirect(cmdArgs.getCmd().primArray(), cmdArgs.getCmdArgs());
+  }
+
+  public long sendDirect(final PrimCmd cmd, final byte[] cmdArgs);
+
+  public long[] sendDirect(final PrimArrayCmd cmd, final byte[] cmdArgs);
 }
