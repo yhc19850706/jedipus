@@ -4,7 +4,7 @@ import java.util.Deque;
 
 public interface PooledClient<C> extends Comparable<PooledClient<? extends C>> {
 
-  C getObject();
+  C getClient();
 
   long getCreateTime();
 
@@ -34,11 +34,7 @@ public interface PooledClient<C> extends Comparable<PooledClient<? extends C>> {
 
   boolean deallocate();
 
-  void invalidate();
-
-  PooledClientState getState();
-
-  void markAbandoned();
+  boolean invalidate();
 
   void markReturning();
 

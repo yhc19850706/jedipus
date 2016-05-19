@@ -2,19 +2,19 @@ package com.fabahaba.jedipus.pool;
 
 public interface PooledClientFactory<C> {
 
-  PooledClient<C> makeObject() throws Exception;
+  PooledClient<C> createClient();
 
-  void destroyObject(PooledClient<C> pooledObj) throws Exception;
+  void destroyClient(PooledClient<C> pooledClient);
 
-  default boolean validateObject(final PooledClient<C> pooledObj) {
+  default boolean validateClient(final PooledClient<C> pooledClient) {
     return true;
   }
 
-  default void activateObject(final PooledClient<C> pooledObj) throws Exception {
+  default void activateClient(final PooledClient<C> pooledClient) {
 
   }
 
-  default void passivateObject(final PooledClient<C> pooledObj) throws Exception {
+  default void passivateClient(final PooledClient<C> pooledClient) {
 
   }
 }

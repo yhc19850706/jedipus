@@ -26,5 +26,5 @@ public class BaseRedisClientTest {
 
   protected static final ClientPool.Builder DEFAULT_POOL_BUILDER =
       ClientPool.startBuilding().withTestWhileIdle(true).withBlockWhenExhausted(true)
-          .withMaxWaitDuration(Duration.ofMillis(200));
+          .withMaxBlockDuration(Duration.ofMillis(200));
 }

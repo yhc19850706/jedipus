@@ -675,7 +675,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
   public void testIfPoolConfigAppliesToClusterPools() {
 
     final Function<Node, ClientPool<RedisClient>> poolFactory = node -> ClientPool.startBuilding()
-        .withMaxTotal(0).withMaxWaitDuration(Duration.ofMillis(20)).withBlockWhenExhausted(true)
+        .withMaxTotal(0).withMaxBlockDuration(Duration.ofMillis(20)).withBlockWhenExhausted(true)
         .create(RedisClientFactory.startBuilding().createPooled(node));
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)

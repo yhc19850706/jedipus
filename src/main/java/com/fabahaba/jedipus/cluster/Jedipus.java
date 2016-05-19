@@ -41,7 +41,7 @@ public final class Jedipus implements RedisClusterExecutor {
 
   private static final ClientPool.Builder DEFAULT_POOL_BUILDER =
       ClientPool.startBuilding().withMaxIdle(8).withMinIdle(2).withMaxTotal(8)
-          .withTimeBetweenEvictionRunsDuration(Duration.ofSeconds(15)).withTestWhileIdle(true)
+          .withDurationBetweenEvictionRuns(Duration.ofSeconds(15)).withTestWhileIdle(true)
           .withNumTestsPerEvictionRun(6).withBlockWhenExhausted(true);
 
   private static final RedisClientFactory.Builder DEFAULT_REDIS_FACTORY =

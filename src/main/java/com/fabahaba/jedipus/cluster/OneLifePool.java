@@ -14,21 +14,25 @@ class OneLifePool implements ClientPool<RedisClient> {
   }
 
   @Override
-  public synchronized RedisClient borrowObject() {
-    final RedisClient borrowed = client;
-    client = null;
-    numActive = 1;
-    return borrowed;
+  public RedisClient borrowClient() {
+
+    synchronized (this) {
+      if (client == null) {
+        return null;
+      }
+      numActive = 1;
+      return client;
+    }
   }
 
   @Override
-  public void returnObject(final RedisClient client) {
+  public void returnClient(final RedisClient client) {
     this.client = client;
     this.numActive = 0;
   }
 
   @Override
-  public void invalidateObject(final RedisClient client) throws Exception {
+  public void invalidateClient(final RedisClient client) {
     close();
   }
 

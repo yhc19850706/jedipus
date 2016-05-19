@@ -84,7 +84,7 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
   }
 
   @Override
-  public PooledClient<RedisClient> makeObject() throws Exception {
+  public PooledClient<RedisClient> createClient() {
 
     final PooledRedisClient client = new PooledRedisClient(node, replyMode, hostPortMapper,
         connTimeout, soTimeout, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
@@ -96,16 +96,16 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
 
 
   @Override
-  public void destroyObject(final PooledClient<RedisClient> pooledClient) throws Exception {
+  public void destroyClient(final PooledClient<RedisClient> pooledClient) {
 
-    pooledClient.getObject().close();
+    pooledClient.getClient().close();
   }
 
   @Override
-  public boolean validateObject(final PooledClient<RedisClient> pooledClient) {
+  public boolean validateClient(final PooledClient<RedisClient> pooledClient) {
 
     try {
-      pooledClient.getObject().sendCmd(Cmds.PING.raw());
+      pooledClient.getClient().sendCmd(Cmds.PING.raw());
       return true;
     } catch (final RuntimeException e) {
       return false;
@@ -113,10 +113,10 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
   }
 
   @Override
-  public void activateObject(final PooledClient<RedisClient> pooledObj) throws Exception {}
+  public void activateClient(final PooledClient<RedisClient> pooledObj) {}
 
   @Override
-  public void passivateObject(final PooledClient<RedisClient> pooledObj) throws Exception {}
+  public void passivateClient(final PooledClient<RedisClient> pooledObj) {}
 
   @Override
   public String toString() {

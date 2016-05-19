@@ -30,7 +30,7 @@ class PooledRedisClient extends PrimRedisClient implements PooledClient<RedisCli
   }
 
   @Override
-  public PrimRedisClient getObject() {
+  public PrimRedisClient getClient() {
     return this;
   }
 
@@ -55,67 +55,79 @@ class PooledRedisClient extends PrimRedisClient implements PooledClient<RedisCli
   }
 
   @Override
-  public synchronized PooledClientState getState() {
-    return state;
-  }
+  public boolean startEvictionTest() {
 
-  @Override
-  public synchronized boolean startEvictionTest() {
-    if (state == PooledClientState.IDLE) {
-      state = PooledClientState.EVICTION;
-      return true;
+    synchronized (this) {
+      if (state == PooledClientState.IDLE) {
+        state = PooledClientState.TESTING;
+        return true;
+      }
     }
-
     return false;
   }
 
   @Override
-  public synchronized boolean endEvictionTest(final Deque<PooledClient<RedisClient>> idleQueue) {
+  public boolean endEvictionTest(final Deque<PooledClient<RedisClient>> idleQueue) {
 
-    if (state == PooledClientState.EVICTION) {
-      state = PooledClientState.IDLE;
-      return true;
+    synchronized (this) {
+      if (state == PooledClientState.TESTING) {
+        state = PooledClientState.IDLE;
+        return true;
+      }
     }
-
     return false;
   }
 
   @Override
-  public synchronized boolean allocate() {
+  public boolean allocate() {
 
-    if (state == PooledClientState.IDLE || state == PooledClientState.EVICTION) {
+    synchronized (this) {
+      if (state != PooledClientState.IDLE && state != PooledClientState.TESTING) {
+        return false;
+      }
       state = PooledClientState.ALLOCATED;
-      lastBorrowTime = System.currentTimeMillis();
-      lastUseTime = lastBorrowTime;
-      return true;
     }
 
-    return false;
+    lastBorrowTime = System.currentTimeMillis();
+    lastUseTime = lastBorrowTime;
+    return true;
   }
 
   @Override
-  public synchronized boolean deallocate() {
-    if (state == PooledClientState.ALLOCATED || state == PooledClientState.RETURNING) {
+  public boolean deallocate() {
+
+    synchronized (this) {
+      if (state != PooledClientState.ALLOCATED && state != PooledClientState.RETURNING) {
+        return false;
+      }
       state = PooledClientState.IDLE;
-      lastReturnTime = System.currentTimeMillis();
-      return true;
     }
 
+    lastReturnTime = System.currentTimeMillis();
+    return true;
+  }
+
+  @Override
+  public boolean invalidate() {
+
+    synchronized (this) {
+      if (state != PooledClientState.INVALID) {
+        state = PooledClientState.INVALID;
+        return true;
+      }
+    }
     return false;
   }
 
   @Override
-  public synchronized void invalidate() {
-    state = PooledClientState.INVALID;
-  }
+  public void markReturning() {
 
-  @Override
-  public synchronized void markAbandoned() {
-    state = PooledClientState.ABANDONED;
-  }
-
-  @Override
-  public synchronized void markReturning() {
-    state = PooledClientState.RETURNING;
+    synchronized (this) {
+      if (state != PooledClientState.ALLOCATED) {
+        throw new IllegalStateException(
+            "Client has already been returned to this pool or is invalid");
+      }
+      state = PooledClientState.RETURNING;
+    }
   }
 }

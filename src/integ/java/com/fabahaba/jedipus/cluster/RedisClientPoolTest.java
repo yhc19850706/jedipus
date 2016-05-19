@@ -1,10 +1,12 @@
 package com.fabahaba.jedipus.cluster;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -150,13 +152,13 @@ public class RedisClientPoolTest extends BaseRedisClientTest {
     }
 
     @Override
-    public void destroyObject(final PooledClient<RedisClient> poolObj) throws Exception {
+    public void destroyClient(final PooledClient<RedisClient> pooledClient) {
 
       destroyed.incrementAndGet();
     }
 
     @Override
-    public PooledClient<RedisClient> makeObject() throws Exception {
+    public PooledClient<RedisClient> createClient() {
 
       return new DefaultPooledClient<>(new CrashingClient());
     }
@@ -226,6 +228,25 @@ public class RedisClientPoolTest extends BaseRedisClientTest {
       } finally {
         RedisClientPool.returnClient(pool, client);
       }
+    }
+  }
+
+  @Test
+  public void testEvictionRuns() throws InterruptedException {
+
+    try (final ClientPool<RedisClient> pool = ClientPool.startBuilding().withMaxTotal(2)
+        .withDurationBetweenEvictionRuns(Duration.ofMillis(20)).withTestWhileIdle(true)
+        .withSoftMinEvictableIdleDuration(Duration.ofMillis(40)).withBlockWhenExhausted(false)
+        .create(DEFAULT_POOLED_CLIENT_FACTORY)) {
+
+      final RedisClient client = RedisClientPool.borrowClient(pool);
+      final RedisClient client2 = RedisClientPool.borrowClient(pool);
+      RedisClientPool.returnClient(pool, client);
+      client2.close();
+      RedisClientPool.returnClient(pool, client2);
+      assertFalse(client.isBroken());
+      Thread.sleep(80);
+      assertTrue(client.isBroken());
     }
   }
 

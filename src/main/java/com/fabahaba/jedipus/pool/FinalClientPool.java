@@ -5,7 +5,7 @@ import java.util.ArrayDeque;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -25,70 +25,69 @@ final class FinalClientPool<C> implements ClientPool<C> {
   private final boolean testOnBorrow;
   private final boolean testOnReturn;
   private final boolean testWhileIdle;
+
   private final int numTestsPerEvictionRun;
   private final EvictionConfig evictionConfig;
-
   private final EvictionStrategy<C> evictionPolicy;
+  private final ScheduledThreadPoolExecutor evictionRunExecutor;
+  private final ExecutorService evictionExecutor;
 
-  private final PooledClientFactory<C> factory;
+  private final PooledClientFactory<C> clientFactory;
 
-  private final AtomicLong createCount;
-  private final StampedLock allObjLock;
-  private final IdentityHashMap<C, PooledClient<C>> allObjects;
+  private final AtomicLong totalClients;
+  private final StampedLock allClientsLock;
+  private final IdentityHashMap<C, PooledClient<C>> allClients;
 
-  private final ReentrantLock idleQLock;
-  private final Condition newIdleObject;
-  private final ArrayDeque<PooledClient<C>> idleQ;
+  private final ReentrantLock idleClientsLock;
+  private final Condition newIdleClient;
+  private final ArrayDeque<PooledClient<C>> idleClients;
 
-  private final ScheduledThreadPoolExecutor evictionExecutor;
   private volatile boolean closed = false;
 
-  FinalClientPool(final PooledClientFactory<C> factory, final Builder builder,
+  FinalClientPool(final PooledClientFactory<C> clientFactory, final Builder poolBuilder,
       final EvictionStrategy<C> evictionStrategy) {
 
-    this.lifo = builder.isLifo();
-    this.fairness = builder.isFair();
-    this.maxTotal = builder.getMaxTotal() < 0 ? Integer.MAX_VALUE : builder.getMaxTotal();
-    this.maxIdle = Math.min(maxTotal, builder.getMaxIdle());
-    this.blockWhenExhausted = builder.isBlockWhenExhausted();
-    this.maxWaitMillis = builder.getMaxWaitDuration() != null && blockWhenExhausted
-        ? builder.getMaxWaitDuration().toMillis() : -1;
-    this.testOnCreate = builder.isTestOnCreate();
-    this.testOnBorrow = builder.isTestOnBorrow();
-    this.testOnReturn = builder.isTestOnReturn();
-    this.testWhileIdle = builder.isTestWhileIdle();
-    this.numTestsPerEvictionRun = builder.getNumTestsPerEvictionRun();
-    this.evictionConfig = new EvictionConfig(builder.getMinEvictableIdleDuration(),
-        builder.getSoftMinEvictableIdleDuration(), Math.min(builder.getMinIdle(), maxIdle));
-    this.evictionPolicy = evictionStrategy;
+    this.lifo = poolBuilder.isLifo();
+    this.fairness = poolBuilder.isFair();
+    this.maxTotal = poolBuilder.getMaxTotal() < 0 ? Integer.MAX_VALUE : poolBuilder.getMaxTotal();
+    this.maxIdle = Math.min(maxTotal, poolBuilder.getMaxIdle());
+    this.blockWhenExhausted = poolBuilder.isBlockWhenExhausted();
+    this.maxWaitMillis = poolBuilder.getMaxBlockDuration() != null && blockWhenExhausted
+        ? poolBuilder.getMaxBlockDuration().toMillis() : Long.MIN_VALUE;
+    this.testOnCreate = poolBuilder.isTestOnCreate();
+    this.testOnBorrow = poolBuilder.isTestOnBorrow();
+    this.testOnReturn = poolBuilder.isTestOnReturn();
+    this.testWhileIdle = poolBuilder.isTestWhileIdle();
 
-    if (factory == null) {
+    if (clientFactory == null) {
       throw new IllegalStateException("Cannot add objects without a factory.");
     }
-    this.factory = factory;
+    this.clientFactory = clientFactory;
 
-    this.createCount = new AtomicLong(0);
-    this.allObjLock = new StampedLock();
-    this.allObjects = new IdentityHashMap<>(Math.min(128, maxTotal));
+    this.totalClients = new AtomicLong(0);
+    this.allClientsLock = new StampedLock();
+    this.allClients = new IdentityHashMap<>(Math.min(128, maxTotal));
 
-    this.idleQLock = new ReentrantLock(fairness);
-    this.newIdleObject = idleQLock.newCondition();
-    this.idleQ = new ArrayDeque<>(maxIdle);
+    this.idleClientsLock = new ReentrantLock(fairness);
+    this.newIdleClient = idleClientsLock.newCondition();
+    this.idleClients = new ArrayDeque<>(maxIdle);
 
-    if (builder.getTimeBetweenEvictionRunsDuration() == null) {
-      this.evictionExecutor = null;
+    this.numTestsPerEvictionRun = poolBuilder.getNumTestsPerEvictionRun();
+    this.evictionConfig = new EvictionConfig(poolBuilder.getMinEvictableIdleDuration(),
+        poolBuilder.getSoftMinEvictableIdleDuration(), Math.min(poolBuilder.getMinIdle(), maxIdle));
+    this.evictionPolicy = evictionStrategy;
+    this.evictionExecutor = poolBuilder.getEvictionExecutor();
+    if (poolBuilder.getDurationBetweenEvictionRuns() == null) {
+      this.evictionRunExecutor = null;
     } else {
-      this.evictionExecutor = new ScheduledThreadPoolExecutor(1);
+      this.evictionRunExecutor = new ScheduledThreadPoolExecutor(1);
 
-      final long evictionDelayNanos = builder.getTimeBetweenEvictionRunsDuration().toNanos();
-      evictionExecutor.scheduleWithFixedDelay(() -> {
-        evict();
+      final long evictionDelayNanos = poolBuilder.getDurationBetweenEvictionRuns().toNanos();
+      evictionRunExecutor.scheduleWithFixedDelay(() -> {
+        execEvictionTests();
         try {
-          ensureMinIdle();
-        } catch (final InterruptedException ie) {
-          Thread.currentThread().interrupt();
-          throw new RuntimeException(ie);
-        } catch (final Exception e) {
+          ensureMinIdle(getMinIdle());
+        } catch (final RuntimeException e) {
           //
         }
       }, evictionDelayNanos, evictionDelayNanos, TimeUnit.NANOSECONDS);
@@ -151,125 +150,48 @@ final class FinalClientPool<C> implements ClientPool<C> {
     return evictionConfig.getIdleSoftEvictDuration();
   }
 
-  private PooledClient<C> create() throws Exception {
+  private PooledClient<C> create() {
 
-    final long newCreateCount = createCount.incrementAndGet();
+    final long newCreateCount = totalClients.incrementAndGet();
 
     if (newCreateCount > maxTotal) {
-      createCount.decrementAndGet();
+      totalClients.decrementAndGet();
       return null;
     }
 
     try {
-      final PooledClient<C> pooledObj = factory.makeObject();
+      final PooledClient<C> pooledClient = clientFactory.createClient();
 
-      final long writeStamp = allObjLock.writeLock();
+      final long writeStamp = allClientsLock.writeLock();
       try {
-        allObjects.put(pooledObj.getObject(), pooledObj);
+        allClients.put(pooledClient.getClient(), pooledClient);
       } finally {
-        allObjLock.unlockWrite(writeStamp);
+        allClientsLock.unlockWrite(writeStamp);
       }
 
-      return pooledObj;
-    } catch (final InterruptedException ie) {
-      createCount.decrementAndGet();
-      Thread.currentThread().interrupt();
-      throw new RuntimeException(ie);
-    } catch (final Exception e) {
-      createCount.decrementAndGet();
+      return pooledClient;
+    } catch (final RuntimeException e) {
+      totalClients.decrementAndGet();
       throw e;
     }
   }
 
-  private void destroy(final PooledClient<C> toDestory) {
-
-    toDestory.invalidate();
-
-    final long writeStamp = allObjLock.writeLock();
-    try {
-      allObjects.remove(toDestory.getObject());
-    } finally {
-      allObjLock.unlockWrite(writeStamp);
-    }
-
-    try {
-      factory.destroyObject(toDestory);
-    } catch (final InterruptedException ie) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException(ie);
-    } catch (final Exception e2) {
-      //
-    } finally {
-      createCount.decrementAndGet();
-    }
-  }
-
-  private void destroyIdle(final PooledClient<C> toDestory) {
-
-    toDestory.invalidate();
-
-    idleQLock.lock();
-    try {
-      idleQ.remove(toDestory);
-      if (idleQ.size() < getMinIdle()) {
-        newIdleObject.signal();
-      }
-    } finally {
-      idleQLock.unlock();
-    }
-
-    final long writeStamp = allObjLock.writeLock();
-    try {
-      allObjects.remove(toDestory.getObject());
-    } finally {
-      allObjLock.unlockWrite(writeStamp);
-    }
-
-    try {
-      factory.destroyObject(toDestory);
-    } catch (final InterruptedException ie) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException(ie);
-    } catch (final Exception e2) {
-      //
-    } finally {
-      createCount.decrementAndGet();
-    }
-  }
 
   @Override
-  public C borrowObject() throws Exception {
+  public C borrowClient() {
 
-    return maxWaitMillis <= 0 ? pollOrCreate() : pollOrCreate(maxWaitMillis);
+    return maxWaitMillis == Long.MIN_VALUE ? pollOrCreateClient() : pollOrCreate(maxWaitMillis);
   }
 
-  C pollOrCreate(final long maxWaitMillis) throws Exception {
+  C pollOrCreate(final long maxWaitMillis) {
 
     CREATE: for (final long deadline = System.currentTimeMillis() + maxWaitMillis;;) {
       assertOpen();
 
-      PooledClient<C> pooledObj = null;
-
-      if (!idleQ.isEmpty()) {
-        idleQLock.lock();
-        try {
-          pooledObj = idleQ.pollFirst();
-        } finally {
-          idleQLock.unlock();
-        }
-      }
-
-      if (pooledObj != null) {
-        if (activate(pooledObj, false)) {
-          return pooledObj.getObject();
-        }
-        continue;
-      }
-
-      pooledObj = create();
-      if (pooledObj != null) {
-        if (activate(pooledObj, true)) {
-          return pooledObj.getObject();
+      PooledClient<C> pooledClient = pollOrCreatePooledClient();
+      if (pooledClient != null) {
+        if (activate(pooledClient, true)) {
+          return pooledClient.getClient();
         }
         continue;
       }
@@ -278,66 +200,71 @@ final class FinalClientPool<C> implements ClientPool<C> {
         throw new NoSuchElementException("Pool exhausted.");
       }
 
-      idleQLock.lock();
+      idleClientsLock.lock();
       try {
         for (;;) {
-          if (idleQ.peek() != null) {
-            pooledObj = idleQ.pollFirst();
+          if (idleClients.peek() != null) {
+            pooledClient = idleClients.pollFirst();
             break;
           }
 
           final long maxWait = deadline - System.currentTimeMillis();
-          if (maxWait <= 0 || !newIdleObject.await(maxWait, TimeUnit.MILLISECONDS)) {
+          if (maxWait <= 0 || !newIdleClient.await(maxWait, TimeUnit.MILLISECONDS)) {
             throw new NoSuchElementException("Pool exhausted, timed out waiting for object.");
           }
           assertOpen();
 
-          pooledObj = idleQ.pollFirst();
-          if (pooledObj != null) {
+          pooledClient = idleClients.pollFirst();
+          if (pooledClient != null) {
             break;
           }
 
-          if (createCount.get() < maxTotal) {
+          if (totalClients.get() < maxTotal) {
             continue CREATE;
           }
         }
+      } catch (final InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException(e);
       } finally {
-        idleQLock.unlock();
+        idleClientsLock.unlock();
       }
 
-      if (activate(pooledObj, false)) {
-        return pooledObj.getObject();
+      if (activate(pooledClient, false)) {
+        return pooledClient.getClient();
       }
     }
   }
 
-  C pollOrCreate() throws Exception {
+  private PooledClient<C> pollOrCreatePooledClient() {
+
+    PooledClient<C> pooledClient = null;
+
+    if (!idleClients.isEmpty()) {
+      idleClientsLock.lock();
+      try {
+        pooledClient = idleClients.pollFirst();
+      } finally {
+        idleClientsLock.unlock();
+      }
+    }
+
+    if (pooledClient != null) {
+      return pooledClient;
+    }
+
+    return create();
+  }
+
+  C pollOrCreateClient() {
 
     CREATE: for (;;) {
       assertOpen();
 
-      PooledClient<C> pooledObj = null;
-
-      if (!idleQ.isEmpty()) {
-        idleQLock.lock();
-        try {
-          pooledObj = idleQ.pollFirst();
-        } finally {
-          idleQLock.unlock();
-        }
-      }
-
-      if (pooledObj != null) {
-        if (activate(pooledObj, false)) {
-          return pooledObj.getObject();
-        }
-        continue;
-      }
-
-      pooledObj = create();
-      if (pooledObj != null) {
-        if (activate(pooledObj, true)) {
-          return pooledObj.getObject();
+      PooledClient<C> pooledClient = pollOrCreatePooledClient();
+      if (pooledClient != null) {
+        if (activate(pooledClient, true)) {
+          return pooledClient.getClient();
         }
         continue;
       }
@@ -346,75 +273,64 @@ final class FinalClientPool<C> implements ClientPool<C> {
         throw new NoSuchElementException("Pool exhausted.");
       }
 
-      idleQLock.lock();
+      idleClientsLock.lock();
       try {
         for (;;) {
-          if (idleQ.peek() != null) {
-            pooledObj = idleQ.pollFirst();
+          if (idleClients.peek() != null) {
+            pooledClient = idleClients.pollFirst();
             break;
           }
 
-          newIdleObject.await();
+          newIdleClient.await();
           assertOpen();
 
-          pooledObj = idleQ.pollFirst();
-          if (pooledObj != null) {
+          pooledClient = idleClients.pollFirst();
+          if (pooledClient != null) {
             break;
           }
 
-          if (createCount.get() < maxTotal) {
+          if (totalClients.get() < maxTotal) {
             continue CREATE;
           }
         }
+      } catch (final InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException(e);
       } finally {
-        idleQLock.unlock();
+        idleClientsLock.unlock();
       }
 
-      if (activate(pooledObj, false)) {
-        return pooledObj.getObject();
+      if (activate(pooledClient, false)) {
+        return pooledClient.getClient();
       }
     }
   }
 
-  private boolean activate(final PooledClient<C> pooledObj, final boolean created) {
+  private boolean activate(final PooledClient<C> pooledClient, final boolean created) {
 
-    try {
-      if (pooledObj.allocate()) {
-        factory.activateObject(pooledObj);
-        return testBorrowed(pooledObj, created);
-      }
-    } catch (final InterruptedException ie) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException(ie);
-    } catch (final Exception e) {
-      destroy(pooledObj);
-      if (created) {
-        final NoSuchElementException nsee = new NoSuchElementException("Unable to activate object");
-        nsee.initCause(e);
-        throw nsee;
-      }
+    if (pooledClient.allocate()) {
+      clientFactory.activateClient(pooledClient);
+      return testBorrowed(pooledClient, created);
     }
     return false;
   }
 
-  private boolean testBorrowed(final PooledClient<C> pooledObj, final boolean created) {
+  private boolean testBorrowed(final PooledClient<C> pooledClient, final boolean created) {
 
     if (!testOnBorrow || testOnCreate && !created) {
       return true;
     }
 
     try {
-      if (factory.validateObject(pooledObj)) {
+      if (clientFactory.validateClient(pooledClient)) {
         return true;
       }
     } catch (final RuntimeException e) {
-      destroy(pooledObj);
-      final NoSuchElementException nsee = new NoSuchElementException("Unable to validate object");
-      nsee.initCause(e);
-      throw nsee;
+      destroy(pooledClient);
+      throw e;
     }
 
-    destroy(pooledObj);
+    destroy(pooledClient);
     if (created) {
       throw new NoSuchElementException("Unable to validate object");
     }
@@ -422,92 +338,122 @@ final class FinalClientPool<C> implements ClientPool<C> {
     return false;
   }
 
-  private PooledClient<C> getPooledObj(final C obj) {
+  private PooledClient<C> getPooledClient(final C client) {
 
-    final long readStamp = allObjLock.readLock();
+    long readStamp = allClientsLock.tryOptimisticRead();
+
+    final PooledClient<C> pooledClient = allClients.get(client);
+    if (allClientsLock.validate(readStamp)) {
+      return pooledClient;
+    }
+
+    readStamp = allClientsLock.readLock();
     try {
-      return allObjects.get(obj);
+      return allClients.get(client);
     } finally {
-      allObjLock.unlockRead(readStamp);
+      allClientsLock.unlockRead(readStamp);
     }
   }
+
+  private void destroy(final PooledClient<C> toDestory) {
+
+    if (!toDestory.invalidate()) {
+      return;
+    }
+
+    final long writeStamp = allClientsLock.writeLock();
+    try {
+      allClients.remove(toDestory.getClient());
+    } finally {
+      allClientsLock.unlockWrite(writeStamp);
+      totalClients.decrementAndGet();
+    }
+
+    clientFactory.destroyClient(toDestory);
+  }
+
+  private void destroyIdle(final PooledClient<C> toDestory) {
+
+    toDestory.invalidate();
+
+    idleClientsLock.lock();
+    try {
+      idleClients.remove(toDestory);
+      if (idleClients.size() < getMinIdle()) {
+        newIdleClient.signal();
+      }
+    } finally {
+      idleClientsLock.unlock();
+    }
+
+    final long writeStamp = allClientsLock.writeLock();
+    try {
+      allClients.remove(toDestory.getClient());
+    } finally {
+      allClientsLock.unlockWrite(writeStamp);
+      totalClients.decrementAndGet();
+    }
+
+    clientFactory.destroyClient(toDestory);
+  }
+
 
   @Override
-  public void returnObject(final C obj) {
+  public void returnClient(final C client) {
 
-    final PooledClient<C> pooledObj = getPooledObj(obj);
-
-    if (pooledObj == null) {
-      return; // Object was abandoned and removed
+    final PooledClient<C> pooledClient = getPooledClient(client);
+    if (pooledClient == null) {
+      return; // Client was abandoned and removed
     }
 
-    final PooledClientState state = pooledObj.getState();
-    if (state != PooledClientState.ALLOCATED) {
-      throw new IllegalStateException(
-          "Object has already been returned to this pool or is invalid");
-    }
-
-    pooledObj.markReturning(); // Keep from being marked abandoned
-
-    if (testOnReturn) {
-      if (!factory.validateObject(pooledObj)) {
-        destroy(pooledObj);
-        try {
-          ensureIdle(1);
-          return;
-        } catch (final InterruptedException ie) {
-          Thread.currentThread().interrupt();
-          throw new RuntimeException(ie);
-        } catch (final Exception e) {
-          return;
-        }
-      }
-    }
+    pooledClient.markReturning();
 
     try {
-      factory.passivateObject(pooledObj);
-    } catch (final Exception e1) {
-
-      destroy(pooledObj);
-      try {
-        if (getMinIdle() > 0) {
-          ensureIdle(1);
+      if (testOnReturn) {
+        if (!clientFactory.validateClient(pooledClient)) {
+          destroy(pooledClient);
+          if (getMinIdle() > 0) {
+            ensureMinIdle(1);
+          }
+          return;
         }
-        return;
-      } catch (final InterruptedException ie) {
-        Thread.currentThread().interrupt();
-        throw new RuntimeException(ie);
-      } catch (final Exception e) {
-        return;
       }
+
+      clientFactory.passivateClient(pooledClient);
+    } catch (final RuntimeException e) {
+      destroy(pooledClient);
+      if (getMinIdle() > 0) {
+        ensureMinIdle(1);
+      }
+      throw e;
     }
 
-    if (!pooledObj.deallocate()) {
+    if (!pooledClient.deallocate()) {
       throw new IllegalStateException(
-          "Object has already been returned to this pool or is invalid.");
+          "Client has already been returned to this pool or is invalid.");
     }
 
-    addIdleObj(pooledObj);
+    addIdleClient(pooledClient);
   }
 
-  private void addIdleObj(final PooledClient<C> pooledObj) {
+  private void addIdleClient(final PooledClient<C> pooledClient) {
 
-    idleQLock.lock();
+    idleClientsLock.lock();
     try {
-      if (!closed && idleQ.size() < maxIdle) {
+      if (!closed && idleClients.size() < maxIdle) {
         if (lifo) {
-          idleQ.addFirst(pooledObj);
+          idleClients.addFirst(pooledClient);
         } else {
-          idleQ.addLast(pooledObj);
+          idleClients.addLast(pooledClient);
         }
-        newIdleObject.signal();
+        newIdleClient.signal();
         return;
       }
     } finally {
-      idleQLock.unlock();
+      idleClientsLock.unlock();
     }
 
-    destroy(pooledObj);
+    destroy(pooledClient);
   }
 
   private final void assertOpen() throws IllegalStateException {
@@ -518,11 +464,11 @@ final class FinalClientPool<C> implements ClientPool<C> {
 
   private int getNumTests() {
 
-    if (numTestsPerEvictionRun >= 0) {
-      return Math.min(numTestsPerEvictionRun, idleQ.size());
+    if (numTestsPerEvictionRun < 0) {
+      return (int) (Math.ceil(idleClients.size() / Math.abs((double) numTestsPerEvictionRun)));
     }
 
-    return (int) (Math.ceil(idleQ.size() / Math.abs((double) numTestsPerEvictionRun)));
+    return Math.min(numTestsPerEvictionRun, idleClients.size());
   }
 
   private void tryEvict(final PooledClient<C> underTest) {
@@ -531,127 +477,110 @@ final class FinalClientPool<C> implements ClientPool<C> {
       return;
     }
 
-    try {
-      if (evictionPolicy.evict(underTest, idleQ.size())) {
-        destroyIdle(underTest);
-        return;
-      }
-    } catch (final Exception e) {
-      //
+    if (evictionPolicy.evict(underTest, idleClients.size())) {
+      destroyIdle(underTest);
+      return;
     }
 
     if (testWhileIdle) {
       try {
-        factory.activateObject(underTest);
+        clientFactory.activateClient(underTest);
 
-        if (!factory.validateObject(underTest)) {
+        if (!clientFactory.validateClient(underTest)) {
           destroyIdle(underTest);
         } else {
-          try {
-            factory.passivateObject(underTest);
-          } catch (final InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(ie);
-          } catch (final Exception e) {
-            destroyIdle(underTest);
-          }
+          clientFactory.passivateClient(underTest);
         }
-      } catch (final InterruptedException ie) {
-        Thread.currentThread().interrupt();
-        throw new RuntimeException(ie);
-      } catch (final Exception e) {
+      } catch (final RuntimeException e) {
         destroyIdle(underTest);
+        throw e;
       }
     }
 
-    underTest.endEvictionTest(idleQ);
+    underTest.endEvictionTest(idleClients);
   }
 
-  public void evict() {
+  public void execEvictionTests() {
 
-    if (closed || idleQ.isEmpty()) {
+    if (closed || idleClients.isEmpty()) {
       return;
     }
 
-    idleQLock.lock();
+    idleClientsLock.lock();
     try {
       final Iterator<PooledClient<C>> evictionIterator =
-          lifo ? idleQ.descendingIterator() : idleQ.iterator();
+          lifo ? idleClients.descendingIterator() : idleClients.iterator();
 
       for (int numTested = 0, maxTests = getNumTests(); numTested < maxTests;) {
         final PooledClient<C> underTest = evictionIterator.next();
         if (underTest == null) {
           continue;
         }
-        ForkJoinPool.commonPool().execute(() -> tryEvict(underTest));
+        evictionExecutor.execute(() -> tryEvict(underTest));
         numTested++;
       }
     } finally {
-      idleQLock.unlock();
+      idleClientsLock.unlock();
     }
   }
 
-  private void ensureMinIdle() throws Exception {
-    ensureIdle(getMinIdle());
-  }
+  private void ensureMinIdle(final int minIdle) {
 
-  private void ensureIdle(final int idleCount) throws Exception {
+    while (!closed && idleClients.size() < minIdle) {
 
-    while (!closed && idleQ.size() < idleCount) {
+      final PooledClient<C> pooledClient = create();
 
-      final PooledClient<C> pooledObj = create();
-
-      if (pooledObj == null) {
+      if (pooledClient == null) {
         return;
       }
 
-      addIdleObj(pooledObj);
+      addIdleClient(pooledClient);
     }
   }
 
   @Override
   public int getNumActive() {
-    return allObjects.size() - idleQ.size();
+    return allClients.size() - idleClients.size();
   }
 
   @Override
   public int getNumIdle() {
-    return idleQ.size();
+    return idleClients.size();
   }
 
   @Override
-  public void invalidateObject(final C obj) throws Exception {
+  public void invalidateClient(final C client) {
 
-    final PooledClient<C> pooledObj = getPooledObj(obj);
+    final PooledClient<C> pooledClient = getPooledClient(client);
 
-    if (pooledObj == null) {
-      throw new IllegalStateException("Invalidated object not currently part of this pool");
+    if (pooledClient == null) {
+      throw new IllegalStateException("Invalidated object not currently part of this pool.");
     }
 
-    if (pooledObj.getState() != PooledClientState.INVALID) {
-      destroy(pooledObj);
+    destroy(pooledClient);
+    if (getMinIdle() > 0) {
+      ensureMinIdle(1);
     }
-
-    ensureIdle(1);
   }
 
   @Override
   public void clear() {
 
-    idleQLock.lock();
+    idleClientsLock.lock();
     try {
-      for (PooledClient<C> pooledObj = idleQ.poll(); pooledObj != null; pooledObj = idleQ.poll()) {
-        destroy(pooledObj);
+      for (PooledClient<C> pooledClient = idleClients.poll(); pooledClient != null; pooledClient =
+          idleClients.poll()) {
+        destroy(pooledClient);
       }
     } finally {
-      idleQLock.unlock();
+      idleClientsLock.unlock();
     }
 
-    final long writeStamp = allObjLock.writeLock();
+    final long writeStamp = allClientsLock.writeLock();
     try {
-      allObjects.clear();
+      allClients.clear();
     } finally {
-      allObjLock.unlockWrite(writeStamp);
+      allClientsLock.unlockWrite(writeStamp);
     }
   }
 
@@ -667,21 +596,22 @@ final class FinalClientPool<C> implements ClientPool<C> {
       return;
     }
 
-    idleQLock.lock();
+    idleClientsLock.lock();
     try {
       if (closed) {
         return;
       }
 
       closed = true;
-      if (evictionExecutor != null) {
+      if (evictionRunExecutor != null) {
+        evictionRunExecutor.shutdownNow();
         evictionExecutor.shutdownNow();
       }
 
       clear();
-      newIdleObject.signalAll();
+      newIdleClient.signalAll();
     } finally {
-      idleQLock.unlock();
+      idleClientsLock.unlock();
     }
   }
 }

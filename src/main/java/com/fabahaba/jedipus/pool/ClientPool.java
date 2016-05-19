@@ -2,22 +2,24 @@ package com.fabahaba.jedipus.pool;
 
 import java.time.Duration;
 import java.util.NoSuchElementException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
 
 import com.fabahaba.jedipus.pool.EvictionStrategy.DefaultEvictionStrategy;
 
 public interface ClientPool<C> extends AutoCloseable {
 
-  C borrowObject() throws Exception, NoSuchElementException, IllegalStateException;
+  C borrowClient() throws NoSuchElementException, IllegalStateException;
 
-  void returnObject(C obj) throws Exception;
+  void returnClient(C client);
 
-  void invalidateObject(C obj) throws Exception;
+  void invalidateClient(C client);
 
   int getNumIdle();
 
   int getNumActive();
 
-  void clear() throws Exception, UnsupportedOperationException;
+  void clear();
 
   @Override
   void close();
@@ -38,7 +40,7 @@ public interface ClientPool<C> extends AutoCloseable {
     private boolean lifo = true;
     private boolean fair = false;
     // Null blocks forever
-    private Duration maxWaitDuration = null;
+    private Duration maxBlockDuration = null;
     private boolean blockWhenExhausted = true;
     // Evict after 5 minutes regardless of min idle.
     private Duration minEvictableIdleDuration = DEFAULT_MIN_EVICTABLE_IDLE_DURATION;
@@ -46,8 +48,9 @@ public interface ClientPool<C> extends AutoCloseable {
     private Duration softMinEvictableIdleDuration = DEFAULT_SOFT_MIN_EVICTABLE_IDLE_DURATION;
     // Leave null for no eviction runs. Max idle and max total will be managed by create and return
     // methods.
-    private Duration timeBetweenEvictionRunsDuration = null;
+    private Duration durationBetweenEvictionRuns = null;
     private int numTestsPerEvictionRun = -1;
+    private ExecutorService evictionExecutor = ForkJoinPool.commonPool();
     private boolean testOnCreate = false;
     private boolean testOnBorrow = false;
     private boolean testOnReturn = false;
@@ -61,7 +64,7 @@ public interface ClientPool<C> extends AutoCloseable {
     public <C> ClientPool<C> create(final PooledClientFactory<C> clientFactory) {
 
       return new FinalClientPool<>(clientFactory, this,
-          timeBetweenEvictionRunsDuration == null ? null
+          durationBetweenEvictionRuns == null ? null
               : new DefaultEvictionStrategy<>(softMinEvictableIdleDuration,
                   minEvictableIdleDuration, minIdle));
     }
@@ -90,12 +93,12 @@ public interface ClientPool<C> extends AutoCloseable {
       return this;
     }
 
-    public Duration getMaxWaitDuration() {
-      return maxWaitDuration;
+    public Duration getMaxBlockDuration() {
+      return maxBlockDuration;
     }
 
-    public Builder withMaxWaitDuration(final Duration maxWaitDuration) {
-      this.maxWaitDuration = maxWaitDuration;
+    public Builder withMaxBlockDuration(final Duration maxBlockDuration) {
+      this.maxBlockDuration = maxBlockDuration;
       return this;
     }
 
@@ -162,13 +165,22 @@ public interface ClientPool<C> extends AutoCloseable {
       return this;
     }
 
-    public Duration getTimeBetweenEvictionRunsDuration() {
-      return timeBetweenEvictionRunsDuration;
+    public Duration getDurationBetweenEvictionRuns() {
+      return durationBetweenEvictionRuns;
     }
 
-    public Builder withTimeBetweenEvictionRunsDuration(
-        final Duration timeBetweenEvictionRunsDuration) {
-      this.timeBetweenEvictionRunsDuration = timeBetweenEvictionRunsDuration;
+    public Builder withDurationBetweenEvictionRuns(
+        final Duration durationBetweenEvictionRuns) {
+      this.durationBetweenEvictionRuns = durationBetweenEvictionRuns;
+      return this;
+    }
+
+    public ExecutorService getEvictionExecutor() {
+      return evictionExecutor;
+    }
+
+    public Builder withEvictionExecutor(final ExecutorService evictionExecutor) {
+      this.evictionExecutor = evictionExecutor;
       return this;
     }
 

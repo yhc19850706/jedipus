@@ -11,7 +11,7 @@ final class RedisClientPool {
   static RedisClient borrowClient(final ClientPool<RedisClient> pool) {
 
     try {
-      return pool.borrowObject();
+      return pool.borrowClient();
     } catch (final RuntimeException re) {
       throw re;
     } catch (final Exception e) {
@@ -27,7 +27,7 @@ final class RedisClientPool {
 
     if (client.isBroken()) {
       try {
-        pool.invalidateObject(client);
+        pool.invalidateClient(client);
       } catch (final RuntimeException re) {
         throw re;
       } catch (final Exception e) {
@@ -40,7 +40,7 @@ final class RedisClientPool {
       client.resetState();
     } catch (final RuntimeException re) {
       try {
-        pool.invalidateObject(client);
+        pool.invalidateClient(client);
       } catch (final RuntimeException re2) {
         throw re2;
       } catch (final Exception e) {
@@ -51,7 +51,7 @@ final class RedisClientPool {
     }
 
     try {
-      pool.returnObject(client);
+      pool.returnClient(client);
     } catch (final RuntimeException re) {
       throw re;
     } catch (final Exception e) {
