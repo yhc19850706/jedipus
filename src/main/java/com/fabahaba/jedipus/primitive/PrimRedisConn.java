@@ -81,15 +81,15 @@ final class PrimRedisConn extends RedisConn {
     this.replyMode = replyMode;
   }
 
-  public boolean isInMulti() {
+  boolean isInMulti() {
     return multi;
   }
 
-  public boolean isWatching() {
+  boolean isWatching() {
     return watching;
   }
 
-  public void multi() {
+  void multi() {
     switch (replyMode) {
       case ON:
         break;
@@ -103,49 +103,49 @@ final class PrimRedisConn extends RedisConn {
     multi = true;
   }
 
-  public void discard() {
+  void discard() {
     sendCmd(MultiCmds.DISCARD.getCmdBytes());
     multi = false;
     watching = false;
   }
 
-  public void exec() {
+  void exec() {
     sendCmd(MultiCmds.EXEC.getCmdBytes());
     multi = false;
     watching = false;
   }
 
-  public void watch(final byte[] key) {
+  void watch(final byte[] key) {
     sendSubCmd(MultiCmds.WATCH.getCmdBytes(), key);
     watching = true;
   }
 
-  public void watch(final byte[]... keys) {
+  void watch(final byte[]... keys) {
     sendCmd(MultiCmds.WATCH.getCmdBytes(), keys);
     watching = true;
   }
 
-  public void watch(final String... keys) {
+  void watch(final String... keys) {
     sendCmd(MultiCmds.WATCH.getCmdBytes(), keys);
     watching = true;
   }
 
-  public void unwatch() {
+  void unwatch() {
     sendCmd(MultiCmds.UNWATCH.getCmdBytes());
     watching = false;
   }
 
-  public void resetState() {
+  void resetState() {
+    flushOS();
+    drain();
     if (isInMulti()) {
-      skip().discard();
-    }
-
-    if (isWatching()) {
-      skip().unwatch();
+      discard();
+      flushOS();
+      ClientCmds.CLIENT_REPLY.apply(getReply(MultiCmds.DISCARD.raw()));
     }
   }
 
-  public <T> T getReply(final Function<Object, T> responseHandler) {
+  <T> T getReply(final Function<Object, T> responseHandler) {
     flushOS();
     switch (replyMode) {
       case OFF:
@@ -160,7 +160,7 @@ final class PrimRedisConn extends RedisConn {
     }
   }
 
-  public long[] getLongArrayReply(final Function<long[], long[]> responseHandler) {
+  long[] getLongArrayReply(final Function<long[], long[]> responseHandler) {
     flushOS();
     switch (replyMode) {
       case OFF:
@@ -175,7 +175,7 @@ final class PrimRedisConn extends RedisConn {
     }
   }
 
-  public long getReply(final LongUnaryOperator responseHandler) {
+  long getReply(final LongUnaryOperator responseHandler) {
     flushOS();
     switch (replyMode) {
       case OFF:

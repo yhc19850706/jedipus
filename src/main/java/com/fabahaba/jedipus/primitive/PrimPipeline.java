@@ -31,6 +31,7 @@ final class PrimPipeline implements RedisPipeline {
   public void close() {
     pipelineReplies.clear();
     client.closeMulti();
+    client.conn.resetState();
   }
 
   private <T> FutureReply<T> queueFutureReply(final Function<Object, T> builder) {

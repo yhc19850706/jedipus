@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 
 import com.fabahaba.jedipus.client.RedisClient;
+import com.fabahaba.jedipus.client.RedisPipeline;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.RedisException;
@@ -179,32 +180,32 @@ public class RedisClientPoolTest extends BaseRedisClientTest {
     }
   }
 
-  // @Test(timeout = 1000)
-  // public void returnResourceShouldResetState() {
-  //
-  // try (final ClientPool<RedisClient> pool = ClientPool.startBuilding().withMaxTotal(1)
-  // .withBlockWhenExhausted(false).create(DEFAULT_POOLED_CLIENT_FACTORY)) {
-  //
-  // final RedisClient client = RedisClientPool.borrowClient(pool);
-  // try {
-  // client.sendCmd(Cmds.SET, "hello", "client");
-  // final RedisTransaction multi = client.createMulti();
-  // multi.sendCmd(Cmds.SET, "hello", "world");
-  // } finally {
-  // RedisClientPool.returnClient(pool, client);
-  // }
-  //
-  // final RedisClient client2 = RedisClientPool.borrowClient(pool);
-  // try {
-  // assertTrue(client == client2);
-  // assertEquals("client", client2.sendCmd(Cmds.GET, "hello"));
-  // } finally {
-  // RedisClientPool.returnClient(pool, client2);
-  // }
-  //
-  // }
-  // assertTrue(pool.isClosed());
-  // }
+  @Test
+  public void returnResourceShouldResetState() {
+
+    try (final ClientPool<RedisClient> pool = ClientPool.startBuilding().withMaxTotal(1)
+        .withBlockWhenExhausted(false).create(DEFAULT_POOLED_CLIENT_FACTORY)) {
+
+      final RedisClient client = RedisClientPool.borrowClient(pool);
+      try {
+        client.sendCmd(Cmds.SET, "hello", "client");
+        try (final RedisPipeline pipeline = client.pipeline()) {
+          pipeline.multi();
+          pipeline.sendCmd(Cmds.SET, "hello", "world");
+        }
+      } finally {
+        RedisClientPool.returnClient(pool, client);
+      }
+
+      final RedisClient client2 = RedisClientPool.borrowClient(pool);
+      try {
+        assertTrue(client == client2);
+        assertEquals("client", client2.sendCmd(Cmds.GET, "hello"));
+      } finally {
+        RedisClientPool.returnClient(pool, client2);
+      }
+    }
+  }
 
   @Test(timeout = 1000)
   public void checkResourceIsCloseable() {
