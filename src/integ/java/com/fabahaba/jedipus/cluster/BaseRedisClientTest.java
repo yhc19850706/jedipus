@@ -25,8 +25,6 @@ public class BaseRedisClientTest {
       DEFAULT_POOLED_CLIENT_FACTORY_BUILDER.createPooled(DEFAULT_NODE);
 
   protected static final ClientPool.Builder DEFAULT_POOL_BUILDER =
-      ClientPool.startBuilding().withMaxIdle(4).withMinIdle(2).withMaxTotal(8)
-          .withTimeBetweenEvictionRunsDuration(Duration.ofSeconds(15)).withTestWhileIdle(true)
-          .withNumTestsPerEvictionRun(4).withBlockWhenExhausted(true)
+      ClientPool.startBuilding().withTestWhileIdle(true).withBlockWhenExhausted(true)
           .withMaxWaitDuration(Duration.ofMillis(200));
 }

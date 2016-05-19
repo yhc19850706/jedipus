@@ -37,14 +37,14 @@ public interface ClientPool<C> extends AutoCloseable {
 
     private boolean lifo = true;
     private boolean fair = false;
-    // Defaults to block forever
+    // Null blocks forever
     private Duration maxWaitDuration = null;
     private boolean blockWhenExhausted = true;
     // Evict after 5 minutes regardless of min idle.
     private Duration minEvictableIdleDuration = DEFAULT_MIN_EVICTABLE_IDLE_DURATION;
     // Evict after 30 seconds if more than min idle.
     private Duration softMinEvictableIdleDuration = DEFAULT_SOFT_MIN_EVICTABLE_IDLE_DURATION;
-    // Defaults to no eviction runs. Max idle and max total will be maanged by create and return
+    // Leave null for no eviction runs. Max idle and max total will be managed by create and return
     // methods.
     private Duration timeBetweenEvictionRunsDuration = null;
     private int numTestsPerEvictionRun = -1;
@@ -53,7 +53,7 @@ public interface ClientPool<C> extends AutoCloseable {
     private boolean testOnReturn = false;
     private boolean testWhileIdle = false;
     private int maxTotal = MAX_IDLE * 2;
-    private int maxIdle = MAX_IDLE;
+    private int maxIdle = maxTotal;
     private int minIdle = 0;
 
     private Builder() {}

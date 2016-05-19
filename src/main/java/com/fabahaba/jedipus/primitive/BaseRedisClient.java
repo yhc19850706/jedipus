@@ -318,21 +318,32 @@ abstract class BaseRedisClient implements RedisClient {
     return conn.getReply(cmd);
   }
 
-  public String watch(final byte[]... keys) {
-
+  @Override
+  public String watch(final String... keys) {
     conn.watch(keys);
     return conn.getReply(MultiCmds.WATCH);
   }
 
-  public String unwatch() {
+  @Override
+  public String watch(final byte[] key) {
+    conn.watch(key);
+    return conn.getReply(MultiCmds.WATCH);
+  }
 
+  @Override
+  public String watch(final byte[]... keys) {
+    conn.watch(keys);
+    return conn.getReply(MultiCmds.WATCH);
+  }
+
+  @Override
+  public String unwatch() {
     conn.unwatch();
     return conn.getReply(MultiCmds.UNWATCH);
   }
 
   @Override
   public void close() {
-
     try {
       skip().sendCmd(Cmds.QUIT);
     } catch (final RuntimeException e) {
@@ -348,7 +359,6 @@ abstract class BaseRedisClient implements RedisClient {
 
   @Override
   public Node getNode() {
-
     return conn.getNode();
   }
 

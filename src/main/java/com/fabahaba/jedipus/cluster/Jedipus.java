@@ -40,9 +40,9 @@ public final class Jedipus implements RedisClusterExecutor {
   private static final Duration DEFAULT_MAX_AWAIT_CACHE_REFRESH = Duration.ofNanos(0);
 
   private static final ClientPool.Builder DEFAULT_POOL_BUILDER =
-      ClientPool.startBuilding().withMaxIdle(4).withMinIdle(2).withMaxTotal(8)
+      ClientPool.startBuilding().withMaxIdle(8).withMinIdle(2).withMaxTotal(8)
           .withTimeBetweenEvictionRunsDuration(Duration.ofSeconds(15)).withTestWhileIdle(true)
-          .withNumTestsPerEvictionRun(4).withBlockWhenExhausted(true).withMaxWaitDuration(null);
+          .withNumTestsPerEvictionRun(6).withBlockWhenExhausted(true);
 
   private static final RedisClientFactory.Builder DEFAULT_REDIS_FACTORY =
       RedisClientFactory.startBuilding();

@@ -1,6 +1,7 @@
 package com.fabahaba.jedipus.client;
 
 import com.fabahaba.jedipus.cmds.Cmds;
+import com.fabahaba.jedipus.cmds.RESP;
 
 public interface RedisClient extends Cmds, AutoCloseable {
 
@@ -8,17 +9,19 @@ public interface RedisClient extends Cmds, AutoCloseable {
     ON, OFF, SKIP
   }
 
+  void asking();
+
   String replyOn();
 
   RedisClient replyOff();
 
   RedisClient skip();
 
-  public int getSoTimeout();
+  int getSoTimeout();
 
-  public boolean isBroken();
+  boolean isBroken();
 
-  public HostPort getHostPort();
+  HostPort getHostPort();
 
   default String getHost() {
 
@@ -30,16 +33,28 @@ public interface RedisClient extends Cmds, AutoCloseable {
     return getHostPort().getPort();
   }
 
-  public RedisPipeline pipeline();
-
-  public void resetState();
+  void resetState();
 
   @Override
-  public void close();
+  void close();
 
-  public String setClientName(final String clientName);
+  String setClientName(final String clientName);
 
-  public String getClientName();
+  String getClientName();
 
-  public String[] getClientList();
+  String[] getClientList();
+
+  RedisPipeline pipeline();
+
+  default String watch(final String key) {
+    return watch(RESP.toBytes(key));
+  }
+
+  String watch(final String... keys);
+
+  String watch(final byte[] key);
+
+  String watch(final byte[]... keys);
+
+  String unwatch();
 }

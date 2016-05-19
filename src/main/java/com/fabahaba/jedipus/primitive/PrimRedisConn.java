@@ -115,7 +115,17 @@ final class PrimRedisConn extends RedisConn {
     watching = false;
   }
 
+  public void watch(final byte[] key) {
+    sendSubCmd(MultiCmds.WATCH.getCmdBytes(), key);
+    watching = true;
+  }
+
   public void watch(final byte[]... keys) {
+    sendCmd(MultiCmds.WATCH.getCmdBytes(), keys);
+    watching = true;
+  }
+
+  public void watch(final String... keys) {
     sendCmd(MultiCmds.WATCH.getCmdBytes(), keys);
     watching = true;
   }

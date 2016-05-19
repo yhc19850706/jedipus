@@ -342,4 +342,28 @@ public class MockRedisClient implements RedisClient {
 
     return null;
   }
+
+  @Override
+  public String watch(final String... keys) {
+
+    return null;
+  }
+
+  @Override
+  public String watch(final byte[] key) {
+
+    return null;
+  }
+
+  @Override
+  public String watch(final byte[]... keys) {
+
+    return null;
+  }
+
+  @Override
+  public String unwatch() {
+
+    return null;
+  }
 }

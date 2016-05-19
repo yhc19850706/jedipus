@@ -8,8 +8,6 @@ import com.fabahaba.jedipus.cluster.Node;
 
 public interface ClusterCmds extends DirectCmds {
 
-  public void asking();
-
   public Node getNode();
 
   default String getNodeId() {
