@@ -37,7 +37,7 @@ public final class RESP {
   public static byte[] toBytes(final String string) {
 
     if (string == null) {
-      throw new RedisUnhandledException(null, "value sent to redis cannot be null");
+      throw new RedisUnhandledException(null, "Values sent to redis cannot be null.");
     }
 
     return string.getBytes(StandardCharsets.UTF_8);

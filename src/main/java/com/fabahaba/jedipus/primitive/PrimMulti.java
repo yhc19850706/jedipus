@@ -51,7 +51,6 @@ class PrimMulti {
     }
 
     client.conn.exec();
-
     return client.conn.getReply(MultiCmds.EXEC);
   }
 
@@ -61,7 +60,6 @@ class PrimMulti {
   }
 
   private MultiExecReplyHandler getMultiExecReplyHandler() {
-
     if (multiExecReplyHandler == null) {
       multiExecReplyHandler = new MultiExecReplyHandler(this);
     }

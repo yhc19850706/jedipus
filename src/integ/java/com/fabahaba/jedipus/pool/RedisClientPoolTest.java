@@ -1,4 +1,4 @@
-package com.fabahaba.jedipus.cluster;
+package com.fabahaba.jedipus.pool;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -16,15 +16,10 @@ import com.fabahaba.jedipus.client.BaseRedisClientTest;
 import com.fabahaba.jedipus.client.MockRedisClient;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.client.RedisPipeline;
-import com.fabahaba.jedipus.cluster.RedisClientPool;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.RedisException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
-import com.fabahaba.jedipus.pool.ClientPool;
-import com.fabahaba.jedipus.pool.DefaultPooledClient;
-import com.fabahaba.jedipus.pool.PooledClient;
-import com.fabahaba.jedipus.pool.PooledClientFactory;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
 public class RedisClientPoolTest extends BaseRedisClientTest {
@@ -39,7 +34,7 @@ public class RedisClientPoolTest extends BaseRedisClientTest {
 
       client.sendCmd(Cmds.SET.raw(), "foo", "bar");
       assertEquals("bar", client.sendCmd(Cmds.GET, "foo"));
-
+      client.sendCmd(Cmds.DEL.raw(), "foo");
       RedisClientPool.returnClient(pool, client);
     }
   }
@@ -57,6 +52,7 @@ public class RedisClientPoolTest extends BaseRedisClientTest {
 
       client = RedisClientPool.borrowClient(pool);
       client.sendCmd(Cmds.INCR.raw(), "foo");
+      client.sendCmd(Cmds.DEL.raw(), "foo");
       RedisClientPool.returnClient(pool, client);
     }
   }
@@ -73,6 +69,7 @@ public class RedisClientPoolTest extends BaseRedisClientTest {
 
       client = RedisClientPool.borrowClient(pool);
       client.sendCmd(Cmds.INCR.raw(), "foo");
+      client.sendCmd(Cmds.DEL.raw(), "foo");
       RedisClientPool.returnClient(pool, client);
     }
   }
@@ -99,6 +96,7 @@ public class RedisClientPoolTest extends BaseRedisClientTest {
 
       final RedisClient client = RedisClientPool.borrowClient(pool);
       client.sendCmd(Cmds.SET.raw(), "foo", "bar");
+      client.sendCmd(Cmds.DEL.raw(), "foo");
       RedisClientPool.returnClient(pool, client);
     }
   }
@@ -119,6 +117,7 @@ public class RedisClientPoolTest extends BaseRedisClientTest {
       assertNull(client1.sendCmd(Cmds.GET.raw(), "foo"));
       client1.sendCmd(Cmds.SELECT.raw(), RESP.toBytes(0));
       assertEquals("bar", client1.sendCmd(Cmds.GET, "foo"));
+      client1.sendCmd(Cmds.DEL, "foo");
       RedisClientPool.returnClient(pool, client1);
     }
   }
@@ -284,7 +283,7 @@ public class RedisClientPoolTest extends BaseRedisClientTest {
 
       final RedisClient client2 = RedisClientPool.borrowClient(pool);
       client.sendCmd(Cmds.SET.raw(), "foo", "bar");
-
+      client.sendCmd(Cmds.DEL.raw(), "foo");
       assertEquals(2, pool.getNumActive());
 
       RedisClientPool.returnClient(pool, client);
@@ -302,6 +301,25 @@ public class RedisClientPoolTest extends BaseRedisClientTest {
     try (final ClientPool<RedisClient> pool = ClientPool.startBuilding()
         .create(RedisClientFactory.startBuilding().withAuth("wrong").createPooled(DEFAULT_NODE))) {
       RedisClientPool.borrowClient(pool);
+    }
+  }
+
+  @Test
+  public void testDefaultDbSelection() {
+
+    final int defaultDb = 2;
+
+    try (final ClientPool<RedisClient> pool = ClientPool.startBuilding().create(RedisClientFactory
+        .startBuilding().withAuth(REDIS_PASS).withDb(defaultDb).createPooled(DEFAULT_NODE))) {
+
+      final RedisClient client = RedisClientPool.borrowClient(pool);
+      client.sendCmd(Cmds.SET.raw(), "foo", "bar");
+      final RedisClient client2 = RedisClientPool.borrowClient(pool);
+      assertEquals("bar", client2.sendCmd(Cmds.GET, "foo"));
+      client.sendCmd(Cmds.SELECT.raw(), RESP.toBytes(0));
+      assertNull(client.sendCmd(Cmds.GET.raw(), "foo"));
+      client.sendCmd(Cmds.SELECT.raw(), RESP.toBytes(defaultDb));
+      assertEquals(1L, client.sendCmd(Cmds.DEL.prim(), "foo"));
     }
   }
 }

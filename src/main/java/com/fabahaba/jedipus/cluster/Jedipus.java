@@ -22,6 +22,7 @@ import com.fabahaba.jedipus.exceptions.RedisRetryableUnhandledException;
 import com.fabahaba.jedipus.exceptions.SlotRedirectException;
 import com.fabahaba.jedipus.pool.ClientPool;
 import com.fabahaba.jedipus.pool.EvictionStrategy;
+import com.fabahaba.jedipus.pool.RedisClientPool;
 import com.fabahaba.jedipus.pool.EvictionStrategy.DefaultEvictionStrategy;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 

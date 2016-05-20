@@ -26,6 +26,7 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
   protected final byte[] clientName;
   protected final boolean initReadOnly;
   protected final ReplyMode replyMode;
+  protected final byte[] dbBytes;
 
   private final int outputBufferSize;
   private final int inputBufferSize;
@@ -36,10 +37,11 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
   private final HostnameVerifier hostnameVerifier;
 
   protected RedisClientFactory(final Node node, final Function<Node, Node> hostPortMapper,
-      final int connTimeoutMillis, final int soTimeoutMillis, final String pass, final String clientName,
-      final boolean initReadOnly, final ReplyMode replyMode, final int outputBufferSize,
-      final int inputBufferSize, final boolean ssl, final SSLSocketFactory sslSocketFactory,
-      final SSLParameters sslParameters, final HostnameVerifier hostnameVerifier) {
+      final int connTimeoutMillis, final int soTimeoutMillis, final String pass,
+      final String clientName, final boolean initReadOnly, final ReplyMode replyMode, final int db,
+      final int outputBufferSize, final int inputBufferSize, final boolean ssl,
+      final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
+      final HostnameVerifier hostnameVerifier) {
 
     this.node = node;
     this.hostPortMapper = hostPortMapper;
@@ -49,6 +51,7 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
     this.clientName = clientName == null ? null : RESP.toBytes(clientName);
     this.initReadOnly = initReadOnly;
     this.replyMode = replyMode;
+    this.dbBytes = db == 0 ? new byte[0] : RESP.toBytes(db);
 
     this.outputBufferSize = outputBufferSize;
     this.inputBufferSize = inputBufferSize;
@@ -74,6 +77,10 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
       client.skip().sendCmd(ClientCmds.CLIENT, ClientCmds.CLIENT_SETNAME, clientName);
     }
 
+    if (dbBytes.length > 0) {
+      client.skip().sendCmd(Cmds.SELECT, dbBytes);
+    }
+
     if (initReadOnly) {
       client.skip().sendCmd(Cmds.READONLY);
     }
@@ -93,8 +100,8 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
   public PooledClient<RedisClient> createClient() {
 
     final PooledRedisClient client = new PooledRedisClient(node, replyMode, hostPortMapper,
-        connTimeoutMillis, soTimeoutMillis, outputBufferSize, inputBufferSize, ssl, sslSocketFactory,
-        sslParameters, hostnameVerifier);
+        connTimeoutMillis, soTimeoutMillis, outputBufferSize, inputBufferSize, ssl,
+        sslSocketFactory, sslParameters, hostnameVerifier);
 
     initClient(client);
 
@@ -147,6 +154,7 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
     private String clientName;
     private boolean initReadOnly;
     private ReplyMode replyMode = ReplyMode.ON;
+    private int db = 0;
 
     private int outputBufferSize = RedisOutputStream.DEFAULT_BUFFER_SIZE;
     private int inputBufferSize = RedisInputStream.DEFAULT_BUFFER_SIZE;
@@ -182,9 +190,9 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
     public PooledClientFactory<RedisClient> createPooled(final Node node,
         final boolean initReadOnly) {
 
-      return new RedisClientFactory(node, hostPortMapper, connTimeoutMillis, soTimeoutMillis, pass, clientName,
-          initReadOnly, replyMode, outputBufferSize, inputBufferSize, ssl, sslSocketFactory,
-          sslParameters, hostnameVerifier);
+      return new RedisClientFactory(node, hostPortMapper, connTimeoutMillis, soTimeoutMillis, pass,
+          clientName, initReadOnly, replyMode, db, outputBufferSize, inputBufferSize, ssl,
+          sslSocketFactory, sslParameters, hostnameVerifier);
     }
 
     public RedisClient create(final Node node) {
@@ -195,8 +203,8 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
     public RedisClient create(final Node node, final boolean initReadOnly) {
 
       final PrimRedisClient client = new PrimRedisClient(node, replyMode, hostPortMapper,
-          connTimeoutMillis, soTimeoutMillis, outputBufferSize, inputBufferSize, ssl, sslSocketFactory,
-          sslParameters, hostnameVerifier);
+          connTimeoutMillis, soTimeoutMillis, outputBufferSize, inputBufferSize, ssl,
+          sslSocketFactory, sslParameters, hostnameVerifier);
 
       if (pass != null) {
         client.sendCmd(Cmds.AUTH.raw(), pass);
@@ -205,6 +213,10 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
       if (clientName != null) {
         client.skip().sendCmd(ClientCmds.CLIENT, ClientCmds.CLIENT_SETNAME,
             RESP.toBytes(clientName));
+      }
+
+      if (db > 0) {
+        client.skip().sendCmd(Cmds.SELECT, RESP.toBytes(db));
       }
 
       if (initReadOnly) {
@@ -300,6 +312,15 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
       return this;
     }
 
+    public int getDb() {
+      return db;
+    }
+
+    public Builder withDb(final int db) {
+      this.db = db;
+      return this;
+    }
+
     public int getOutputBufferSize() {
       return outputBufferSize;
     }
@@ -357,12 +378,12 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
     @Override
     public String toString() {
       return new StringBuilder("Builder [host=").append(host).append(", port=").append(port)
-          .append(", connTimeout=").append(connTimeoutMillis).append(", soTimeout=").append(soTimeoutMillis)
-          .append(", pass=").append(pass).append(", clientName=").append(clientName)
-          .append(", initReadOnly=").append(initReadOnly).append(", replyMode=").append(replyMode)
-          .append(", ssl=").append(ssl).append(", sslSocketFactory=").append(sslSocketFactory)
-          .append(", sslParameters=").append(sslParameters).append(", hostnameVerifier=")
-          .append(hostnameVerifier).append("]").toString();
+          .append(", connTimeout=").append(connTimeoutMillis).append(", soTimeout=")
+          .append(soTimeoutMillis).append(", pass=").append(pass).append(", clientName=")
+          .append(clientName).append(", initReadOnly=").append(initReadOnly).append(", replyMode=")
+          .append(replyMode).append(", ssl=").append(ssl).append(", sslSocketFactory=")
+          .append(sslSocketFactory).append(", sslParameters=").append(sslParameters)
+          .append(", hostnameVerifier=").append(hostnameVerifier).append("]").toString();
     }
   }
 }

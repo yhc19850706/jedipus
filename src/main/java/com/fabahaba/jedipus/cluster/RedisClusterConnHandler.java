@@ -13,6 +13,7 @@ import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisException;
 import com.fabahaba.jedipus.pool.ClientPool;
+import com.fabahaba.jedipus.pool.RedisClientPool;
 
 class RedisClusterConnHandler implements AutoCloseable {
 

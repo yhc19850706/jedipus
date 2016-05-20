@@ -7,6 +7,7 @@ import java.util.function.Function;
 
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
+import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 abstract class RedisConn implements AutoCloseable {
 
@@ -83,78 +84,86 @@ abstract class RedisConn implements AutoCloseable {
   public void sendDirect(final byte[] cmdArgs) {
     try {
       RESProtocol.sendDirect(outputStream, cmdArgs);
-    } catch (final RuntimeException | IOException jcex) {
-      handleWriteException(jcex);
+    } catch (final NullPointerException npe) {
+      throw new RedisUnhandledException(getNode(), "Values sent to redis cannot be null.", npe);
+    } catch (final IOException ioe) {
+      handleWriteException(ioe);
     }
   }
 
   public void sendCmd(final byte[] cmd) {
     try {
       RESProtocol.sendCmd(outputStream, cmd);
-    } catch (final RuntimeException | IOException jcex) {
-      handleWriteException(jcex);
+    } catch (final NullPointerException npe) {
+      throw new RedisUnhandledException(getNode(), "Values sent to redis cannot be null.", npe);
+    } catch (final IOException ioe) {
+      handleWriteException(ioe);
     }
   }
 
   public void sendCmd(final byte[] cmd, final byte[][] args) {
     try {
       RESProtocol.sendCmd(outputStream, cmd, args);
-    } catch (final RuntimeException | IOException jcex) {
-      handleWriteException(jcex);
+    } catch (final NullPointerException npe) {
+      throw new RedisUnhandledException(getNode(), "Values sent to redis cannot be null.", npe);
+    } catch (final IOException ioe) {
+      handleWriteException(ioe);
     }
   }
 
   public void sendSubCmd(final byte[] cmd, final byte[] subcmd) {
     try {
       RESProtocol.sendSubCmd(outputStream, cmd, subcmd);
-    } catch (final RuntimeException | IOException jcex) {
-      handleWriteException(jcex);
+    } catch (final NullPointerException npe) {
+      throw new RedisUnhandledException(getNode(), "Values sent to redis cannot be null.", npe);
+    } catch (final IOException ioe) {
+      handleWriteException(ioe);
     }
   }
 
   public void sendSubCmd(final byte[] cmd, final byte[] subcmd, final byte[] args) {
     try {
       RESProtocol.sendSubCmd(outputStream, cmd, subcmd, args);
-    } catch (final RuntimeException | IOException jcex) {
-      handleWriteException(jcex);
+    } catch (final NullPointerException npe) {
+      throw new RedisUnhandledException(getNode(), "Values sent to redis cannot be null.", npe);
+    } catch (final IOException ioe) {
+      handleWriteException(ioe);
     }
   }
 
   public void sendSubCmd(final byte[] cmd, final byte[] subcmd, final byte[][] args) {
     try {
       RESProtocol.sendSubCmd(outputStream, cmd, subcmd, args);
-    } catch (final RuntimeException | IOException jcex) {
-      handleWriteException(jcex);
+    } catch (final NullPointerException npe) {
+      throw new RedisUnhandledException(getNode(), "Values sent to redis cannot be null.", npe);
+    } catch (final IOException ioe) {
+      handleWriteException(ioe);
     }
   }
 
   public void sendCmd(final byte[] cmd, final String[] args) {
     try {
       RESProtocol.sendCmd(outputStream, cmd, args);
-    } catch (final RuntimeException | IOException jcex) {
-      handleWriteException(jcex);
+    } catch (final NullPointerException npe) {
+      throw new RedisUnhandledException(getNode(), "Values sent to redis cannot be null.", npe);
+    } catch (final IOException ioe) {
+      handleWriteException(ioe);
     }
   }
 
   public void sendSubCmd(final byte[] cmd, final byte[] subcmd, final String[] args) {
     try {
       RESProtocol.sendSubCmd(outputStream, cmd, subcmd, args);
-    } catch (final RuntimeException | IOException jcex) {
-      handleWriteException(jcex);
+    } catch (final NullPointerException npe) {
+      throw new RedisUnhandledException(getNode(), "Values sent to redis cannot be null.", npe);
+    } catch (final IOException ioe) {
+      handleWriteException(ioe);
     }
   }
 
-  private void handleWriteException(final Exception ioEx) {
-
+  private void handleWriteException(final IOException ioEx) {
     broken = true;
-
-    final String errorMessage = RESProtocol.readErrorLineIfPossible(inputStream);
-
-    if (errorMessage != null && errorMessage.length() > 0) {
-
-      throw new RedisConnectionException(getNode(), errorMessage, ioEx);
-    }
-
+    drainIS();
     throw new RedisConnectionException(getNode(), ioEx);
   }
 
