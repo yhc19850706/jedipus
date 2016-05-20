@@ -33,6 +33,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.fabahaba.jedipus.client.BaseRedisClientTest;
 import com.fabahaba.jedipus.client.FutureLongReply;
 import com.fabahaba.jedipus.client.FutureReply;
 import com.fabahaba.jedipus.client.HostPort;

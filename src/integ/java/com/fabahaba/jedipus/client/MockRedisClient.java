@@ -1,8 +1,9 @@
-package com.fabahaba.jedipus.cluster;
+package com.fabahaba.jedipus.client;
 
 import com.fabahaba.jedipus.client.HostPort;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.client.RedisPipeline;
+import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.PrimArrayCmd;
 import com.fabahaba.jedipus.cmds.PrimCmd;

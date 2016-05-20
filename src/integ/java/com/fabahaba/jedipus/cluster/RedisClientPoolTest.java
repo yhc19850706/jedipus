@@ -12,8 +12,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 
+import com.fabahaba.jedipus.client.BaseRedisClientTest;
+import com.fabahaba.jedipus.client.MockRedisClient;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.client.RedisPipeline;
+import com.fabahaba.jedipus.cluster.RedisClientPool;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.RedisException;
