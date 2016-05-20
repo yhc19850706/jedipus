@@ -1,6 +1,7 @@
 package com.fabahaba.jedipus.client;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -84,5 +85,22 @@ public class RedisClientTest extends BaseRedisClientTest {
       client.sendCmd(Cmds.SELECT.raw(), RESP.toBytes(defaultDb));
       assertEquals(1L, client.sendCmd(Cmds.DEL.prim(), "foo"));
     }
+  }
+
+  @Test
+  public void checkAutoCloseable() {
+    RedisClient expose = null;
+    try (final RedisClient client = DEFAULT_POOLED_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE)) {
+      expose = client;
+    }
+    assertNotNull(expose);
+    assertTrue(expose.isBroken());
+  }
+
+  @Test
+  public void checkDisconnectOnQuit() {
+    final RedisClient client = DEFAULT_POOLED_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE);
+    client.close();
+    assertTrue(client.isBroken());
   }
 }
