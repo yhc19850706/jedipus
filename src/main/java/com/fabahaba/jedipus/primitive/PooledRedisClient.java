@@ -21,12 +21,13 @@ class PooledRedisClient extends PrimRedisClient implements PooledClient<RedisCli
   private volatile long lastReturnTime = createTime;
 
   PooledRedisClient(final Node node, final ReplyMode replyMode,
-      final Function<Node, Node> hostPortMapper, final int connTimeout, final int soTimeout,
-      final boolean ssl, final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
+      final Function<Node, Node> hostPortMapper, final int connTimeoutMillis, final int soTimeoutMillis,
+      final int outputBufferSize, final int inputBufferSize, final boolean ssl,
+      final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
       final HostnameVerifier hostnameVerifier) {
 
-    super(node, replyMode, hostPortMapper, connTimeout, soTimeout, ssl, sslSocketFactory,
-        sslParameters, hostnameVerifier);
+    super(node, replyMode, hostPortMapper, connTimeoutMillis, soTimeoutMillis, outputBufferSize,
+        inputBufferSize, ssl, sslSocketFactory, sslParameters, hostnameVerifier);
   }
 
   @Override

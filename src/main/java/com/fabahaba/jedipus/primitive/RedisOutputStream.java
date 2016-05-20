@@ -5,6 +5,8 @@ import java.io.OutputStream;
 
 public final class RedisOutputStream extends OutputStream {
 
+  static final int DEFAULT_BUFFER_SIZE = 8192;
+
   private final OutputStream out;
   private final byte[] buf;
   private int count;
@@ -32,7 +34,7 @@ public final class RedisOutputStream extends OutputStream {
 
   RedisOutputStream(final OutputStream out) {
 
-    this(out, 8192);
+    this(out, DEFAULT_BUFFER_SIZE);
   }
 
   RedisOutputStream(final OutputStream out, final int size) {

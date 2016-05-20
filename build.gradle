@@ -31,7 +31,7 @@ project.version = scmVersion.version
 
 sourceCompatibility = 1.8
 
-repositories { 
+repositories {
    jcenter()
 }
 
@@ -96,7 +96,7 @@ test.finalizedBy rmRedis
 
 task latestRedisModule(type:Exec) {
 
-   commandLine 'wget', '-O', 'redis/modules/redismodule.h', 'https://raw.githubusercontent.com/antirez/redis/unstable/src/redismodule.h'
+   commandLine 'wget', '-O', 'redis/redismodule.h', 'https://raw.githubusercontent.com/antirez/redis/unstable/src/redismodule.h'
 }
 
 task compileModules(type:Exec) {

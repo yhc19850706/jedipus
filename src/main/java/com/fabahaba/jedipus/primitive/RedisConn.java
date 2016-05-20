@@ -14,19 +14,20 @@ abstract class RedisConn implements AutoCloseable {
   private final Socket socket;
   private final RedisOutputStream outputStream;
   private final RedisInputStream inputStream;
-  private final int soTimeout;
+  private final int soTimeoutMillis;
   private boolean broken = false;
 
   protected RedisConn(final Node node, final Function<Node, Node> hostPortMapper,
-      final int connTimeout, final int soTimeout, final Socket socket) {
+      final int soTimeoutMillis, final int outputBufferSize, final int inputBufferSize,
+      final Socket socket) {
 
     this.hostPortMapper = hostPortMapper;
-    this.soTimeout = soTimeout;
+    this.soTimeoutMillis = soTimeoutMillis;
     this.socket = socket;
 
     try {
-      outputStream = new RedisOutputStream(socket.getOutputStream());
-      inputStream = new RedisInputStream(node, socket.getInputStream());
+      outputStream = new RedisOutputStream(socket.getOutputStream(), outputBufferSize);
+      inputStream = new RedisInputStream(node, socket.getInputStream(), inputBufferSize);
     } catch (final IOException ex) {
       throw new RedisConnectionException(node, ex);
     }
@@ -72,7 +73,7 @@ abstract class RedisConn implements AutoCloseable {
 
   public void rollbackTimeout() {
     try {
-      socket.setSoTimeout(soTimeout);
+      socket.setSoTimeout(soTimeoutMillis);
     } catch (final SocketException ex) {
       broken = true;
       throw new RedisConnectionException(getNode(), ex);
@@ -170,7 +171,7 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
-  void drain() {
+  void drainIS() {
     inputStream.drain();
   }
 
@@ -214,6 +215,6 @@ abstract class RedisConn implements AutoCloseable {
   @Override
   public String toString() {
     return new StringBuilder("RedisConn [node=").append(getNode()).append(", soTimeout=")
-        .append(soTimeout).append(", broken=").append(broken).append("]").toString();
+        .append(soTimeoutMillis).append(", broken=").append(broken).append("]").toString();
   }
 }

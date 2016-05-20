@@ -24,8 +24,9 @@ final class PrimRedisConn extends RedisConn {
   private ReplyMode replyMode;
 
   static PrimRedisConn create(final Node node, final ReplyMode replyMode,
-      final Function<Node, Node> hostPortMapper, final int connTimeout, final int soTimeout,
-      final boolean ssl, final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
+      final Function<Node, Node> hostPortMapper, final int connTimeoutMillis, final int soTimeoutMillis,
+      final int outputBufferSize, final int inputBufferSize, final boolean ssl,
+      final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
       final HostnameVerifier hostnameVerifier) {
 
     Socket socket = null;
@@ -35,18 +36,19 @@ final class PrimRedisConn extends RedisConn {
       socket.setKeepAlive(true);
       socket.setTcpNoDelay(true);
       socket.setSoLinger(true, 0);
-      socket.connect(new InetSocketAddress(node.getHost(), node.getPort()), connTimeout);
-      socket.setSoTimeout(soTimeout);
+      socket.connect(new InetSocketAddress(node.getHost(), node.getPort()), connTimeoutMillis);
+      socket.setSoTimeout(soTimeoutMillis);
 
       if (ssl) {
         final SSLSocket sslSocket =
             (SSLSocket) sslSocketFactory.createSocket(socket, node.getHost(), node.getPort(), true);
 
-        return createSSL(node, replyMode, hostPortMapper, connTimeout, soTimeout, sslSocket,
-            sslParameters, hostnameVerifier);
+        return createSSL(node, replyMode, hostPortMapper, connTimeoutMillis, soTimeoutMillis,
+            outputBufferSize, inputBufferSize, sslSocket, sslParameters, hostnameVerifier);
       }
 
-      return new PrimRedisConn(node, replyMode, hostPortMapper, connTimeout, soTimeout, socket);
+      return new PrimRedisConn(node, replyMode, hostPortMapper, soTimeoutMillis, outputBufferSize,
+          inputBufferSize, socket);
     } catch (final IOException ex) {
       throw new RedisConnectionException(node, ex);
     }
@@ -54,8 +56,8 @@ final class PrimRedisConn extends RedisConn {
 
   private static PrimRedisConn createSSL(final Node node, final ReplyMode replyMode,
       final Function<Node, Node> hostPortMapper, final int connTimeout, final int soTimeout,
-      final SSLSocket sslSocket, final SSLParameters sslParameters,
-      final HostnameVerifier hostnameVerifier) {
+      final int outputBufferSize, final int inputBufferSize, final SSLSocket sslSocket,
+      final SSLParameters sslParameters, final HostnameVerifier hostnameVerifier) {
 
     if (sslParameters != null) {
       sslSocket.setSSLParameters(sslParameters);
@@ -69,14 +71,15 @@ final class PrimRedisConn extends RedisConn {
       throw new RedisConnectionException(node, message);
     }
 
-    return new PrimRedisConn(node, replyMode, hostPortMapper, connTimeout, soTimeout, sslSocket);
+    return new PrimRedisConn(node, replyMode, hostPortMapper, soTimeout, outputBufferSize,
+        inputBufferSize, sslSocket);
   }
 
   private PrimRedisConn(final Node node, final ReplyMode replyMode,
-      final Function<Node, Node> hostPortMapper, final int connTimeout, final int soTimeout,
-      final Socket socket) {
+      final Function<Node, Node> hostPortMapper, final int soTimeout, final int outputBufferSize,
+      final int inputBufferSize, final Socket socket) {
 
-    super(node, hostPortMapper, connTimeout, soTimeout, socket);
+    super(node, hostPortMapper, soTimeout, outputBufferSize, inputBufferSize, socket);
 
     this.replyMode = replyMode;
   }
@@ -137,7 +140,7 @@ final class PrimRedisConn extends RedisConn {
 
   void resetState() {
     flushOS();
-    drain();
+    drainIS();
     if (isInMulti()) {
       discard();
       flushOS();
@@ -196,7 +199,7 @@ final class PrimRedisConn extends RedisConn {
 
   void setReplyMode(final ReplyMode replyMode) {
     if (isInMulti()) {
-      drain();
+      drainIS();
       throw new RedisUnhandledException(getNode(),
           "Changing CLIENT REPLY mode is not allowed inside a MULTI.");
     }

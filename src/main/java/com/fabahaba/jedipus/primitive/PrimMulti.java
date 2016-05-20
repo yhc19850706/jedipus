@@ -26,7 +26,7 @@ class PrimMulti {
 
   protected String multi() {
     if (client.conn.isInMulti()) {
-      client.conn.drain();
+      client.conn.drainIS();
       throw new RedisUnhandledException(client.getNode(), "MULTI calls cannot be nested.");
     }
 
@@ -36,7 +36,7 @@ class PrimMulti {
 
   protected String discard() {
     if (!client.conn.isInMulti()) {
-      client.conn.drain();
+      client.conn.drainIS();
       throw new RedisUnhandledException(client.getNode(), "DISCARD without MULTI.");
     }
 
@@ -46,7 +46,7 @@ class PrimMulti {
 
   protected Object[] exec() {
     if (!client.conn.isInMulti()) {
-      client.conn.drain();
+      client.conn.drainIS();
       throw new RedisUnhandledException(client.getNode(), "EXEC without MULTI.");
     }
 

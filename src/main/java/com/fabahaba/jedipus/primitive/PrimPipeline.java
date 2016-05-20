@@ -146,7 +146,7 @@ final class PrimPipeline implements RedisPipeline {
   public FutureReply<String> discard() {
 
     if (!client.conn.isInMulti()) {
-      client.conn.drain();
+      client.conn.drainIS();
       throw new RedisUnhandledException(client.getNode(), "DISCARD without MULTI.");
     }
 
@@ -158,7 +158,7 @@ final class PrimPipeline implements RedisPipeline {
   public void sync(final boolean throwUnchecked) {
 
     if (client.conn.isInMulti()) {
-      client.conn.drain();
+      client.conn.drainIS();
       throw new RedisUnhandledException(client.getNode(), "EXEC your MULTI before calling SYNC.");
     }
 
@@ -174,12 +174,12 @@ final class PrimPipeline implements RedisPipeline {
       try {
         response.setReply(client.conn);
       } catch (final AskNodeException askEx) {
-        client.conn.drain();
+        client.conn.drainIS();
         throw new UnhandledAskNodeException(client.getNode(),
             "ASK redirects are not supported inside pipelines.", askEx);
       } catch (final RedisUnhandledException re) {
         if (throwUnchecked) {
-          client.conn.drain();
+          client.conn.drainIS();
           throw re;
         }
         response.setException(re);
@@ -191,7 +191,7 @@ final class PrimPipeline implements RedisPipeline {
   public void primArraySync(final boolean throwUnchecked) {
 
     if (client.conn.isInMulti()) {
-      client.conn.drain();
+      client.conn.drainIS();
       throw new RedisUnhandledException(client.getNode(), "EXEC your MULTI before calling SYNC.");
     }
 
@@ -207,12 +207,12 @@ final class PrimPipeline implements RedisPipeline {
       try {
         response.setMultiReply(client.conn.getLongArray());
       } catch (final AskNodeException askEx) {
-        client.conn.drain();
+        client.conn.drainIS();
         throw new UnhandledAskNodeException(client.getNode(),
             "ASK redirects are not supported inside pipelines.", askEx);
       } catch (final RedisUnhandledException re) {
         if (throwUnchecked) {
-          client.conn.drain();
+          client.conn.drainIS();
           throw re;
         }
         response.setException(re);
@@ -224,7 +224,7 @@ final class PrimPipeline implements RedisPipeline {
   public FutureReply<String> multi() {
 
     if (client.conn.isInMulti()) {
-      client.conn.drain();
+      client.conn.drainIS();
       throw new RedisUnhandledException(client.getNode(), "MULTI calls cannot be nested.");
     }
 
@@ -236,7 +236,7 @@ final class PrimPipeline implements RedisPipeline {
   public FutureReply<Object[]> exec() {
 
     if (!client.conn.isInMulti()) {
-      client.conn.drain();
+      client.conn.drainIS();
       throw new RedisUnhandledException(client.getNode(), "EXEC without MULTI.");
     }
 
@@ -254,7 +254,7 @@ final class PrimPipeline implements RedisPipeline {
   public FutureReply<long[]> primExec() {
 
     if (!client.conn.isInMulti()) {
-      client.conn.drain();
+      client.conn.drainIS();
       throw new RedisUnhandledException(client.getNode(), "EXEC without MULTI.");
     }
 
@@ -272,7 +272,7 @@ final class PrimPipeline implements RedisPipeline {
   public FutureReply<long[][]> primArrayExec() {
 
     if (!client.conn.isInMulti()) {
-      client.conn.drain();
+      client.conn.drainIS();
       throw new RedisUnhandledException(client.getNode(), "EXEC without MULTI.");
     }
 
