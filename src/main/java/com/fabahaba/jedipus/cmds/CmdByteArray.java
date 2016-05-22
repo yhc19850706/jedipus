@@ -96,6 +96,42 @@ public class CmdByteArray<R> {
       return addArgs(args);
     }
 
+    public Builder<R> addArg(final long arg) {
+      return addArg(RESP.toBytes(arg));
+    }
+
+    public Builder<R> addArgs(final long... args) {
+
+      for (final long arg : args) {
+        addArg(RESP.toBytes(arg));
+      }
+      return this;
+    }
+
+    public Builder<R> addArg(final int arg) {
+      return addArg(RESP.toBytes(arg));
+    }
+
+    public Builder<R> addArgs(final int... args) {
+
+      for (final int arg : args) {
+        addArg(RESP.toBytes(arg));
+      }
+      return this;
+    }
+
+    public Builder<R> addArg(final double arg) {
+      return addArg(RESP.toBytes(arg));
+    }
+
+    public Builder<R> addArgs(final double... args) {
+
+      for (final double arg : args) {
+        addArg(RESP.toBytes(arg));
+      }
+      return this;
+    }
+
     public Builder<R> addArg(final String arg) {
       return addArg(RESP.toBytes(arg));
     }
