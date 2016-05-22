@@ -16,6 +16,7 @@ import com.fabahaba.jedipus.client.RedisPipeline;
 import com.fabahaba.jedipus.cluster.CRC16;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
+import com.fabahaba.jedipus.cmds.CmdByteArray;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
@@ -97,18 +98,29 @@ public interface LuaScript<R> {
 
     try {
       return (R) client.evalSha1Hex(args);
-    } catch (final RedisUnhandledException jde) {
+    } catch (final RedisUnhandledException rue) {
 
-      if (jde.getMessage().startsWith("NOSCRIPT")) {
-
-        final RedisPipeline pipeline = client.pipeline();
-        pipeline.sendCmd(Cmds.SCRIPT, Cmds.SCRIPT_LOAD.raw(), getLuaScript());
-        final FutureReply<Object> response = pipeline.evalSha1Hex(args);
-        pipeline.sync();
-        return (R) response.get();
+      if (rue.getMessage().startsWith("NOSCRIPT")) {
+        client.skip().sendCmd(Cmds.SCRIPT, Cmds.SCRIPT_LOAD, getLuaScript());
+        return (R) client.evalSha1Hex(args);
       }
 
-      throw jde;
+      throw rue;
+    }
+  }
+
+  default <T> T evalDirect(final RedisClient client, final CmdByteArray<T> cmdArgs) {
+
+    try {
+      return client.sendDirect(cmdArgs);
+    } catch (final RedisUnhandledException rue) {
+
+      if (rue.getMessage().startsWith("NOSCRIPT")) {
+        client.skip().sendCmd(Cmds.SCRIPT, Cmds.SCRIPT_LOAD, getLuaScript());
+        return client.sendDirect(cmdArgs);
+      }
+
+      throw rue;
     }
   }
 
@@ -138,6 +150,12 @@ public interface LuaScript<R> {
   default FutureReply<R> eval(final RedisPipeline pipeline, final byte[][] args) {
 
     return (FutureReply<R>) pipeline.evalSha1Hex(args);
+  }
+
+  default <T> FutureReply<T> evalDirect(final RedisPipeline pipeline,
+      final CmdByteArray<T> cmdArgs) {
+
+    return pipeline.sendDirect(cmdArgs);
   }
 
   default R eval(final RedisClusterExecutor rce, final int keyCount, final byte[]... params) {
@@ -274,9 +292,10 @@ public interface LuaScript<R> {
   public static void loadIfNotExists(final RedisClient client, final byte[] scriptSha1HexBytes,
       final LuaScript<?> luaScript) {
 
-    final Object exists = client.sendCmd(Cmds.SCRIPT, Cmds.SCRIPT_EXISTS, scriptSha1HexBytes)[0];
+    final long[] exists =
+        client.sendCmd(Cmds.SCRIPT, Cmds.SCRIPT_EXISTS.primArray(), scriptSha1HexBytes);
 
-    if (RESP.longToInt(exists) == 0) {
+    if (exists[0] == 0) {
       client.scriptLoad(RESP.toBytes(luaScript.getLuaScript()));
     }
   }
@@ -285,30 +304,21 @@ public interface LuaScript<R> {
       final LuaScript<?>[] luaScripts) {
 
     if (scriptSha1HexBytes.length == 1) {
-
       loadIfNotExists(client, scriptSha1HexBytes[0], luaScripts[0]);
       return;
     }
 
-    final Object[] existResults =
-        client.sendCmd(Cmds.SCRIPT, Cmds.SCRIPT_EXISTS, scriptSha1HexBytes);
+    final long[] existResults =
+        client.sendCmd(Cmds.SCRIPT, Cmds.SCRIPT_EXISTS.primArray(), scriptSha1HexBytes);
 
-    RedisPipeline pipeline = null;
     int index = 0;
+    for (final long exists : existResults) {
 
-    for (final Object exists : existResults) {
-
-      if (RESP.longToInt(exists) == 0) {
-        if (pipeline == null) {
-          pipeline = client.pipeline();
-        }
-        pipeline.scriptLoad(RESP.toBytes(luaScripts[index].getLuaScript()));
+      if (exists == 0) {
+        client.skip().scriptLoad(RESP.toBytes(luaScripts[index].getLuaScript()));
       }
-      index++;
-    }
 
-    if (pipeline != null) {
-      pipeline.sync();
+      index++;
     }
   }
 
@@ -379,5 +389,29 @@ public interface LuaScript<R> {
       final int numRetries, final byte[][] params) {
 
     return rce.apply(readMode, slot, client -> evalFill(client, params), numRetries);
+  }
+
+  default <T> T evalDirect(final int slot, final RedisClusterExecutor rce,
+      final CmdByteArray<T> cmdArgs) {
+
+    return evalDirect(rce.getDefaultReadMode(), slot, rce, rce.getMaxRetries(), cmdArgs);
+  }
+
+  default <T> T evalDirect(final int slot, final RedisClusterExecutor rce, final int numRetries,
+      final CmdByteArray<T> cmdArgs) {
+
+    return evalDirect(rce.getDefaultReadMode(), slot, rce, numRetries, cmdArgs);
+  }
+
+  default <T> T evalDirect(final ReadMode readMode, final int slot, final RedisClusterExecutor rce,
+      final CmdByteArray<T> cmdArgs) {
+
+    return evalDirect(readMode, slot, rce, rce.getMaxRetries(), cmdArgs);
+  }
+
+  default <T> T evalDirect(final ReadMode readMode, final int slot, final RedisClusterExecutor rce,
+      final int numRetries, final CmdByteArray<T> cmdArgs) {
+
+    return rce.apply(readMode, slot, client -> evalDirect(client, cmdArgs), numRetries);
   }
 }

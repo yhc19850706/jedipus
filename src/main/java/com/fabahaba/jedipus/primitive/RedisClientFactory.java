@@ -26,7 +26,7 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
   protected final byte[] clientName;
   protected final boolean initReadOnly;
   protected final ReplyMode replyMode;
-  protected final byte[] dbBytes;
+  protected final byte[] db;
 
   private final int outputBufferSize;
   private final int inputBufferSize;
@@ -51,7 +51,7 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
     this.clientName = clientName == null ? null : RESP.toBytes(clientName);
     this.initReadOnly = initReadOnly;
     this.replyMode = replyMode;
-    this.dbBytes = db == 0 ? new byte[0] : RESP.toBytes(db);
+    this.db = db == 0 ? new byte[0] : RESP.toBytes(db);
 
     this.outputBufferSize = outputBufferSize;
     this.inputBufferSize = inputBufferSize;
@@ -77,8 +77,8 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
       client.skip().sendCmd(ClientCmds.CLIENT, ClientCmds.CLIENT_SETNAME, clientName);
     }
 
-    if (dbBytes.length > 0) {
-      client.skip().sendCmd(Cmds.SELECT, dbBytes);
+    if (db.length > 0) {
+      client.skip().sendCmd(Cmds.SELECT, db);
     }
 
     if (initReadOnly) {

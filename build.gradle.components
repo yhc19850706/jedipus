@@ -11,15 +11,21 @@ plugins {
 }
 
 scmVersion {
-    tag {
-        prefix = project.name
-    }
+   tag {
+      prefix = project.name
+   }
 
    repository {
-        customUsername = "$System.env.AXION_RELEASE_GITHUB_TOKEN"
-        customPassword = ""
-        pushTagsOnly = true
-    }
+      customUsername = "$System.env.AXION_RELEASE_GITHUB_TOKEN"
+      customPassword = ""
+   }
+
+   createReleaseCommit true
+   releaseCommitMessage { version, position -> "Release $project.name-$version" }
+
+   checks {
+      uncommittedChanges = false
+   }
 }
 
 project.group = 'com.fabahaba'
@@ -27,6 +33,8 @@ project.version = scmVersion.version
 
 // Integ Testing Redis Configuration
 project.ext.set('redisServerPort', '9736')
+project.ext.set('redisServerPass', '42')
+
 project.ext.set('clusterAnnounceIp', '127.0.0.1')
 project.ext.set('startingClusterPort', '7379')
 project.ext.set('numMasters', '3')
@@ -47,7 +55,7 @@ model {
 
          targetPlatform 'java8'
 
-         repositories { 
+         repositories {
             jcenter()
          }
       }
@@ -58,37 +66,23 @@ model {
          jUnitVersion '+'
          testing $.components.main
 
-         /*test {
-            systemProperty 'jedipus.redis.port', project.redisServerPort
-
-            systemProperty 'jedipus.redis.cluster.announceip', project.clusterAnnounceIp
-            systemProperty 'jedipus.redis.cluster.startingport', project.startingClusterPort
-            systemProperty 'jedipus.redis.cluster.nummasters', project.numMasters
-            systemProperty 'jedipus.redis.cluster.numslaveseach', project.numSlavesEach
-         }*/
-
          task startRedis(type:Exec) {
-
             int numMasters = project.numMasters.toInteger()
             int numClusterNodes = numMasters + numMasters *  project.numSlavesEach.toInteger()
 
-            commandLine './scripts/startRedis.sh', project.name, project.redisServerPort, project.startingClusterPort, numClusterNodes, project.clusterAnnounceIp
+            commandLine './scripts/startRedis.sh', project.name, project.redisServerPort, project.redisServerPass, project.startingClusterPort, numClusterNodes, project.clusterAnnounceIp
          }
 
          task rmRedis(type:Exec) {
-
             commandLine './scripts/rmRedis.sh', project.name
          }
-
-         //test.dependsOn startRedis
-         //test.finalizedBy rmRedis
       }
    }
 }
 
 publishing {
    publications {
-      mavenJava( MavenPublication ) {
+      mavenJava(MavenPublication) {
       }
    }
 }
@@ -104,38 +98,10 @@ findbugs {
 
 tasks.withType(FindBugs) {
    reports {
-        xml.enabled = false
-        html.enabled = true
+      xml.enabled = false
+      html.enabled = true
    }
 }
-
-bintray {
-    user = "$System.env.BINTRAY_USER"
-    key = "$System.env.BINTRAY_API_KEY"
-
-    publications = ['mavenJava']
-
-    pkg {
-        repo = 'libs'
-        name = project.name
-        desc = 'Redis Cluster Java 8 Client Executor.'
-        websiteUrl = 'https://github.com/jamespedwards42/jedipus'
-        vcsUrl = 'https://github.com/jamespedwards42/jedipus'
-        issueTrackerUrl = 'https://github.com/jamespedwards42/jedipus/issues'
-        licenses = ["Apache-2.0"]
-        publish = true
-        version {
-            name = project.version
-            vcsTag = scmVersion.tag.prefix + '-' + project.version
-            gpg {
-                sign = true
-                passphrase = "$System.env.BINTRAY_GPG_PASSPHRASE"
-            }
-        }
-    }
-}
-
-bintrayUpload.onlyIf { !project.version.endsWith( 'SNAPSHOT' ) }
 
 checkstyle {
    config = resources.text.fromFile("checkstyle/google_checks.xml")
@@ -144,3 +110,31 @@ checkstyle {
    toolVersion = "+"
    ignoreFailures = false
 }
+
+bintray {
+   user = "$System.env.BINTRAY_USER"
+   key = "$System.env.BINTRAY_API_KEY"
+
+   publications = ['mavenJava']
+
+   pkg {
+      repo = 'libs'
+      name = project.name
+      desc = 'Redis Java 8 Client & Executor.'
+      websiteUrl = 'https://github.com/jamespedwards42/jedipus'
+      vcsUrl = 'https://github.com/jamespedwards42/jedipus'
+      issueTrackerUrl = 'https://github.com/jamespedwards42/jedipus/issues'
+      licenses = ["Apache-2.0"]
+      publish = true
+      version {
+         name = project.version
+         vcsTag = scmVersion.tag.prefix + '-' + project.version
+         gpg {
+            sign = true
+            passphrase = "$System.env.BINTRAY_GPG_PASSPHRASE"
+         }
+      }
+   }
+}
+
+bintrayUpload.onlyIf { !project.version.endsWith( 'SNAPSHOT' ) }

@@ -79,7 +79,6 @@ test {
 }
 
 task startRedis(type:Exec) {
-
    int numMasters = project.numMasters.toInteger()
    int numClusterNodes = numMasters + numMasters *  project.numSlavesEach.toInteger()
 
@@ -87,7 +86,6 @@ task startRedis(type:Exec) {
 }
 
 task rmRedis(type:Exec) {
-
    commandLine './scripts/rmRedis.sh', project.name
 }
 
@@ -95,12 +93,10 @@ test.dependsOn startRedis
 test.finalizedBy rmRedis
 
 task latestRedisModule(type:Exec) {
-
    commandLine 'wget', '-O', 'redis/redismodule.h', 'https://raw.githubusercontent.com/antirez/redis/unstable/src/redismodule.h'
 }
 
 task compileModules(type:Exec) {
-
    commandLine './scripts/compileModules.sh', 'redis/modules/module'
 }
 
@@ -124,29 +120,29 @@ artifacts {
 }
 
 bintray {
-    user = "$System.env.BINTRAY_USER"
-    key = "$System.env.BINTRAY_API_KEY"
+   user = "$System.env.BINTRAY_USER"
+   key = "$System.env.BINTRAY_API_KEY"
 
-    publications = ['mavenJava']
+   publications = ['mavenJava']
 
-    pkg {
-        repo = 'libs'
-        name = project.name
-        desc = 'Redis Cluster Java 8 Client Executors.'
-        websiteUrl = 'https://github.com/jamespedwards42/jedipus'
-        vcsUrl = 'https://github.com/jamespedwards42/jedipus'
-        issueTrackerUrl = 'https://github.com/jamespedwards42/jedipus/issues'
-        licenses = ["Apache-2.0"]
-        publish = true
-        version {
-            name = project.version
-            vcsTag = scmVersion.tag.prefix + '-' + project.version
-            gpg {
-                sign = true
-                passphrase = "$System.env.BINTRAY_GPG_PASSPHRASE"
-            }
-        }
-    }
+   pkg {
+      repo = 'libs'
+      name = project.name
+      desc = 'Redis Java 8 Client & Executor.'
+      websiteUrl = 'https://github.com/jamespedwards42/jedipus'
+      vcsUrl = 'https://github.com/jamespedwards42/jedipus'
+      issueTrackerUrl = 'https://github.com/jamespedwards42/jedipus/issues'
+      licenses = ["Apache-2.0"]
+      publish = true
+      version {
+         name = project.version
+         vcsTag = scmVersion.tag.prefix + '-' + project.version
+         gpg {
+            sign = true
+            passphrase = "$System.env.BINTRAY_GPG_PASSPHRASE"
+         }
+      }
+   }
 }
 
 bintrayUpload.onlyIf { !project.version.endsWith( 'SNAPSHOT' ) }
@@ -161,10 +157,10 @@ findbugs {
 }
 
 tasks.withType(FindBugs) {
-    reports {
-        xml.enabled = false
-        html.enabled = true
-    }
+   reports {
+      xml.enabled = false
+      html.enabled = true
+   }
 }
 
 checkstyle {

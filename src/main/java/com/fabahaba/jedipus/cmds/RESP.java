@@ -68,6 +68,11 @@ public final class RESP {
     return ((Long) lng).intValue();
   }
 
+  public static long longValue(final Object lng) {
+
+    return ((Long) lng).longValue();
+  }
+
   public static long toLong(final Object bytes) {
 
     return Long.parseLong(toString(bytes));
