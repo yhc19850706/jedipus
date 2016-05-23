@@ -5,7 +5,7 @@
 ######Features
 * Executes `Consumer<RedisClient>` and `Function<RedisClient, R>` lambas.
 * Flexible generic or primitive return types to match the dynamic return type design of Redis.
-* Flexible command interface allows for calling [Modules](https://github.com/antirez/redis/blob/unstable/src/modules/API.md) or renamed commands.
+* Flexible command interface allows for [calling Modules](src/integ/java/com/fabahaba/jedipus/client/ModuleTest.java#L17) or renamed commands.
 * Performance focused:
   * Reuse known slot integers for direct O(1) primitive array access to a corresponding `RedisClient` pool.
   * Minimal enforced (de)serialization.  Write directly to the socket output stream buffer or socket output stream, and retrieve raw responses.
