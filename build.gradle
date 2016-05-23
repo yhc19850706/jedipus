@@ -96,9 +96,12 @@ task latestRedisModule(type:Exec) {
    commandLine 'wget', '-O', 'redis/redismodule.h', 'https://raw.githubusercontent.com/antirez/redis/unstable/src/redismodule.h'
 }
 
-task compileModules(type:Exec) {
-   commandLine './scripts/compileModules.sh', 'redis/modules/module'
+task compileIntegModules(type:Exec) {
+   String dir = System.getProperty("user.dir");
+   commandLine 'docker', 'run', '--rm', '-v', "$dir/redis/:/tmp", 'jamespedwards42/alpine-gcc-make:latest', '/bin/sh', '-c', 'cd modules && make clean && make'
 }
+
+compileIntegModules.dependsOn latestRedisModule
 
 task sourcesJar(type: Jar, dependsOn: classes) {
    from sourceSets.main.allSource
