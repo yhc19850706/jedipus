@@ -13,7 +13,7 @@ import com.fabahaba.jedipus.cmds.RESP;
 
 public class PipelineTest extends BaseRedisClientTest {
 
-  private RedisClient client;
+  private RedisClient client = null;
 
   @Before
   public void before() {
@@ -22,6 +22,9 @@ public class PipelineTest extends BaseRedisClientTest {
 
   @After
   public void after() {
+    if (client == null) {
+      return;
+    }
     client.sendCmd(Cmds.FLUSHALL.raw());
     client.close();
   }
