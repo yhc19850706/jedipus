@@ -7,13 +7,11 @@ import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply {
 
   protected static enum State {
-    EMPTY, PENDING, PENDING_DEPENDENCY, BUILDING_DEPENDENCY, BUILDING, BUILT, BROKEN;
+    EMPTY, PENDING, BUILDING, BUILT, BROKEN;
   }
 
   protected State state = State.EMPTY;
   protected RuntimeException exception = null;
-
-  protected StatefulFutureReply<?> execDependency = null;
 
   public void setException(final RuntimeException exception) {
 
@@ -21,26 +19,10 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
     state = State.BROKEN;
   }
 
-  public void setExecDependency(final StatefulFutureReply<?> execDependency) {
-
-    this.execDependency = execDependency;
-    state = State.PENDING_DEPENDENCY;
-  }
-
   @Override
   public StatefulFutureReply<T> checkReply() {
 
     switch (state) {
-      case PENDING_DEPENDENCY:
-        state = State.BUILDING_DEPENDENCY;
-        try {
-          // Dependency will drive another build of this after setting this reply.
-          execDependency.checkReply();
-          return this;
-        } catch (final RuntimeException re) {
-          setException(re);
-          throw re;
-        }
       case PENDING:
         state = State.BUILDING;
         try {
@@ -56,7 +38,6 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
             "Close your pipeline or multi block before calling this method.");
       case BROKEN:
         throw exception;
-      case BUILDING_DEPENDENCY:
       case BUILDING:
       case BUILT:
       default:
@@ -85,13 +66,11 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
 
   @Override
   public T get() {
-
     return null;
   }
 
   @Override
   public long getAsLong() {
-
     return Long.MIN_VALUE;
   }
 }

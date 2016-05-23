@@ -203,9 +203,9 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
-  protected long[][] getLongArrayArray() {
+  protected long[][] getLong2DArray() {
     try {
-      return RESProtocol.readLongArrayArray(getNode(), hostPortMapper, inputStream);
+      return RESProtocol.readLong2DArray(getNode(), hostPortMapper, inputStream);
     } catch (final RedisConnectionException exc) {
       broken = true;
       throw exc;

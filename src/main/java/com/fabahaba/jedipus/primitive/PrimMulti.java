@@ -69,14 +69,7 @@ class PrimMulti {
 
   StatefulFutureReply<Object[]> createMultiExecFutureReply() {
 
-    final DeserializedFutureReply<Object[]> futureMultiExecReply =
-        new DeserializedFutureReply<>(getMultiExecReplyHandler());
-
-    for (final StatefulFutureReply<?> futureReply : multiReplies) {
-      futureReply.setExecDependency(futureMultiExecReply);
-    }
-
-    return futureMultiExecReply;
+    return new ExecFutureReply<>(getMultiExecReplyHandler());
   }
 
   private PrimMultiExecReplyHandler getPrimMultiExecReplyHandler() {
@@ -90,14 +83,7 @@ class PrimMulti {
 
   StatefulFutureReply<long[]> createPrimMultiExecFutureReply() {
 
-    final DeserializedFutureReply<long[]> futureMultiExecReply =
-        new DeserializedFutureReply<>(getPrimMultiExecReplyHandler());
-
-    for (final StatefulFutureReply<?> futureReply : multiReplies) {
-      futureReply.setExecDependency(futureMultiExecReply);
-    }
-
-    return futureMultiExecReply;
+    return new PrimArrayExecFutureReply(getPrimMultiExecReplyHandler());
   }
 
   private PrimArrayMultiExecReplyHandler getPrimArrayMultiExecReplyHandler() {
@@ -111,14 +97,7 @@ class PrimMulti {
 
   StatefulFutureReply<long[][]> createPrimArrayMultiExecFutureReply() {
 
-    final StatefulFutureReply<long[][]> futureMultiExecReply =
-        new AdaptedFutureLong2DArrayReply(getPrimArrayMultiExecReplyHandler());
-
-    for (final StatefulFutureReply<?> futureReply : multiReplies) {
-      futureReply.setExecDependency(futureMultiExecReply);
-    }
-
-    return futureMultiExecReply;
+    return new Prim2DArrayExecFutureReply(getPrimArrayMultiExecReplyHandler());
   }
 
   <T> FutureReply<T> queueMultiPipelinedReply(final Function<Object, T> builder) {

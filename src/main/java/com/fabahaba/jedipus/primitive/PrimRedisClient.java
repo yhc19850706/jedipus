@@ -16,17 +16,17 @@ class PrimRedisClient extends BaseRedisClient {
   private PrimMulti multi;
 
   PrimRedisClient(final Node node, final ReplyMode replyMode,
-      final Function<Node, Node> hostPortMapper, final int connTimeoutMillis, final int soTimeoutMillis,
-      final int outputBufferSize, final int inputBufferSize) {
+      final Function<Node, Node> hostPortMapper, final int connTimeoutMillis,
+      final int soTimeoutMillis, final int outputBufferSize, final int inputBufferSize) {
 
-    this(node, replyMode, hostPortMapper, connTimeoutMillis, soTimeoutMillis, outputBufferSize, inputBufferSize,
-        false, null, null, null);
+    this(node, replyMode, hostPortMapper, connTimeoutMillis, soTimeoutMillis, outputBufferSize,
+        inputBufferSize, false, null, null, null);
   }
 
   PrimRedisClient(final Node node, final ReplyMode replyMode,
-      final Function<Node, Node> hostPortMapper, final int connTimeoutMillis, final int soTimeoutMillis,
-      final int outputBufferSize, final int inputBufferSize, final boolean ssl,
-      final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
+      final Function<Node, Node> hostPortMapper, final int connTimeoutMillis,
+      final int soTimeoutMillis, final int outputBufferSize, final int inputBufferSize,
+      final boolean ssl, final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
       final HostnameVerifier hostnameVerifier) {
 
     super(PrimRedisConn.create(node, replyMode, hostPortMapper, connTimeoutMillis, soTimeoutMillis,

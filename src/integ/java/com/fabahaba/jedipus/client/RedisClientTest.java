@@ -1,5 +1,6 @@
 package com.fabahaba.jedipus.client;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -7,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.net.SocketTimeoutException;
-import java.util.Arrays;
 
 import org.junit.Test;
 
@@ -46,8 +46,8 @@ public class RedisClientTest extends BaseRedisClientTest {
       final String reply = client.sendCmd(Cmds.HMSET, key, field, data);
       assertEquals(RESP.OK, reply);
       final Object[] bigdataReply = (Object[]) client.sendCmd(Cmds.HGETALL.raw(), key);
-      assertTrue(Arrays.equals(field, (byte[]) bigdataReply[0]));
-      assertTrue(Arrays.equals(data, (byte[]) bigdataReply[1]));
+      assertArrayEquals(field, (byte[]) bigdataReply[0]);
+      assertArrayEquals(data, (byte[]) bigdataReply[1]);
     }
   }
 
@@ -58,7 +58,7 @@ public class RedisClientTest extends BaseRedisClientTest {
         .withConnTimeout(1).create(Node.create("216.58.194.206", REDIS_PORT))) {
       fail("Did google add a public redis server?");
     } catch (final RedisConnectionException rce) {
-      assertTrue(rce.getCause() instanceof SocketTimeoutException);
+      assertEquals(SocketTimeoutException.class, rce.getCause().getClass());
     }
   }
 

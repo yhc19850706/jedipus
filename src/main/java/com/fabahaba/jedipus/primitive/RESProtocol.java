@@ -311,7 +311,7 @@ final class RESProtocol {
     }
   }
 
-  static long[][] readLongArrayArray(final Node node, final Function<Node, Node> hostPortMapper,
+  static long[][] readLong2DArray(final Node node, final Function<Node, Node> hostPortMapper,
       final RedisInputStream is) {
 
     final byte bite = is.readByte();

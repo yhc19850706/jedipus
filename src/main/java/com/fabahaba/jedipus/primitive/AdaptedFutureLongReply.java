@@ -8,7 +8,6 @@ class AdaptedFutureLongReply extends StatefulFutureReply<Void> {
   private long reply = Long.MIN_VALUE;
 
   AdaptedFutureLongReply(final LongUnaryOperator adapter) {
-
     this.adapter = adapter;
   }
 
@@ -36,7 +35,6 @@ class AdaptedFutureLongReply extends StatefulFutureReply<Void> {
   @Override
   public String toString() {
     return new StringBuilder("AdaptedFutureLongReply [reply=").append(reply).append(", state=")
-        .append(state).append(", exception=").append(exception).append(", execDependency=")
-        .append(execDependency).append("]").toString();
+        .append(state).append(", exception=").append(exception).append("]").toString();
   }
 }

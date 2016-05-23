@@ -12,6 +12,11 @@ class MultiExecReplyHandler extends BaseMultiReplyHandler<Object, Object[]> {
   @Override
   public Object[] apply(final Object data) {
 
+    if (data == null) {
+      multi.multiReplies.clear();
+      return null;
+    }
+
     final Object[] inplace = (Object[]) data;
 
     try {

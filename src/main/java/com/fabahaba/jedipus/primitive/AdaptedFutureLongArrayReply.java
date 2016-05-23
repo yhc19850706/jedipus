@@ -5,11 +5,10 @@ import java.util.function.Function;
 class AdaptedFutureLongArrayReply extends StatefulFutureReply<long[]> {
 
   private final Function<long[], long[]> adapter;
-  private long[] reply;
+  protected long[] reply;
   private long[] adapted;
 
   AdaptedFutureLongArrayReply(final Function<long[], long[]> adapter) {
-
     this.adapter = adapter;
   }
 
@@ -23,7 +22,6 @@ class AdaptedFutureLongArrayReply extends StatefulFutureReply<long[]> {
 
   @Override
   protected void handleReply() {
-
     adapted = adapter.apply(reply);
   }
 

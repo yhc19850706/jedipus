@@ -12,6 +12,11 @@ class PrimArrayMultiExecReplyHandler extends BaseMultiReplyHandler<long[][], lon
   @Override
   public long[][] apply(final long[][] data) {
 
+    if (data == null) {
+      multi.multiReplies.clear();
+      return null;
+    }
+
     try {
       if (data.length < multi.multiReplies.size()) {
         throw new RedisUnhandledException(null,

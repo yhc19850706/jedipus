@@ -4,7 +4,7 @@ import java.util.function.Function;
 
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
-class PrimMultiExecReplyHandler implements Function<Object, long[]> {
+class PrimMultiExecReplyHandler implements Function<long[], long[]> {
 
   private final PrimMulti multi;
 
@@ -14,15 +14,18 @@ class PrimMultiExecReplyHandler implements Function<Object, long[]> {
   }
 
   @Override
-  public long[] apply(final Object data) {
+  public long[] apply(final long[] data) {
 
-    final long[] inPlaceAdaptedReplies = (long[]) data;
+    if (data == null) {
+      multi.multiReplies.clear();
+      return null;
+    }
 
     try {
-      if (inPlaceAdaptedReplies.length < multi.multiReplies.size()) {
+      if (data.length < multi.multiReplies.size()) {
         throw new RedisUnhandledException(null,
-            String.format("Expected to only have %d responses, but was %d.",
-                inPlaceAdaptedReplies.length, multi.multiReplies.size()));
+            String.format("Expected to only have %d responses, but was %d.", data.length,
+                multi.multiReplies.size()));
       }
 
       for (int index = 0;; index++) {
@@ -30,17 +33,15 @@ class PrimMultiExecReplyHandler implements Function<Object, long[]> {
 
         if (reply == null) {
 
-          if (index != inPlaceAdaptedReplies.length) {
-            throw new RedisUnhandledException(null,
-                String.format("Expected to have %d responses, but was only %d.",
-                    inPlaceAdaptedReplies.length, index));
+          if (index != data.length) {
+            throw new RedisUnhandledException(null, String
+                .format("Expected to have %d responses, but was only %d.", data.length, index));
           }
 
-          return inPlaceAdaptedReplies;
+          return data;
         }
 
-        inPlaceAdaptedReplies[index] =
-            reply.setMultiLongReply(inPlaceAdaptedReplies[index]).getAsLong();
+        data[index] = reply.setMultiLongReply(data[index]).getAsLong();
       }
     } finally {
       multi.multiReplies.clear();

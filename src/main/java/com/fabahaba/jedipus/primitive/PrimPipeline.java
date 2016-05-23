@@ -151,6 +151,7 @@ final class PrimPipeline implements RedisPipeline {
     }
 
     client.conn.discard();
+    client.getMulti().multiReplies.clear();
     return queuePipelinedReply(Cmd.STRING_REPLY);
   }
 
@@ -165,14 +166,14 @@ final class PrimPipeline implements RedisPipeline {
     client.conn.flushOS();
 
     for (;;) {
-      final StatefulFutureReply<?> response = pipelineReplies.poll();
+      final StatefulFutureReply<?> futureReply = pipelineReplies.poll();
 
-      if (response == null) {
+      if (futureReply == null) {
         return;
       }
 
       try {
-        response.setReply(client.conn);
+        futureReply.setReply(client.conn);
       } catch (final AskNodeException askEx) {
         client.conn.drainIS();
         throw new UnhandledAskNodeException(client.getNode(),
@@ -182,7 +183,7 @@ final class PrimPipeline implements RedisPipeline {
           client.conn.drainIS();
           throw re;
         }
-        response.setException(re);
+        futureReply.setException(re);
       }
     }
   }
@@ -198,14 +199,14 @@ final class PrimPipeline implements RedisPipeline {
     client.conn.flushOS();
 
     for (;;) {
-      final StatefulFutureReply<?> response = pipelineReplies.poll();
+      final StatefulFutureReply<?> futureReply = pipelineReplies.poll();
 
-      if (response == null) {
+      if (futureReply == null) {
         return;
       }
 
       try {
-        response.setMultiReply(client.conn.getLongArray());
+        futureReply.setMultiReply(client.conn.getLongArray());
       } catch (final AskNodeException askEx) {
         client.conn.drainIS();
         throw new UnhandledAskNodeException(client.getNode(),
@@ -215,7 +216,7 @@ final class PrimPipeline implements RedisPipeline {
           client.conn.drainIS();
           throw re;
         }
-        response.setException(re);
+        futureReply.setException(re);
       }
     }
   }
