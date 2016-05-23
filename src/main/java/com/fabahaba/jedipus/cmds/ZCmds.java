@@ -12,17 +12,18 @@ public interface ZCmds extends DirectCmds {
   static final Cmd<Long> ZCOUNT = Cmd.createCast("ZCOUNT");
   static final Cmd<Long> ZINTERSTORE = Cmd.createCast("ZINTERSTORE");
   static final Cmd<Long> ZLEXCOUNT = Cmd.createCast("ZLEXCOUNT");
-  static final Cmd<Object[]> ZRANGE = Cmd.createCast("ZRANGE");
+  static final Cmd<Object[]> ZRANGE = Cmd.createInPlaceStringArrayReply("ZRANGE");
   static final Cmd<Object[]> ZRANGEBYLEX = Cmd.createInPlaceStringArrayReply("ZRANGEBYLEX");
-  static final Cmd<Object[]> ZRANGEBYSCORE = Cmd.createCast("ZRANGEBYSCORE");
+  static final Cmd<Object[]> ZRANGEBYSCORE = Cmd.createInPlaceStringArrayReply("ZRANGEBYSCORE");
   static final Cmd<Long> ZRANK = Cmd.createCast("ZRANK");
   static final Cmd<Long> ZREM = Cmd.createCast("ZREM");
   static final Cmd<Long> ZREMRANGEBYLEX = Cmd.createCast("ZREMRANGEBYLEX");
   static final Cmd<Long> ZREMRANGEBYRANK = Cmd.createCast("ZREMRANGEBYRANK");
   static final Cmd<Long> ZREMRANGEBYSCORE = Cmd.createCast("ZREMRANGEBYSCORE");
-  static final Cmd<Object[]> ZREVRANGE = Cmd.createCast("ZREVRANGE");
+  static final Cmd<Object[]> ZREVRANGE = Cmd.createInPlaceStringArrayReply("ZREVRANGE");
   static final Cmd<Object[]> ZREVRANGEBYLEX = Cmd.createInPlaceStringArrayReply("ZREVRANGEBYLEX");
-  static final Cmd<Object[]> ZREVRANGEBYSCORE = Cmd.createCast("ZREVRANGEBYSCORE");
+  static final Cmd<Object[]> ZREVRANGEBYSCORE =
+      Cmd.createInPlaceStringArrayReply("ZREVRANGEBYSCORE");
   static final Cmd<Long> ZREVRANK = Cmd.createCast("ZREVRANK");
   static final Cmd<Object[]> ZSCAN = Cmd.createCast("ZSCAN");
   static final Cmd<String> ZSCORE = Cmd.createStringReply("ZSCORE");
