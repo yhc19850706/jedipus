@@ -14,9 +14,6 @@ class PrimMulti {
 
   private final PrimRedisClient client;
   final Queue<StatefulFutureReply<?>> multiReplies;
-  private MultiExecReplyHandler multiExecReplyHandler;
-  private PrimMultiExecReplyHandler primMultiExecReplyHandler;
-  private PrimArrayMultiExecReplyHandler primArrayMultiExecReplyHandler;
 
   PrimMulti(final PrimRedisClient client) {
 
@@ -59,45 +56,19 @@ class PrimMulti {
     client.conn.resetState();
   }
 
-  private MultiExecReplyHandler getMultiExecReplyHandler() {
-    if (multiExecReplyHandler == null) {
-      multiExecReplyHandler = new MultiExecReplyHandler(this);
-    }
-
-    return multiExecReplyHandler;
-  }
-
   StatefulFutureReply<Object[]> createMultiExecFutureReply() {
 
-    return new ExecFutureReply<>(getMultiExecReplyHandler());
-  }
-
-  private PrimMultiExecReplyHandler getPrimMultiExecReplyHandler() {
-
-    if (primMultiExecReplyHandler == null) {
-      primMultiExecReplyHandler = new PrimMultiExecReplyHandler(this);
-    }
-
-    return primMultiExecReplyHandler;
+    return new ExecFutureReply<>(this);
   }
 
   StatefulFutureReply<long[]> createPrimMultiExecFutureReply() {
 
-    return new PrimArrayExecFutureReply(getPrimMultiExecReplyHandler());
-  }
-
-  private PrimArrayMultiExecReplyHandler getPrimArrayMultiExecReplyHandler() {
-
-    if (primArrayMultiExecReplyHandler == null) {
-      primArrayMultiExecReplyHandler = new PrimArrayMultiExecReplyHandler(this);
-    }
-
-    return primArrayMultiExecReplyHandler;
+    return new PrimArrayExecFutureReply(this);
   }
 
   StatefulFutureReply<long[][]> createPrimArrayMultiExecFutureReply() {
 
-    return new Prim2DArrayExecFutureReply(getPrimArrayMultiExecReplyHandler());
+    return new Prim2DArrayExecFutureReply(this);
   }
 
   <T> FutureReply<T> queueMultiPipelinedReply(final Function<Object, T> builder) {
