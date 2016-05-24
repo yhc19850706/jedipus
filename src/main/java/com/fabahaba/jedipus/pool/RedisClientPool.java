@@ -1,6 +1,7 @@
 package com.fabahaba.jedipus.pool;
 
 import com.fabahaba.jedipus.client.RedisClient;
+import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 
 public final class RedisClientPool {
 
@@ -24,6 +25,9 @@ public final class RedisClientPool {
 
     try {
       client.resetState();
+    } catch (final RedisConnectionException rce) {
+      pool.invalidateClient(client);
+      return;
     } catch (final RuntimeException re) {
       pool.invalidateClient(client);
       throw re;
