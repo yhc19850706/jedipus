@@ -220,4 +220,88 @@ public class PipelineTest extends BaseRedisClientTest {
       }
     }
   }
+
+  @Test
+  public void multiWithSync() {
+
+    client.sendCmd(Cmds.SET, "foo", "314");
+    client.sendCmd(Cmds.SET, "bar", "foo");
+    client.sendCmd(Cmds.SET, "hello", "world");
+
+    try (final RedisPipeline pipeline = client.pipeline()) {
+
+      final FutureReply<String> r1 = pipeline.sendCmd(Cmds.GET, "bar");
+      pipeline.multi();
+      final FutureReply<String> r2 = pipeline.sendCmd(Cmds.GET, "foo");
+      pipeline.exec();
+      final FutureReply<String> r3 = pipeline.sendCmd(Cmds.GET, "hello");
+      pipeline.sync();
+
+      assertEquals("foo", r1.get());
+      assertEquals("314", r2.get());
+      assertEquals("world", r3.get());
+    }
+  }
+
+  @Test(expected = RedisUnhandledException.class)
+  public void pipelineExecShoudThrowJedisDataExceptionWhenNotInMulti() {
+    try (final RedisPipeline pipeline = client.pipeline()) {
+      pipeline.exec();
+    }
+  }
+
+  @Test(expected = RedisUnhandledException.class)
+  public void pipelineDiscardShoudThrowJedisDataExceptionWhenNotInMulti() {
+    try (final RedisPipeline pipeline = client.pipeline()) {
+      pipeline.discard();
+    }
+
+  }
+
+  @Test(expected = RedisUnhandledException.class)
+  public void pipelineMultiShoudThrowJedisDataExceptionWhenAlreadyInMulti() {
+    try (final RedisPipeline pipeline = client.pipeline()) {
+      pipeline.multi();
+      pipeline.sendCmd(Cmds.SET, "foo", "3");
+      pipeline.multi();
+    }
+  }
+
+  @Test
+  public void testReuseJedisWhenPipelineIsEmpty() {
+    try (final RedisPipeline pipeline = client.pipeline()) {
+      pipeline.sendCmd(Cmds.SET, "foo", "3");
+      pipeline.sync();
+    }
+
+    final String result = client.sendCmd(Cmds.GET, "foo");
+    assertEquals(result, "3");
+  }
+
+  @Test
+  public void testResetStateWhenInPipeline() {
+    try (final RedisPipeline pipeline = client.pipeline()) {
+      pipeline.sendCmd(Cmds.SET, "foo", "3");
+      pipeline.sync();
+    }
+    client.resetState();
+    final String result = client.sendCmd(Cmds.GET, "foo");
+    assertEquals(result, "3");
+  }
+
+  @Test
+  public void testDiscardInPipeline() {
+    try (final RedisPipeline pipeline = client.pipeline()) {
+
+      pipeline.multi();
+      pipeline.sendCmd(Cmds.SET, "foo", "bar");
+      final FutureReply<String> discard = pipeline.discard();
+      final FutureReply<String> get = pipeline.sendCmd(Cmds.GET, "foo");
+
+      pipeline.sync();
+
+      assertEquals(RESP.OK, discard.get());
+      assertNull(get.get());
+    }
+  }
 }

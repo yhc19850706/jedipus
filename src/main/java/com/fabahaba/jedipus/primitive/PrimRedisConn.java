@@ -139,9 +139,7 @@ final class PrimRedisConn extends RedisConn {
   }
 
   void resetState() {
-    if (isInMulti()) {
-      // sendSubCmd(ClientCmds.CLIENT.getCmdBytes(), ClientCmds.CLIENT_REPLY.getCmdBytes(),
-      // ClientCmds.SKIP.getCmdBytes());
+    if (multi || watching) {
       discard();
       getReply(MultiCmds.DISCARD.raw());
     } else {
