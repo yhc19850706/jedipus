@@ -876,7 +876,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
             pipeline.sendCmd(Cmds.BITFIELD.primArray(), bitfieldOverflowExample);
 
         int expected = 1;
-        for (final long[] reply : pipeline.primArrayExecSyncThrow().get()) {
+        for (final long[] reply : pipeline.primArrayExecSyncThrow()) {
           assertEquals(expected % 4, reply[0]);
           assertEquals(Math.min(3, expected++), reply[1]);
         }

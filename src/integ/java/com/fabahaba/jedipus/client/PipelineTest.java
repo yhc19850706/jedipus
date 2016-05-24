@@ -10,6 +10,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.fabahaba.jedipus.cmds.CmdByteArray;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
@@ -179,9 +180,11 @@ public class PipelineTest extends BaseRedisClientTest {
     try (final RedisPipeline pipeline = client.pipeline()) {
 
       pipeline.multi();
+
       final FutureLongReply r1 = pipeline.sendCmd(Cmds.HINCRBY.prim(), "a", "f1", "-1");
       final FutureLongReply r2 = pipeline.sendCmd(Cmds.HINCRBY.prim(), "a", "f1", "-2");
       final FutureReply<long[]> r3 = pipeline.primExecSync();
+
       final long[] result = r3.get();
 
       assertEquals(-1L, r1.getAsLong());
@@ -191,6 +194,30 @@ public class PipelineTest extends BaseRedisClientTest {
 
       assertEquals(-1L, result[0]);
       assertEquals(-3L, result[1]);
+    }
+  }
+
+  @Test
+  public void multiWithMassiveRequests() {
+
+    try (final RedisPipeline pipeline = client.pipeline()) {
+
+      pipeline.multi();
+
+      final CmdByteArray<Long> setCmdArgs =
+          CmdByteArray.startBuilding(Cmds.SETBIT, 4).addArgs("test", "1", "1").create();
+
+      final FutureLongReply[] replies = new FutureLongReply[100000];
+      for (int i = 0; i < replies.length; i++) {
+
+        replies[i] = pipeline.sendDirectPrim(setCmdArgs);
+      }
+
+      pipeline.primExecSyncThrow();
+
+      for (final FutureLongReply reply : replies) {
+        reply.getAsLong();
+      }
     }
   }
 }

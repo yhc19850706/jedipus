@@ -21,6 +21,8 @@ final class PrimPipeline implements RedisPipeline {
   private final PrimRedisClient client;
   private final Queue<StatefulFutureReply<?>> pipelineReplies;
 
+  private Queue<StatefulFutureReply<?>> multiReplies;
+
   PrimPipeline(final PrimRedisClient client) {
 
     this.client = client;
@@ -30,8 +32,17 @@ final class PrimPipeline implements RedisPipeline {
   @Override
   public void close() {
     pipelineReplies.clear();
-    client.closeMulti();
+    if (multiReplies != null) {
+      multiReplies.clear();
+    }
     client.conn.resetState();
+  }
+
+  private Queue<StatefulFutureReply<?>> getMultiReplies() {
+    if (multiReplies == null) {
+      multiReplies = new ArrayDeque<>();
+    }
+    return multiReplies;
   }
 
   private <T> FutureReply<T> queueFutureReply(final Function<Object, T> builder) {
@@ -56,7 +67,10 @@ final class PrimPipeline implements RedisPipeline {
 
   private <T> FutureReply<T> queueMultiPipelinedReply(final Function<Object, T> builder) {
     pipelineReplies.add(new DirectFutureReply<>());
-    return client.getMulti().queueMultiPipelinedReply(builder);
+
+    final StatefulFutureReply<T> futureReply = new DeserializedFutureReply<>(builder);
+    getMultiReplies().add(futureReply);
+    return futureReply;
   }
 
   private FutureLongReply queueFutureReply(final LongUnaryOperator adapter) {
@@ -81,7 +95,10 @@ final class PrimPipeline implements RedisPipeline {
 
   private FutureLongReply queueMultiPipelinedReply(final LongUnaryOperator adapter) {
     pipelineReplies.add(new DirectFutureReply<>());
-    return client.getMulti().queueMultiPipelinedReply(adapter);
+
+    final StatefulFutureReply<Void> futureReply = new AdaptedFutureLongReply(adapter);
+    getMultiReplies().add(futureReply);
+    return futureReply;
   }
 
   private FutureReply<long[]> queueFutureReply(final PrimArrayCmd builder) {
@@ -104,9 +121,12 @@ final class PrimPipeline implements RedisPipeline {
     }
   }
 
-  private FutureReply<long[]> queueMultiPipelinedReply(final PrimArrayCmd builder) {
+  private FutureReply<long[]> queueMultiPipelinedReply(final PrimArrayCmd adapter) {
     pipelineReplies.add(new DirectFutureReply<>());
-    return client.getMulti().queueMultiPipelinedReply(builder);
+
+    final StatefulFutureReply<long[]> futureReply = new AdaptedFutureLongArrayReply(adapter);
+    getMultiReplies().add(futureReply);
+    return futureReply;
   }
 
   @Override
@@ -151,7 +171,7 @@ final class PrimPipeline implements RedisPipeline {
     }
 
     client.conn.discard();
-    client.getMulti().multiReplies.clear();
+    getMultiReplies().clear();
     return queuePipelinedReply(Cmd.STRING_REPLY);
   }
 
@@ -243,8 +263,7 @@ final class PrimPipeline implements RedisPipeline {
 
     client.conn.exec();
 
-    final StatefulFutureReply<Object[]> futureMultiExecReply =
-        client.getMulti().createMultiExecFutureReply();
+    final StatefulFutureReply<Object[]> futureMultiExecReply = new ExecFutureReply<>(multiReplies);
 
     pipelineReplies.add(futureMultiExecReply);
 
@@ -262,7 +281,7 @@ final class PrimPipeline implements RedisPipeline {
     client.conn.exec();
 
     final StatefulFutureReply<long[]> futureMultiExecReply =
-        client.getMulti().createPrimMultiExecFutureReply();
+        new PrimArrayExecFutureReply(multiReplies);
 
     pipelineReplies.add(futureMultiExecReply);
 
@@ -280,7 +299,7 @@ final class PrimPipeline implements RedisPipeline {
     client.conn.exec();
 
     final StatefulFutureReply<long[][]> futureMultiExecReply =
-        client.getMulti().createPrimArrayMultiExecFutureReply();
+        new Prim2DArrayExecFutureReply(multiReplies);
 
     pipelineReplies.add(futureMultiExecReply);
 

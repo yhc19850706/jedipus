@@ -1,14 +1,16 @@
 package com.fabahaba.jedipus.primitive;
 
+import java.util.Queue;
+
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 class Prim2DArrayExecFutureReply extends StatefulFutureReply<long[][]> {
 
-  private final PrimMulti multi;
+  private final Queue<StatefulFutureReply<?>> multiReplies;
   private long[][] reply;
 
-  Prim2DArrayExecFutureReply(final PrimMulti multi) {
-    this.multi = multi;
+  Prim2DArrayExecFutureReply(final Queue<StatefulFutureReply<?>> multiReplies) {
+    this.multiReplies = multiReplies;
   }
 
   @Override
@@ -36,19 +38,18 @@ class Prim2DArrayExecFutureReply extends StatefulFutureReply<long[][]> {
   protected void handleReply() {
 
     if (reply == null) {
-      multi.multiReplies.clear();
+      multiReplies.clear();
       return;
     }
 
     try {
-      if (reply.length < multi.multiReplies.size()) {
-        throw new RedisUnhandledException(null,
-            String.format("Expected to only have %d responses, but was %d.", reply.length,
-                multi.multiReplies.size()));
+      if (reply.length < multiReplies.size()) {
+        throw new RedisUnhandledException(null, String.format(
+            "Expected to only have %d responses, but was %d.", reply.length, multiReplies.size()));
       }
 
       for (int index = 0;; index++) {
-        final StatefulFutureReply<?> multiReply = multi.multiReplies.poll();
+        final StatefulFutureReply<?> multiReply = multiReplies.poll();
 
         if (multiReply == null) {
 
@@ -63,7 +64,7 @@ class Prim2DArrayExecFutureReply extends StatefulFutureReply<long[][]> {
         reply[index] = multiReply.setMultiLongArrayReply(reply[index]).get();
       }
     } finally {
-      multi.multiReplies.clear();
+      multiReplies.clear();
     }
   }
 }

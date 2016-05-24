@@ -13,7 +13,6 @@ import com.fabahaba.jedipus.cmds.Cmd;
 class PrimRedisClient extends BaseRedisClient {
 
   private PrimPipeline pipeline;
-  private PrimMulti multi;
 
   PrimRedisClient(final Node node, final ReplyMode replyMode,
       final Function<Node, Node> hostPortMapper, final int connTimeoutMillis,
@@ -38,8 +37,6 @@ class PrimRedisClient extends BaseRedisClient {
     try {
       if (pipeline != null) {
         pipeline.close();
-      } else if (multi != null) {
-        multi.close();
       }
     } finally {
       super.close();
@@ -48,11 +45,9 @@ class PrimRedisClient extends BaseRedisClient {
 
   @Override
   public void resetState() {
-
     if (pipeline != null) {
       pipeline.close();
     }
-
     conn.resetState();
   }
 
@@ -64,19 +59,6 @@ class PrimRedisClient extends BaseRedisClient {
     }
 
     return pipeline = new PrimPipeline(this);
-  }
-
-  PrimMulti getMulti() {
-    if (multi == null) {
-      multi = new PrimMulti(this);
-    }
-    return multi;
-  }
-
-  void closeMulti() {
-    if (multi != null) {
-      multi.close();
-    }
   }
 
   static final Cmd<String> ASKING = Cmd.createStringReply("ASKING");

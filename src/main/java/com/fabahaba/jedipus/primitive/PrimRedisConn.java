@@ -24,9 +24,9 @@ final class PrimRedisConn extends RedisConn {
   private ReplyMode replyMode;
 
   static PrimRedisConn create(final Node node, final ReplyMode replyMode,
-      final Function<Node, Node> hostPortMapper, final int connTimeoutMillis, final int soTimeoutMillis,
-      final int outputBufferSize, final int inputBufferSize, final boolean ssl,
-      final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
+      final Function<Node, Node> hostPortMapper, final int connTimeoutMillis,
+      final int soTimeoutMillis, final int outputBufferSize, final int inputBufferSize,
+      final boolean ssl, final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
       final HostnameVerifier hostnameVerifier) {
 
     Socket socket = null;
@@ -139,12 +139,14 @@ final class PrimRedisConn extends RedisConn {
   }
 
   void resetState() {
-    flushOS();
-    drainIS();
     if (isInMulti()) {
+      // sendSubCmd(ClientCmds.CLIENT.getCmdBytes(), ClientCmds.CLIENT_REPLY.getCmdBytes(),
+      // ClientCmds.SKIP.getCmdBytes());
       discard();
+      getReply(MultiCmds.DISCARD.raw());
+    } else {
       flushOS();
-      ClientCmds.CLIENT_REPLY.apply(getReply(MultiCmds.DISCARD.raw()));
+      drainIS();
     }
   }
 
