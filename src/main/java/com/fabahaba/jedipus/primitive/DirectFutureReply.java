@@ -8,7 +8,7 @@ class DirectFutureReply<T> extends StatefulFutureReply<T> {
   public DirectFutureReply<T> setMultiReply(final Object reply) {
 
     if (reply == null) {
-      state = State.BUILT;
+      state = State.READY;
       return this;
     }
 

@@ -7,7 +7,7 @@ import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply {
 
   protected static enum State {
-    EMPTY, PENDING, BUILDING, BUILT, BROKEN;
+    EMPTY, PENDING, READY, BROKEN;
   }
 
   protected State state = State.EMPTY;
@@ -24,22 +24,19 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
 
     switch (state) {
       case PENDING:
-        state = State.BUILDING;
         try {
           handleReply();
-          state = State.BUILT;
+          state = State.READY;
           return this;
         } catch (final RuntimeException re) {
           setException(re);
           throw re;
         }
       case EMPTY:
-        throw new RedisUnhandledException(null,
-            "Close your pipeline or multi block before calling this method.");
+        throw new RedisUnhandledException(null, "Sync your pipeline.");
       case BROKEN:
         throw exception;
-      case BUILDING:
-      case BUILT:
+      case READY:
       default:
         return this;
     }
@@ -47,20 +44,20 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
 
   protected void handleReply() {}
 
-  public StatefulFutureReply<T> setReply(final PrimRedisConn conn) {
+  StatefulFutureReply<T> setReply(final PrimRedisConn conn) {
     setMultiReply(conn.getReply());
     return this;
   }
 
-  public StatefulFutureReply<T> setMultiReply(final Object reply) {
+  StatefulFutureReply<T> setMultiReply(final Object reply) {
     throw new RedisUnhandledException(null, "Illegal use of this FutureReply.");
   }
 
-  public StatefulFutureReply<long[]> setMultiLongArrayReply(final long[] reply) {
+  StatefulFutureReply<long[]> setMultiLongArrayReply(final long[] reply) {
     throw new RedisUnhandledException(null, "Illegal use of this FutureReply.");
   }
 
-  public StatefulFutureReply<Void> setMultiLongReply(final long reply) {
+  StatefulFutureReply<Void> setMultiLongReply(final long reply) {
     throw new RedisUnhandledException(null, "Illegal use of this FutureReply.");
   }
 

@@ -2,7 +2,9 @@ package com.fabahaba.jedipus.client;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
+
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -10,6 +12,7 @@ import org.junit.Test;
 
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.RESP;
+import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 public class PipelineTest extends BaseRedisClientTest {
 
@@ -86,7 +89,7 @@ public class PipelineTest extends BaseRedisClientTest {
     assertEquals("foo", zset.get()[0]);
     assertEquals("foo", set.get());
     assertEquals(0L, blist.getAsLong());
-    assertTrue(2.0 == Double.parseDouble(zincrby.get()));
+    assertEquals(2.0, Double.parseDouble(zincrby.get()), 0.0);
     assertEquals(1L, zcard.getAsLong());
     assertEquals(1, lrange.get().length);
     assertEquals("foo", hgetAll.get()[0]);
@@ -96,5 +99,98 @@ public class PipelineTest extends BaseRedisClientTest {
     assertEquals("2", zrangeWithScores.get()[1]);
     assertEquals("123", getrange.get());
     assertArrayEquals(new byte[] {6, 7, 8}, (byte[]) getrangeBytes.get());
+  }
+
+  @Test
+  public void pipelineResponseWithoutData() {
+
+    client.sendCmd(Cmds.ZADD, "zset", "1", "foo");
+
+    try (final RedisPipeline pipeline = client.pipeline()) {
+
+      final FutureReply<String> score = pipeline.sendCmd(Cmds.ZSCORE, "zset", "bar");
+      pipeline.sync();
+      assertNull(score.get());
+    }
+  }
+
+  @Test(expected = RedisUnhandledException.class)
+  public void pipelineResponseWithinPipeline() {
+
+    client.sendCmd(Cmds.SET, "string", "foo");
+
+    try (final RedisPipeline pipeline = client.pipeline()) {
+
+      final FutureReply<String> string = pipeline.sendCmd(Cmds.GET, "string");
+      string.get();
+      pipeline.sync();
+    }
+  }
+
+  @Test
+  public void canRetrieveUnsetKey() {
+
+    try (final RedisPipeline pipeline = client.pipeline()) {
+
+      final FutureReply<String> shouldNotExist =
+          pipeline.sendCmd(Cmds.GET, UUID.randomUUID().toString());
+      pipeline.sync();
+      assertNull(shouldNotExist.get());
+    }
+  }
+
+  @Test
+  public void piplineWithError() {
+
+    try (final RedisPipeline pipeline = client.pipeline()) {
+
+      pipeline.sendCmd(Cmds.SET, "foo", "bar");
+
+      final FutureReply<Object[]> error = pipeline.sendCmd(Cmds.SMEMBERS, "foo");
+      final FutureReply<String> bar = pipeline.sendCmd(Cmds.GET, "foo");
+      pipeline.sync();
+
+      try {
+        error.get();
+      } catch (final RedisUnhandledException rue) {
+        // expected
+      }
+      assertEquals(bar.get(), "bar");
+    }
+  }
+
+  @Test(expected = RedisUnhandledException.class)
+  public void piplineWithCheckedError() {
+
+    try (final RedisPipeline pipeline = client.pipeline()) {
+
+      pipeline.sendCmd(Cmds.SET, "foo", "bar");
+
+      pipeline.sendCmd(Cmds.SMEMBERS, "foo");
+      final FutureReply<String> bar = pipeline.sendCmd(Cmds.GET, "foo");
+      pipeline.syncThrow();
+      assertEquals(bar.get(), "bar");
+    }
+  }
+
+  @Test
+  public void multi() {
+
+    try (final RedisPipeline pipeline = client.pipeline()) {
+
+      pipeline.multi();
+      final FutureLongReply r1 = pipeline.sendCmd(Cmds.HINCRBY.prim(), "a", "f1", "-1");
+      final FutureLongReply r2 = pipeline.sendCmd(Cmds.HINCRBY.prim(), "a", "f1", "-2");
+      final FutureReply<long[]> r3 = pipeline.primExecSync();
+      final long[] result = r3.get();
+
+      assertEquals(-1L, r1.getAsLong());
+      assertEquals(-3L, r2.getAsLong());
+
+      assertEquals(2, result.length);
+
+      assertEquals(-1L, result[0]);
+      assertEquals(-3L, result[1]);
+    }
   }
 }

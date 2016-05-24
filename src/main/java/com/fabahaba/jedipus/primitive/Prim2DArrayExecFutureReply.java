@@ -24,7 +24,7 @@ class Prim2DArrayExecFutureReply extends StatefulFutureReply<long[][]> {
     this.reply = conn.getLong2DArray();
     try {
       handleReply();
-      state = State.BUILT;
+      state = State.READY;
       return this;
     } catch (final RuntimeException re) {
       setException(re);

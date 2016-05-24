@@ -21,7 +21,7 @@ public class PrimArrayExecFutureReply extends StatefulFutureReply<long[]> {
 
   @Override
   public StatefulFutureReply<long[]> setReply(final PrimRedisConn conn) {
-    setMultiReply(conn.getLongArray());
+    setMultiLongArrayReply(conn.getLongArray());
     return this;
   }
 
@@ -30,7 +30,7 @@ public class PrimArrayExecFutureReply extends StatefulFutureReply<long[]> {
     this.reply = reply;
     try {
       handleReply();
-      state = State.BUILT;
+      state = State.READY;
       return this;
     } catch (final RuntimeException re) {
       setException(re);

@@ -24,7 +24,7 @@ class ExecFutureReply<R> extends StatefulFutureReply<Object[]> {
     this.reply = (Object[]) reply;
     try {
       handleReply();
-      state = State.BUILT;
+      state = State.READY;
       return this;
     } catch (final RuntimeException re) {
       setException(re);
