@@ -33,7 +33,7 @@ wait
 
 REDIS_CONTAINER_IP=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' "$REDIS_CONTAINER_NAME")
 perl -pi -e "s/connect.*/connect = $REDIS_CONTAINER_IP:$serverPort/" "$(pwd)/stunnel/stunnel.conf"
-
+cat stunnel/stunnel.conf
 docker run -d -p "$stunnelPort:$stunnelPort" --name="$name-stunnel" -v "$(pwd)/stunnel:/etc/stunnel/" jamespedwards42/alpine-stunnel:latest
 
 exit 0
