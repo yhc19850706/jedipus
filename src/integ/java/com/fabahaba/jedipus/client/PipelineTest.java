@@ -21,7 +21,7 @@ public class PipelineTest extends BaseRedisClientTest {
 
   @Before
   public void before() {
-    client = DEFAULT_POOLED_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE);
+    client = DEFAULT_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE);
   }
 
   @After

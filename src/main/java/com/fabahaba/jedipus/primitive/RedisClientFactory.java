@@ -345,6 +345,9 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
 
     public Builder withSsl(final boolean ssl) {
       this.ssl = ssl;
+      if (ssl && sslSocketFactory == null) {
+        sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+      }
       return this;
     }
 

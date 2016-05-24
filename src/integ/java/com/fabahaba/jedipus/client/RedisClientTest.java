@@ -23,7 +23,7 @@ public class RedisClientTest extends BaseRedisClientTest {
   @Test
   public void testConnectedOnCreate() {
 
-    try (final RedisClient client = DEFAULT_POOLED_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE)) {
+    try (final RedisClient client = DEFAULT_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE)) {
       client.sendCmd(Cmds.SET, "foo", "bar");
       final long dbSize = client.sendCmd(Cmds.DBSIZE.prim());
       assertTrue(dbSize > 0);
@@ -42,7 +42,7 @@ public class RedisClientTest extends BaseRedisClientTest {
     final byte[] key = RESP.toBytes("hkey");
     final byte[] field = RESP.toBytes("data");
 
-    try (final RedisClient client = DEFAULT_POOLED_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE)) {
+    try (final RedisClient client = DEFAULT_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE)) {
       final String reply = client.sendCmd(Cmds.HMSET, key, field, data);
       assertEquals(RESP.OK, reply);
       final Object[] bigdataReply = (Object[]) client.sendCmd(Cmds.HGETALL.raw(), key);
@@ -65,7 +65,7 @@ public class RedisClientTest extends BaseRedisClientTest {
   @Test(expected = RedisUnhandledException.class)
   public void failWhenSendingNullValues() {
 
-    try (final RedisClient client = DEFAULT_POOLED_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE)) {
+    try (final RedisClient client = DEFAULT_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE)) {
       client.sendCmd(Cmds.SET, RESP.toBytes("foo"), null);
     }
   }
@@ -90,7 +90,7 @@ public class RedisClientTest extends BaseRedisClientTest {
   @Test
   public void checkAutoCloseable() {
     RedisClient expose = null;
-    try (final RedisClient client = DEFAULT_POOLED_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE)) {
+    try (final RedisClient client = DEFAULT_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE)) {
       expose = client;
     }
     assertNotNull(expose);
@@ -99,7 +99,7 @@ public class RedisClientTest extends BaseRedisClientTest {
 
   @Test
   public void checkDisconnectOnQuit() {
-    final RedisClient client = DEFAULT_POOLED_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE);
+    final RedisClient client = DEFAULT_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE);
     client.close();
     assertTrue(client.isBroken());
   }

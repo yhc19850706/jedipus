@@ -16,7 +16,7 @@ public class ModuleTest extends BaseRedisClientTest {
   @Test
   public void testModuleLoadAndCall() {
 
-    try (final RedisClient client = DEFAULT_POOLED_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE)) {
+    try (final RedisClient client = DEFAULT_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE)) {
 
       final String reply = client.sendCmd(Cmds.MODULE, Cmds.MODULE_LOAD, "/redis/modules/integ.so");
       assertEquals(RESP.OK, reply);

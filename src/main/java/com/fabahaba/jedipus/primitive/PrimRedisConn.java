@@ -3,6 +3,7 @@ package com.fabahaba.jedipus.primitive;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.function.Function;
 import java.util.function.LongUnaryOperator;
 
@@ -29,29 +30,36 @@ final class PrimRedisConn extends RedisConn {
       final boolean ssl, final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
       final HostnameVerifier hostnameVerifier) {
 
-    Socket socket = null;
     try {
-      socket = new Socket();
-      socket.setReuseAddress(true);
-      socket.setKeepAlive(true);
-      socket.setTcpNoDelay(true);
-      socket.setSoLinger(true, 0);
-      socket.connect(new InetSocketAddress(node.getHost(), node.getPort()), connTimeoutMillis);
-      socket.setSoTimeout(soTimeoutMillis);
-
       if (ssl) {
         final SSLSocket sslSocket =
-            (SSLSocket) sslSocketFactory.createSocket(socket, node.getHost(), node.getPort(), true);
+            initSocket((SSLSocket) sslSocketFactory.createSocket(), soTimeoutMillis);
+        sslSocket.connect(new InetSocketAddress(node.getHost(), node.getPort()), connTimeoutMillis);
 
         return createSSL(node, replyMode, hostPortMapper, connTimeoutMillis, soTimeoutMillis,
             outputBufferSize, inputBufferSize, sslSocket, sslParameters, hostnameVerifier);
       }
+
+      final Socket socket = initSocket(new Socket(), soTimeoutMillis);
+      socket.connect(new InetSocketAddress(node.getHost(), node.getPort()), connTimeoutMillis);
 
       return new PrimRedisConn(node, replyMode, hostPortMapper, soTimeoutMillis, outputBufferSize,
           inputBufferSize, socket);
     } catch (final IOException ex) {
       throw new RedisConnectionException(node, ex);
     }
+  }
+
+  private static <S extends Socket> S initSocket(final S socket, final int soTimeoutMillis)
+      throws SocketException {
+
+    socket.setReuseAddress(true);
+    socket.setKeepAlive(true);
+    socket.setTcpNoDelay(true);
+    socket.setSoLinger(true, 0);
+    socket.setSoTimeout(soTimeoutMillis);
+
+    return socket;
   }
 
   private static PrimRedisConn createSSL(final Node node, final ReplyMode replyMode,

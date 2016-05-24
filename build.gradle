@@ -54,6 +54,8 @@ sourceSets {
 
 project.ext.set('redisServerPort', '9736')
 project.ext.set('redisServerPass', '42')
+project.ext.set('redisSSLServerPort', '6443')
+project.ext.set('redisJceksTruststore', 'stunnel/stunnel.jks')
 
 project.ext.set('clusterAnnounceIp', '127.0.0.1')
 project.ext.set('startingClusterPort', '7379')
@@ -71,6 +73,8 @@ test {
    }
    systemProperty 'jedipus.redis.port', project.redisServerPort
    systemProperty 'jedipus.redis.pass', project.redisServerPass
+   systemProperty 'jedipus.redis.ssl.port', project.redisSSLServerPort
+   systemProperty 'jedipus.redis.ssl.truststore.jceks', project.redisJceksTruststore
 
    systemProperty 'jedipus.redis.cluster.announceip', project.clusterAnnounceIp
    systemProperty 'jedipus.redis.cluster.startingport', project.startingClusterPort
@@ -82,7 +86,7 @@ task startRedis(type:Exec) {
    int numMasters = project.numMasters.toInteger()
    int numClusterNodes = numMasters + numMasters *  project.numSlavesEach.toInteger()
 
-   commandLine './scripts/startRedis.sh', project.name, project.redisServerPort, project.redisServerPass, project.startingClusterPort, numClusterNodes, project.clusterAnnounceIp
+   commandLine './scripts/startRedis.sh', project.name, project.redisServerPort, project.redisServerPass, project.startingClusterPort, numClusterNodes, project.clusterAnnounceIp, project.redisSSLServerPort
 }
 
 task rmRedis(type:Exec) {

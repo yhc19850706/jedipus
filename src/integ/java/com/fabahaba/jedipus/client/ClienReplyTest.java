@@ -14,7 +14,7 @@ public class ClienReplyTest extends BaseRedisClientTest {
   @Test
   public void testReplyModeChanges() {
 
-    try (final RedisClient client = DEFAULT_POOLED_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE)) {
+    try (final RedisClient client = DEFAULT_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE)) {
 
       assertNull(client.replyOff().sendCmd(Cmds.PING));
       assertNull(client.sendCmd(Cmds.PING));
