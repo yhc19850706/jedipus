@@ -364,7 +364,7 @@ abstract class BaseRedisClient implements RedisClient {
   public void close() {
     try {
       replyOn();
-      sendCmd(Cmds.QUIT);
+      skip().sendCmd(Cmds.QUIT);
     } catch (final RuntimeException e) {
       // closing anyways
     } finally {
