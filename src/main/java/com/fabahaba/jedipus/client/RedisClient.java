@@ -57,4 +57,6 @@ public interface RedisClient extends Cmds, AutoCloseable {
   String watch(final byte[]... keys);
 
   String unwatch();
+
+  void flush();
 }

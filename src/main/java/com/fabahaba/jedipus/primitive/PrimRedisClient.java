@@ -83,4 +83,9 @@ class PrimRedisClient extends BaseRedisClient {
   public String getClientName() {
     return sendCmd(ClientCmds.CLIENT, ClientCmds.CLIENT_GETNAME);
   }
+
+  @Override
+  public void flush() {
+    conn.flushOS();
+  }
 }

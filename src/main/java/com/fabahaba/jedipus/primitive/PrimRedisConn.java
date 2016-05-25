@@ -147,6 +147,17 @@ final class PrimRedisConn extends RedisConn {
   }
 
   void resetState() {
+
+    switch (replyMode) {
+      case OFF:
+      case SKIP:
+        setReplyOn();
+        return;
+      case ON:
+      default:
+        break;
+    }
+
     if (multi || watching) {
       discard();
       getReply(MultiCmds.DISCARD.raw());
@@ -157,7 +168,6 @@ final class PrimRedisConn extends RedisConn {
   }
 
   <T> T getReply(final Function<Object, T> responseHandler) {
-    flushOS();
     switch (replyMode) {
       case OFF:
         return null;
@@ -165,6 +175,7 @@ final class PrimRedisConn extends RedisConn {
         setReplyMode(ReplyMode.ON);
         return null;
       case ON:
+        flushOS();
         return responseHandler.apply(getReply());
       default:
         return null;
@@ -172,7 +183,6 @@ final class PrimRedisConn extends RedisConn {
   }
 
   long[] getLongArrayReply(final Function<long[], long[]> responseHandler) {
-    flushOS();
     switch (replyMode) {
       case OFF:
         return null;
@@ -180,6 +190,7 @@ final class PrimRedisConn extends RedisConn {
         setReplyMode(ReplyMode.ON);
         return null;
       case ON:
+        flushOS();
         return responseHandler.apply(getLongArray());
       default:
         return null;
@@ -187,7 +198,6 @@ final class PrimRedisConn extends RedisConn {
   }
 
   long getReply(final LongUnaryOperator responseHandler) {
-    flushOS();
     switch (replyMode) {
       case OFF:
         return 0;
@@ -195,6 +205,7 @@ final class PrimRedisConn extends RedisConn {
         setReplyMode(ReplyMode.ON);
         return 0;
       case ON:
+        flushOS();
         return responseHandler.applyAsLong(getLong());
       default:
         return 0;
@@ -214,6 +225,19 @@ final class PrimRedisConn extends RedisConn {
     this.replyMode = replyMode;
   }
 
+  private String setReplyOn() {
+
+    sendSubCmd(ClientCmds.CLIENT.getCmdBytes(), ClientCmds.CLIENT_REPLY.getCmdBytes(),
+        ClientCmds.ON.getCmdBytes());
+    flushOS();
+
+    final String reply = ClientCmds.CLIENT_REPLY.apply(getReply());
+    if (reply != null) {
+      setReplyMode(ReplyMode.ON);
+    }
+    return reply;
+  }
+
   String replyOn() {
     switch (replyMode) {
       case ON:
@@ -221,14 +245,7 @@ final class PrimRedisConn extends RedisConn {
       case OFF:
       case SKIP:
       default:
-        sendSubCmd(ClientCmds.CLIENT.getCmdBytes(), ClientCmds.CLIENT_REPLY.getCmdBytes(),
-            ClientCmds.ON.getCmdBytes());
-        flushOS();
-        final String reply = ClientCmds.CLIENT_REPLY.apply(getReply());
-        if (reply != null) {
-          setReplyMode(ReplyMode.ON);
-        }
-        return reply;
+        return setReplyOn();
     }
   }
 
