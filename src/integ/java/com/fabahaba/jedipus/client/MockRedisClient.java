@@ -367,4 +367,22 @@ public class MockRedisClient implements RedisClient {
 
   @Override
   public void flush() {}
+
+  @Override
+  public <T> T sendCmd(final Cmd<T> cmd, final byte[] arg1, final byte[] arg2) {
+
+    return null;
+  }
+
+  @Override
+  public long sendCmd(final PrimCmd cmd, final byte[] arg1, final byte[] arg2) {
+
+    return 0;
+  }
+
+  @Override
+  public long[] sendCmd(final PrimArrayCmd cmd, final byte[] arg1, final byte[] arg2) {
+
+    return null;
+  }
 }

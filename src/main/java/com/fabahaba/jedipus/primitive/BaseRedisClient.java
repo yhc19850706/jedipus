@@ -105,6 +105,12 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
+  public <T> T sendCmd(final Cmd<T> cmd, final byte[] arg1, final byte[] arg2) {
+    conn.sendSubCmd(cmd.getCmdBytes(), arg1, arg2);
+    return conn.getReply(cmd);
+  }
+
+  @Override
   public <T> T sendCmd(final Cmd<T> cmd, final byte[]... args) {
     conn.sendCmd(cmd.getCmdBytes(), args);
     return conn.getReply(cmd);
@@ -187,6 +193,12 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
+  public long[] sendCmd(final PrimArrayCmd cmd, final byte[] arg1, final byte[] arg2) {
+    conn.sendSubCmd(cmd.getCmdBytes(), arg1, arg2);
+    return conn.getLongArrayReply(cmd);
+  }
+
+  @Override
   public long[] sendCmd(final PrimArrayCmd cmd, final byte[]... args) {
     conn.sendCmd(cmd.getCmdBytes(), args);
     return conn.getLongArrayReply(cmd);
@@ -264,6 +276,12 @@ abstract class BaseRedisClient implements RedisClient {
   @Override
   public long sendCmd(final PrimCmd cmd, final byte[] arg) {
     conn.sendSubCmd(cmd.getCmdBytes(), arg);
+    return conn.getReply(cmd);
+  }
+
+  @Override
+  public long sendCmd(final PrimCmd cmd, final byte[] arg1, final byte[] arg2) {
+    conn.sendSubCmd(cmd.getCmdBytes(), arg1, arg2);
     return conn.getReply(cmd);
   }
 

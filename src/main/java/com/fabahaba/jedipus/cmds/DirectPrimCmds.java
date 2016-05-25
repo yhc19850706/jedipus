@@ -12,6 +12,8 @@ public interface DirectPrimCmds {
 
   public long sendCmd(final PrimCmd cmd, final byte[] arg);
 
+  public long sendCmd(final PrimCmd cmd, final byte[] arg1, final byte[] arg2);
+
   public long sendCmd(final PrimCmd cmd, final byte[]... args);
 
   default long sendCmd(final Cmd<?> cmd, final PrimCmd subCmd, final String arg) {
@@ -22,6 +24,10 @@ public interface DirectPrimCmds {
 
   default long sendCmd(final PrimCmd cmd, final String arg) {
     return sendCmd(cmd, RESP.toBytes(arg));
+  }
+
+  default long sendCmd(final PrimCmd cmd, final String arg1, final String arg2) {
+    return sendCmd(cmd, RESP.toBytes(arg1), RESP.toBytes(arg2));
   }
 
   public long sendCmd(final PrimCmd cmd, final String... args);
@@ -42,6 +48,8 @@ public interface DirectPrimCmds {
 
   public long[] sendCmd(final PrimArrayCmd cmd, final byte[] arg);
 
+  public long[] sendCmd(final PrimArrayCmd cmd, final byte[] arg1, final byte[] arg2);
+
   public long[] sendCmd(final PrimArrayCmd cmd, final byte[]... args);
 
   default long[] sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd, final String arg) {
@@ -52,6 +60,10 @@ public interface DirectPrimCmds {
 
   default long[] sendCmd(final PrimArrayCmd cmd, final String arg) {
     return sendCmd(cmd, RESP.toBytes(arg));
+  }
+
+  default long[] sendCmd(final PrimArrayCmd cmd, final String arg1, final String arg2) {
+    return sendCmd(cmd, RESP.toBytes(arg1), RESP.toBytes(arg2));
   }
 
   public long[] sendCmd(final PrimArrayCmd cmd, final String... args);

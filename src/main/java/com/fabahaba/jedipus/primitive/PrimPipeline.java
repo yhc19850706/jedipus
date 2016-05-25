@@ -355,6 +355,12 @@ final class PrimPipeline implements RedisPipeline {
   }
 
   @Override
+  public <T> FutureReply<T> sendCmd(final Cmd<T> cmd, final byte[] arg1, final byte[] arg2) {
+    client.conn.sendSubCmd(cmd.getCmdBytes(), arg1, arg2);
+    return queueFutureReply(cmd);
+  }
+
+  @Override
   public <T> FutureReply<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[]... args) {
     client.conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
     return queueFutureReply(subCmd);
@@ -399,6 +405,12 @@ final class PrimPipeline implements RedisPipeline {
   @Override
   public FutureLongReply sendCmd(final PrimCmd cmd, final byte[] arg) {
     client.conn.sendSubCmd(cmd.getCmdBytes(), arg);
+    return queueFutureReply(cmd);
+  }
+
+  @Override
+  public FutureLongReply sendCmd(final PrimCmd cmd, final byte[] arg1, final byte[] arg2) {
+    client.conn.sendSubCmd(cmd.getCmdBytes(), arg1, arg2);
     return queueFutureReply(cmd);
   }
 
@@ -449,6 +461,12 @@ final class PrimPipeline implements RedisPipeline {
   @Override
   public FutureReply<long[]> sendCmd(final PrimArrayCmd cmd, final byte[] arg) {
     client.conn.sendSubCmd(cmd.getCmdBytes(), arg);
+    return queueFutureReply(cmd);
+  }
+
+  @Override
+  public FutureReply<long[]> sendCmd(final PrimArrayCmd cmd, final byte[] arg1, final byte[] arg2) {
+    client.conn.sendSubCmd(cmd.getCmdBytes(), arg1, arg2);
     return queueFutureReply(cmd);
   }
 

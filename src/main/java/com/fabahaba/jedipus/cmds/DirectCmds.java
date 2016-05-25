@@ -12,6 +12,8 @@ public interface DirectCmds extends DirectPrimCmds {
 
   public <T> T sendCmd(final Cmd<T> cmd, final byte[] arg);
 
+  public <T> T sendCmd(final Cmd<T> cmd, final byte[] arg1, final byte[] arg2);
+
   public <T> T sendCmd(final Cmd<T> cmd, final byte[]... args);
 
   default <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final String arg) {
@@ -22,6 +24,10 @@ public interface DirectCmds extends DirectPrimCmds {
 
   default <T> T sendCmd(final Cmd<T> cmd, final String arg) {
     return sendCmd(cmd, RESP.toBytes(arg));
+  }
+
+  default <T> T sendCmd(final Cmd<T> cmd, final String arg1, final String arg2) {
+    return sendCmd(cmd, RESP.toBytes(arg1), RESP.toBytes(arg2));
   }
 
   public <T> T sendCmd(final Cmd<T> cmd, final String... args);
