@@ -164,16 +164,16 @@ final class RESProtocol {
     return is.readByte() == MINUS_BYTE ? is.readLine() : null;
   }
 
-  private static String[] parseTargetHostAndSlot(final String clusterRedirectResponse,
+  private static String[] parseTargetHostAndSlot(final String clusterRedirectReply,
       final int slotOffset) {
 
-    final int colon = clusterRedirectResponse.lastIndexOf(':');
-    final int hostOffset = clusterRedirectResponse.lastIndexOf(' ', colon);
+    final int colon = clusterRedirectReply.lastIndexOf(':');
+    final int hostOffset = clusterRedirectReply.lastIndexOf(' ', colon);
 
     final String[] reply = new String[3];
-    reply[0] = clusterRedirectResponse.substring(slotOffset, hostOffset);
-    reply[1] = clusterRedirectResponse.substring(hostOffset + 1, colon);
-    reply[2] = clusterRedirectResponse.substring(colon + 1);
+    reply[0] = clusterRedirectReply.substring(slotOffset, hostOffset);
+    reply[1] = clusterRedirectReply.substring(hostOffset + 1, colon);
+    reply[2] = clusterRedirectReply.substring(colon + 1);
 
     return reply;
   }

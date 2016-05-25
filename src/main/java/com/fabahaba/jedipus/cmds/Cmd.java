@@ -23,19 +23,19 @@ public interface Cmd<R> extends Function<Object, R> {
     return stringArray;
   };
 
-  public static <R> Cmd<R> create(final String name, final Function<Object, R> responseHandler) {
+  public static <R> Cmd<R> create(final String name, final Function<Object, R> replyHandler) {
 
-    return new HandledResponseCmd<>(name, responseHandler);
+    return new HandledReplyCmd<>(name, replyHandler);
   }
 
   public static Cmd<String> createStringReply(final String name) {
 
-    return new HandledResponseCmd<>(name, STRING_REPLY);
+    return new HandledReplyCmd<>(name, STRING_REPLY);
   }
 
   public static Cmd<Object[]> createInPlaceStringArrayReply(final String name) {
 
-    return new HandledResponseCmd<>(name, IN_PLACE_STRING_ARRAY_REPLY);
+    return new HandledReplyCmd<>(name, IN_PLACE_STRING_ARRAY_REPLY);
   }
 
   public static Cmd<Object> create(final String name) {
@@ -45,7 +45,7 @@ public interface Cmd<R> extends Function<Object, R> {
 
   public static <R> Cmd<R> createCast(final String name) {
 
-    return new DirectRespCmd<>(name);
+    return new DirectReplyCmd<>(name);
   }
 
   public Cmd<Object> raw();

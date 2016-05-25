@@ -167,7 +167,7 @@ final class PrimRedisConn extends RedisConn {
     }
   }
 
-  <T> T getReply(final Function<Object, T> responseHandler) {
+  <T> T getReply(final Function<Object, T> replyHandler) {
     switch (replyMode) {
       case OFF:
         return null;
@@ -176,13 +176,13 @@ final class PrimRedisConn extends RedisConn {
         return null;
       case ON:
         flushOS();
-        return responseHandler.apply(getReply());
+        return replyHandler.apply(getReply());
       default:
         return null;
     }
   }
 
-  long[] getLongArrayReply(final Function<long[], long[]> responseHandler) {
+  long[] getLongArrayReply(final Function<long[], long[]> replyHandler) {
     switch (replyMode) {
       case OFF:
         return null;
@@ -191,13 +191,13 @@ final class PrimRedisConn extends RedisConn {
         return null;
       case ON:
         flushOS();
-        return responseHandler.apply(getLongArray());
+        return replyHandler.apply(getLongArray());
       default:
         return null;
     }
   }
 
-  long getReply(final LongUnaryOperator responseHandler) {
+  long getReply(final LongUnaryOperator replyHandler) {
     switch (replyMode) {
       case OFF:
         return 0;
@@ -206,7 +206,7 @@ final class PrimRedisConn extends RedisConn {
         return 0;
       case ON:
         flushOS();
-        return responseHandler.applyAsLong(getLong());
+        return replyHandler.applyAsLong(getLong());
       default:
         return 0;
     }

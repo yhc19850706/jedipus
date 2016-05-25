@@ -200,7 +200,7 @@ final class RedisInputStream extends InputStream {
       while (in.read(buf) > 0) {
       }
     } catch (final IOException e) {
-      // purpose is to ignore responses anyways.
+      // purpose is to ignore replies anyways.
     } finally {
       pos = 0;
       limit = 0;

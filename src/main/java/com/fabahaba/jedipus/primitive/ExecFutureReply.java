@@ -45,7 +45,7 @@ class ExecFutureReply<R> extends StatefulFutureReply<Object[]> {
     try {
       if (reply.length < multiReplies.size()) {
         throw new RedisUnhandledException(null, String.format(
-            "Expected to only have %d responses, but was %d.", reply.length, multiReplies.size()));
+            "Expected to only have %d replies, but was %d.", reply.length, multiReplies.size()));
       }
 
       for (int index = 0;; index++) {
@@ -55,7 +55,7 @@ class ExecFutureReply<R> extends StatefulFutureReply<Object[]> {
 
           if (index != reply.length) {
             throw new RedisUnhandledException(null, String
-                .format("Expected to have %d responses, but was only %d.", reply.length, index));
+                .format("Expected to have %d replies, but was only %d.", reply.length, index));
           }
 
           return;

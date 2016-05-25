@@ -48,7 +48,7 @@ public class PipelineTest extends BaseRedisClientTest {
   }
 
   @Test
-  public void pipelineResponse() {
+  public void pipelineReply() {
 
     client.sendCmd(Cmds.SET, "string", "foo");
     client.sendCmd(Cmds.LPUSH, "list", "foo");
@@ -103,7 +103,7 @@ public class PipelineTest extends BaseRedisClientTest {
   }
 
   @Test
-  public void pipelineResponseWithoutData() {
+  public void pipelineReplyWithoutData() {
 
     client.sendCmd(Cmds.ZADD, "zset", "1", "foo");
 
@@ -116,7 +116,7 @@ public class PipelineTest extends BaseRedisClientTest {
   }
 
   @Test(expected = RedisUnhandledException.class)
-  public void pipelineResponseWithinPipeline() {
+  public void pipelineReplyWithinPipeline() {
 
     client.sendCmd(Cmds.SET, "string", "foo");
 

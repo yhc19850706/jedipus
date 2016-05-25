@@ -1,10 +1,10 @@
 package com.fabahaba.jedipus.cmds;
 
-class DirectRespCmd<R> implements Cmd<R> {
+class DirectReplyCmd<R> implements Cmd<R> {
 
   private final RawCmd rawCmd;
 
-  DirectRespCmd(final String cmd) {
+  DirectReplyCmd(final String cmd) {
 
     this.rawCmd = new RawCmd(cmd);
   }

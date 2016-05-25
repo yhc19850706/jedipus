@@ -505,7 +505,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
   }
 
   @Test
-  public void testAskResponse() {
+  public void testAskReply() {
 
     final String key = "42";
     final int slot = CRC16.getSlot(key);
