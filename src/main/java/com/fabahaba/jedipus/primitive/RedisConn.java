@@ -3,6 +3,7 @@ package com.fabahaba.jedipus.primitive;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Collection;
 import java.util.function.Function;
 
 import com.fabahaba.jedipus.cluster.Node;
@@ -63,7 +64,7 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
-  public void setTimeoutInfinite() {
+  public void setInfinitSoTimeout() {
     try {
       socket.setSoTimeout(0);
     } catch (final SocketException ex) {
@@ -72,7 +73,16 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
-  public void rollbackTimeout() {
+  public void setSoTimeout(final int soTimeoutMillis) {
+    try {
+      socket.setSoTimeout(soTimeoutMillis);
+    } catch (final SocketException ex) {
+      broken = true;
+      throw new RedisConnectionException(getNode(), ex);
+    }
+  }
+
+  public void resetSoTimeout() {
     try {
       socket.setSoTimeout(soTimeoutMillis);
     } catch (final SocketException ex) {
@@ -111,9 +121,9 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
-  public void sendSubCmd(final byte[] cmd, final byte[] subcmd) {
+  public void sendCmd(final byte[] cmd, final byte[] subcmd) {
     try {
-      RESProtocol.sendSubCmd(outputStream, cmd, subcmd);
+      RESProtocol.sendCmd(outputStream, cmd, subcmd);
     } catch (final NullPointerException npe) {
       throw new RedisUnhandledException(getNode(), "Values sent to redis cannot be null.", npe);
     } catch (final IOException ioe) {
@@ -121,9 +131,9 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
-  public void sendSubCmd(final byte[] cmd, final byte[] subcmd, final byte[] args) {
+  public void sendCmd(final byte[] cmd, final byte[] subcmd, final byte[] args) {
     try {
-      RESProtocol.sendSubCmd(outputStream, cmd, subcmd, args);
+      RESProtocol.sendCmd(outputStream, cmd, subcmd, args);
     } catch (final NullPointerException npe) {
       throw new RedisUnhandledException(getNode(), "Values sent to redis cannot be null.", npe);
     } catch (final IOException ioe) {
@@ -131,9 +141,9 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
-  public void sendSubCmd(final byte[] cmd, final byte[] subcmd, final byte[][] args) {
+  public void sendCmd(final byte[] cmd, final byte[] subcmd, final byte[][] args) {
     try {
-      RESProtocol.sendSubCmd(outputStream, cmd, subcmd, args);
+      RESProtocol.sendCmd(outputStream, cmd, subcmd, args);
     } catch (final NullPointerException npe) {
       throw new RedisUnhandledException(getNode(), "Values sent to redis cannot be null.", npe);
     } catch (final IOException ioe) {
@@ -151,9 +161,29 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
-  public void sendSubCmd(final byte[] cmd, final byte[] subcmd, final String[] args) {
+  public void sendCmd(final byte[] cmd, final Collection<String> args) {
     try {
-      RESProtocol.sendSubCmd(outputStream, cmd, subcmd, args);
+      RESProtocol.sendCmd(outputStream, cmd, args);
+    } catch (final NullPointerException npe) {
+      throw new RedisUnhandledException(getNode(), "Values sent to redis cannot be null.", npe);
+    } catch (final IOException ioe) {
+      handleWriteException(ioe);
+    }
+  }
+
+  public void sendCmd(final byte[] cmd, final byte[] subcmd, final String[] args) {
+    try {
+      RESProtocol.sendCmd(outputStream, cmd, subcmd, args);
+    } catch (final NullPointerException npe) {
+      throw new RedisUnhandledException(getNode(), "Values sent to redis cannot be null.", npe);
+    } catch (final IOException ioe) {
+      handleWriteException(ioe);
+    }
+  }
+
+  public void sendCmd(final byte[] cmd, final byte[] subcmd, final Collection<String> args) {
+    try {
+      RESProtocol.sendCmd(outputStream, cmd, subcmd, args);
     } catch (final NullPointerException npe) {
       throw new RedisUnhandledException(getNode(), "Values sent to redis cannot be null.", npe);
     } catch (final IOException ioe) {

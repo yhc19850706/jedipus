@@ -127,7 +127,7 @@ final class PrimRedisConn extends RedisConn {
   }
 
   void watch(final byte[] key) {
-    sendSubCmd(MultiCmds.WATCH.getCmdBytes(), key);
+    sendCmd(MultiCmds.WATCH.getCmdBytes(), key);
     watching = true;
   }
 
@@ -227,7 +227,7 @@ final class PrimRedisConn extends RedisConn {
 
   private String setReplyOn() {
 
-    sendSubCmd(ClientCmds.CLIENT.getCmdBytes(), ClientCmds.CLIENT_REPLY.getCmdBytes(),
+    sendCmd(ClientCmds.CLIENT.getCmdBytes(), ClientCmds.CLIENT_REPLY.getCmdBytes(),
         ClientCmds.ON.getCmdBytes());
     flushOS();
 
@@ -256,7 +256,7 @@ final class PrimRedisConn extends RedisConn {
       case SKIP:
       case ON:
       default:
-        sendSubCmd(ClientCmds.CLIENT.getCmdBytes(), ClientCmds.CLIENT_REPLY.getCmdBytes(),
+        sendCmd(ClientCmds.CLIENT.getCmdBytes(), ClientCmds.CLIENT_REPLY.getCmdBytes(),
             ClientCmds.OFF.getCmdBytes());
         setReplyMode(ReplyMode.OFF);
     }
@@ -269,7 +269,7 @@ final class PrimRedisConn extends RedisConn {
         return this;
       case ON:
       default:
-        sendSubCmd(ClientCmds.CLIENT.getCmdBytes(), ClientCmds.CLIENT_REPLY.getCmdBytes(),
+        sendCmd(ClientCmds.CLIENT.getCmdBytes(), ClientCmds.CLIENT_REPLY.getCmdBytes(),
             ClientCmds.SKIP.getCmdBytes());
         setReplyMode(ReplyMode.SKIP);
     }

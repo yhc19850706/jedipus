@@ -1,6 +1,7 @@
 package com.fabahaba.jedipus.primitive;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.function.Function;
 
 import com.fabahaba.jedipus.cluster.Node;
@@ -50,7 +51,7 @@ final class RESProtocol {
     writeArgs(os, args);
   }
 
-  static void sendSubCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
+  static void sendCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
       final byte[][] args) throws IOException {
 
     startWrite(os, args.length + 2);
@@ -60,7 +61,7 @@ final class RESProtocol {
     writeArgs(os, args);
   }
 
-  static void sendSubCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
+  static void sendCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
       final byte[] arg) throws IOException {
 
     os.write(THREE_CMD);
@@ -69,7 +70,7 @@ final class RESProtocol {
     writeArg(os, arg);
   }
 
-  static void sendSubCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd)
+  static void sendCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd)
       throws IOException {
 
     os.write(TWO_CMD);
@@ -77,13 +78,21 @@ final class RESProtocol {
     writeArg(os, subcmd);
   }
 
-  static void sendSubCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
+  static void sendCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
       final String[] args) throws IOException {
 
     startWrite(os, args.length + 2);
     writeArg(os, cmd);
     writeArg(os, subcmd);
+    writeArgs(os, args);
+  }
 
+  static void sendCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
+      final Collection<String> args) throws IOException {
+
+    startWrite(os, args.size() + 2);
+    writeArg(os, cmd);
+    writeArg(os, subcmd);
     writeArgs(os, args);
   }
 
@@ -91,6 +100,14 @@ final class RESProtocol {
       throws IOException {
 
     startWrite(os, args.length + 1);
+    writeArg(os, cmd);
+    writeArgs(os, args);
+  }
+
+  static void sendCmd(final RedisOutputStream os, final byte[] cmd, final Collection<String> args)
+      throws IOException {
+
+    startWrite(os, args.size() + 1);
     writeArg(os, cmd);
     writeArgs(os, args);
   }
@@ -118,6 +135,14 @@ final class RESProtocol {
   }
 
   private static void writeArgs(final RedisOutputStream os, final String[] args)
+      throws IOException {
+
+    for (final String arg : args) {
+      writeArg(os, RESP.toBytes(arg));
+    }
+  }
+
+  private static void writeArgs(final RedisOutputStream os, final Collection<String> args)
       throws IOException {
 
     for (final String arg : args) {

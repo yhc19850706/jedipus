@@ -1,5 +1,7 @@
 package com.fabahaba.jedipus.cmds.pipeline;
 
+import java.util.Collection;
+
 import com.fabahaba.jedipus.client.FutureLongReply;
 import com.fabahaba.jedipus.client.FutureReply;
 import com.fabahaba.jedipus.cmds.Cmd;
@@ -10,25 +12,27 @@ import com.fabahaba.jedipus.cmds.RESP;
 
 public interface PipelineDirectPrimCmds {
 
-  public FutureLongReply sendCmd(final PrimCmd cmd);
+  FutureLongReply sendCmd(final PrimCmd cmd);
 
-  public FutureLongReply sendCmd(final Cmd<?> cmd, final PrimCmd subCmd);
+  FutureLongReply sendCmd(final Cmd<?> cmd, final PrimCmd subCmd);
 
-  public FutureLongReply sendCmd(final Cmd<?> cmd, final PrimCmd subCmd, final byte[] arg);
+  FutureLongReply sendCmd(final Cmd<?> cmd, final PrimCmd subCmd, final byte[] arg);
 
-  public FutureLongReply sendCmd(final Cmd<?> cmd, final PrimCmd subCmd, final byte[]... args);
+  FutureLongReply sendCmd(final Cmd<?> cmd, final PrimCmd subCmd, final byte[]... args);
 
-  public FutureLongReply sendCmd(final PrimCmd cmd, final byte[] arg);
+  FutureLongReply sendCmd(final PrimCmd cmd, final byte[] arg);
 
-  public FutureLongReply sendCmd(final PrimCmd cmd, final byte[] arg1, final byte[] arg2);
+  FutureLongReply sendCmd(final PrimCmd cmd, final byte[] arg1, final byte[] arg2);
 
-  public FutureLongReply sendCmd(final PrimCmd cmd, final byte[]... args);
+  FutureLongReply sendCmd(final PrimCmd cmd, final byte[]... args);
 
   default FutureLongReply sendCmd(final Cmd<?> cmd, final PrimCmd subCmd, final String arg) {
     return sendCmd(cmd, subCmd, RESP.toBytes(arg));
   }
 
-  public FutureLongReply sendCmd(final Cmd<?> cmd, final PrimCmd subCmd, final String... args);
+  FutureLongReply sendCmd(final Cmd<?> cmd, final PrimCmd subCmd, final String... args);
+
+  FutureLongReply sendCmd(final Cmd<?> cmd, final PrimCmd subCmd, final Collection<String> args);
 
   default FutureLongReply sendCmd(final PrimCmd cmd, final String arg) {
     return sendCmd(cmd, RESP.toBytes(arg));
@@ -38,30 +42,33 @@ public interface PipelineDirectPrimCmds {
     return sendCmd(cmd, RESP.toBytes(arg1), RESP.toBytes(arg2));
   }
 
-  public FutureLongReply sendCmd(final PrimCmd cmd, final String... args);
+  FutureLongReply sendCmd(final PrimCmd cmd, final String... args);
 
-  public FutureReply<long[]> sendCmd(final PrimArrayCmd cmd);
+  FutureLongReply sendCmd(final PrimCmd cmd, final Collection<String> args);
 
-  public FutureReply<long[]> sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd);
+  FutureReply<long[]> sendCmd(final PrimArrayCmd cmd);
 
-  public FutureReply<long[]> sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd, final byte[] arg);
+  FutureReply<long[]> sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd);
 
-  public FutureReply<long[]> sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd,
-      final byte[]... args);
+  FutureReply<long[]> sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd, final byte[] arg);
 
-  public FutureReply<long[]> sendCmd(final PrimArrayCmd cmd, final byte[] arg);
+  FutureReply<long[]> sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd, final byte[]... args);
 
-  public FutureReply<long[]> sendCmd(final PrimArrayCmd cmd, final byte[] arg1, final byte[] arg2);
+  FutureReply<long[]> sendCmd(final PrimArrayCmd cmd, final byte[] arg);
 
-  public FutureReply<long[]> sendCmd(final PrimArrayCmd cmd, final byte[]... args);
+  FutureReply<long[]> sendCmd(final PrimArrayCmd cmd, final byte[] arg1, final byte[] arg2);
+
+  FutureReply<long[]> sendCmd(final PrimArrayCmd cmd, final byte[]... args);
 
   default FutureReply<long[]> sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd,
       final String arg) {
     return sendCmd(cmd, subCmd, RESP.toBytes(arg));
   }
 
-  public FutureReply<long[]> sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd,
-      final String... args);
+  FutureReply<long[]> sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd, final String... args);
+
+  FutureReply<long[]> sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd,
+      final Collection<String> args);
 
   default FutureReply<long[]> sendCmd(final PrimArrayCmd cmd, final String arg) {
     return sendCmd(cmd, RESP.toBytes(arg));
@@ -72,7 +79,9 @@ public interface PipelineDirectPrimCmds {
     return sendCmd(cmd, RESP.toBytes(arg1), RESP.toBytes(arg2));
   }
 
-  public FutureReply<long[]> sendCmd(final PrimArrayCmd cmd, final String... args);
+  FutureReply<long[]> sendCmd(final PrimArrayCmd cmd, final String... args);
+
+  FutureReply<long[]> sendCmd(final PrimArrayCmd cmd, final Collection<String> args);
 
   default FutureLongReply sendDirectPrim(final CmdByteArray<?> cmdArgs) {
     return sendDirect(cmdArgs.getCmd().prim(), cmdArgs.getCmdArgs());
@@ -82,7 +91,7 @@ public interface PipelineDirectPrimCmds {
     return sendDirect(cmdArgs.getCmd().primArray(), cmdArgs.getCmdArgs());
   }
 
-  public FutureLongReply sendDirect(final PrimCmd cmd, final byte[] cmdArgs);
+  FutureLongReply sendDirect(final PrimCmd cmd, final byte[] cmdArgs);
 
-  public FutureReply<long[]> sendDirect(final PrimArrayCmd cmd, final byte[] cmdArgs);
+  FutureReply<long[]> sendDirect(final PrimArrayCmd cmd, final byte[] cmdArgs);
 }

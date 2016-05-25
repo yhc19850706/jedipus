@@ -1,5 +1,7 @@
 package com.fabahaba.jedipus.cmds.pipeline;
 
+import java.util.Collection;
+
 import com.fabahaba.jedipus.client.FutureReply;
 import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.CmdByteArray;
@@ -7,25 +9,27 @@ import com.fabahaba.jedipus.cmds.RESP;
 
 public interface PipelineDirectCmds extends PipelineDirectPrimCmds {
 
-  public <T> FutureReply<T> sendCmd(final Cmd<T> cmd);
+  <T> FutureReply<T> sendCmd(final Cmd<T> cmd);
 
-  public <T> FutureReply<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd);
+  <T> FutureReply<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd);
 
-  public <T> FutureReply<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[] arg);
+  <T> FutureReply<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[] arg);
 
-  public <T> FutureReply<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[]... args);
+  <T> FutureReply<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[]... args);
 
-  public <T> FutureReply<T> sendCmd(final Cmd<T> cmd, final byte[] arg);
+  <T> FutureReply<T> sendCmd(final Cmd<T> cmd, final byte[] arg);
 
-  public <T> FutureReply<T> sendCmd(final Cmd<T> cmd, final byte[] arg1, final byte[] arg2);
+  <T> FutureReply<T> sendCmd(final Cmd<T> cmd, final byte[] arg1, final byte[] arg2);
 
-  public <T> FutureReply<T> sendCmd(final Cmd<T> cmd, final byte[]... args);
+  <T> FutureReply<T> sendCmd(final Cmd<T> cmd, final byte[]... args);
 
   default <T> FutureReply<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final String arg) {
     return sendCmd(cmd, subCmd, RESP.toBytes(arg));
   }
 
-  public <T> FutureReply<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final String... args);
+  <T> FutureReply<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final String... args);
+
+  <T> FutureReply<T> sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final Collection<String> args);
 
   default <T> FutureReply<T> sendCmd(final Cmd<T> cmd, final String arg) {
     return sendCmd(cmd, RESP.toBytes(arg));
@@ -35,11 +39,13 @@ public interface PipelineDirectCmds extends PipelineDirectPrimCmds {
     return sendCmd(cmd, RESP.toBytes(arg1), RESP.toBytes(arg2));
   }
 
-  public <T> FutureReply<T> sendCmd(final Cmd<T> cmd, final String... args);
+  <T> FutureReply<T> sendCmd(final Cmd<T> cmd, final String... args);
+
+  <T> FutureReply<T> sendCmd(final Cmd<T> cmd, final Collection<String> args);
 
   default <R> FutureReply<R> sendDirect(final CmdByteArray<R> cmdArgs) {
     return sendDirect(cmdArgs.getCmd(), cmdArgs.getCmdArgs());
   }
 
-  public <R> FutureReply<R> sendDirect(final Cmd<R> cmd, final byte[] cmdArgs);
+  <R> FutureReply<R> sendDirect(final Cmd<R> cmd, final byte[] cmdArgs);
 }

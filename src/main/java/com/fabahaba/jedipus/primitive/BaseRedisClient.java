@@ -1,5 +1,7 @@
 package com.fabahaba.jedipus.primitive;
 
+import java.util.Collection;
+
 import com.fabahaba.jedipus.client.HostPort;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
@@ -47,6 +49,21 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
+  public void setSoTimeout(final int soTimeoutMillis) {
+    conn.setSoTimeout(soTimeoutMillis);
+  }
+
+  @Override
+  public void setInfinitSoTimeout() {
+    conn.setInfinitSoTimeout();
+  }
+
+  @Override
+  public void resetSoTimeout() {
+    conn.resetSoTimeout();
+  }
+
+  @Override
   public int getSoTimeout() {
     return conn.getSoTimeout();
   }
@@ -82,31 +99,31 @@ abstract class BaseRedisClient implements RedisClient {
 
   @Override
   public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd) {
-    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes());
+    conn.sendCmd(cmd.getCmdBytes(), subCmd.getCmdBytes());
     return conn.getReply(subCmd);
   }
 
   @Override
   public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[] arg) {
-    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), arg);
+    conn.sendCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), arg);
     return conn.getReply(subCmd);
   }
 
   @Override
   public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[]... args) {
-    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    conn.sendCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
     return conn.getReply(subCmd);
   }
 
   @Override
   public <T> T sendCmd(final Cmd<T> cmd, final byte[] arg) {
-    conn.sendSubCmd(cmd.getCmdBytes(), arg);
+    conn.sendCmd(cmd.getCmdBytes(), arg);
     return conn.getReply(cmd);
   }
 
   @Override
   public <T> T sendCmd(final Cmd<T> cmd, final byte[] arg1, final byte[] arg2) {
-    conn.sendSubCmd(cmd.getCmdBytes(), arg1, arg2);
+    conn.sendCmd(cmd.getCmdBytes(), arg1, arg2);
     return conn.getReply(cmd);
   }
 
@@ -118,7 +135,13 @@ abstract class BaseRedisClient implements RedisClient {
 
   @Override
   public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final String... args) {
-    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    conn.sendCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    return conn.getReply(subCmd);
+  }
+
+  @Override
+  public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final Collection<String> args) {
+    conn.sendCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
     return conn.getReply(subCmd);
   }
 
@@ -129,34 +152,51 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
+  public <T> T sendCmd(final Cmd<T> cmd, final Collection<String> args) {
+    conn.sendCmd(cmd.getCmdBytes(), args);
+    return conn.getReply(cmd);
+  }
+
+  @Override
   public <T> T sendBlockingCmd(final Cmd<T> cmd) {
-    conn.setTimeoutInfinite();
+    conn.setInfinitSoTimeout();
     try {
       conn.sendCmd(cmd.getCmdBytes());
     } finally {
-      conn.rollbackTimeout();
+      conn.resetSoTimeout();
     }
     return conn.getReply(cmd);
   }
 
   @Override
   public <T> T sendBlockingCmd(final Cmd<T> cmd, final String... args) {
-    conn.setTimeoutInfinite();
+    conn.setInfinitSoTimeout();
     try {
       conn.sendCmd(cmd.getCmdBytes(), args);
     } finally {
-      conn.rollbackTimeout();
+      conn.resetSoTimeout();
+    }
+    return conn.getReply(cmd);
+  }
+
+  @Override
+  public <T> T sendBlockingCmd(final Cmd<T> cmd, final Collection<String> args) {
+    conn.setInfinitSoTimeout();
+    try {
+      conn.sendCmd(cmd.getCmdBytes(), args);
+    } finally {
+      conn.resetSoTimeout();
     }
     return conn.getReply(cmd);
   }
 
   @Override
   public <T> T sendBlockingCmd(final Cmd<T> cmd, final byte[]... args) {
-    conn.setTimeoutInfinite();
+    conn.setInfinitSoTimeout();
     try {
       conn.sendCmd(cmd.getCmdBytes(), args);
     } finally {
-      conn.rollbackTimeout();
+      conn.resetSoTimeout();
     }
     return conn.getReply(cmd);
   }
@@ -170,31 +210,31 @@ abstract class BaseRedisClient implements RedisClient {
 
   @Override
   public long[] sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd) {
-    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes());
+    conn.sendCmd(cmd.getCmdBytes(), subCmd.getCmdBytes());
     return conn.getLongArrayReply(subCmd);
   }
 
   @Override
   public long[] sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd, final byte[] arg) {
-    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), arg);
+    conn.sendCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), arg);
     return conn.getLongArrayReply(subCmd);
   }
 
   @Override
   public long[] sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd, final byte[]... args) {
-    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    conn.sendCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
     return conn.getLongArrayReply(subCmd);
   }
 
   @Override
   public long[] sendCmd(final PrimArrayCmd cmd, final byte[] arg) {
-    conn.sendSubCmd(cmd.getCmdBytes(), arg);
+    conn.sendCmd(cmd.getCmdBytes(), arg);
     return conn.getLongArrayReply(cmd);
   }
 
   @Override
   public long[] sendCmd(final PrimArrayCmd cmd, final byte[] arg1, final byte[] arg2) {
-    conn.sendSubCmd(cmd.getCmdBytes(), arg1, arg2);
+    conn.sendCmd(cmd.getCmdBytes(), arg1, arg2);
     return conn.getLongArrayReply(cmd);
   }
 
@@ -206,7 +246,14 @@ abstract class BaseRedisClient implements RedisClient {
 
   @Override
   public long[] sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd, final String... args) {
-    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    conn.sendCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    return conn.getLongArrayReply(subCmd);
+  }
+
+  @Override
+  public long[] sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd,
+      final Collection<String> args) {
+    conn.sendCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
     return conn.getLongArrayReply(subCmd);
   }
 
@@ -217,34 +264,51 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
+  public long[] sendCmd(final PrimArrayCmd cmd, final Collection<String> args) {
+    conn.sendCmd(cmd.getCmdBytes(), args);
+    return conn.getLongArrayReply(cmd);
+  }
+
+  @Override
   public long[] sendBlockingCmd(final PrimArrayCmd cmd) {
-    conn.setTimeoutInfinite();
+    conn.setInfinitSoTimeout();
     try {
       conn.sendCmd(cmd.getCmdBytes());
     } finally {
-      conn.rollbackTimeout();
+      conn.resetSoTimeout();
     }
     return conn.getLongArrayReply(cmd);
   }
 
   @Override
   public long[] sendBlockingCmd(final PrimArrayCmd cmd, final byte[]... args) {
-    conn.setTimeoutInfinite();
+    conn.setInfinitSoTimeout();
     try {
       conn.sendCmd(cmd.getCmdBytes(), args);
     } finally {
-      conn.rollbackTimeout();
+      conn.resetSoTimeout();
     }
     return conn.getLongArrayReply(cmd);
   }
 
   @Override
   public long[] sendBlockingCmd(final PrimArrayCmd cmd, final String... args) {
-    conn.setTimeoutInfinite();
+    conn.setInfinitSoTimeout();
     try {
       conn.sendCmd(cmd.getCmdBytes(), args);
     } finally {
-      conn.rollbackTimeout();
+      conn.resetSoTimeout();
+    }
+    return conn.getLongArrayReply(cmd);
+  }
+
+  @Override
+  public long[] sendBlockingCmd(final PrimArrayCmd cmd, final Collection<String> args) {
+    conn.setInfinitSoTimeout();
+    try {
+      conn.sendCmd(cmd.getCmdBytes(), args);
+    } finally {
+      conn.resetSoTimeout();
     }
     return conn.getLongArrayReply(cmd);
   }
@@ -257,31 +321,31 @@ abstract class BaseRedisClient implements RedisClient {
 
   @Override
   public long sendCmd(final Cmd<?> cmd, final PrimCmd subCmd) {
-    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes());
+    conn.sendCmd(cmd.getCmdBytes(), subCmd.getCmdBytes());
     return conn.getReply(subCmd);
   }
 
   @Override
   public long sendCmd(final Cmd<?> cmd, final PrimCmd subCmd, final byte[] arg) {
-    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), arg);
+    conn.sendCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), arg);
     return conn.getReply(subCmd);
   }
 
   @Override
   public long sendCmd(final Cmd<?> cmd, final PrimCmd subCmd, final byte[]... args) {
-    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    conn.sendCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
     return conn.getReply(subCmd);
   }
 
   @Override
   public long sendCmd(final PrimCmd cmd, final byte[] arg) {
-    conn.sendSubCmd(cmd.getCmdBytes(), arg);
+    conn.sendCmd(cmd.getCmdBytes(), arg);
     return conn.getReply(cmd);
   }
 
   @Override
   public long sendCmd(final PrimCmd cmd, final byte[] arg1, final byte[] arg2) {
-    conn.sendSubCmd(cmd.getCmdBytes(), arg1, arg2);
+    conn.sendCmd(cmd.getCmdBytes(), arg1, arg2);
     return conn.getReply(cmd);
   }
 
@@ -293,7 +357,13 @@ abstract class BaseRedisClient implements RedisClient {
 
   @Override
   public long sendCmd(final Cmd<?> cmd, final PrimCmd subCmd, final String... args) {
-    conn.sendSubCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    conn.sendCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
+    return conn.getReply(subCmd);
+  }
+
+  @Override
+  public long sendCmd(final Cmd<?> cmd, final PrimCmd subCmd, final Collection<String> args) {
+    conn.sendCmd(cmd.getCmdBytes(), subCmd.getCmdBytes(), args);
     return conn.getReply(subCmd);
   }
 
@@ -304,34 +374,51 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
+  public long sendCmd(final PrimCmd cmd, final Collection<String> args) {
+    conn.sendCmd(cmd.getCmdBytes(), args);
+    return conn.getReply(cmd);
+  }
+
+  @Override
   public long sendBlockingCmd(final PrimCmd cmd) {
-    conn.setTimeoutInfinite();
+    conn.setInfinitSoTimeout();
     try {
       conn.sendCmd(cmd.getCmdBytes());
     } finally {
-      conn.rollbackTimeout();
+      conn.resetSoTimeout();
     }
     return conn.getReply(cmd);
   }
 
   @Override
   public long sendBlockingCmd(final PrimCmd cmd, final byte[]... args) {
-    conn.setTimeoutInfinite();
+    conn.setInfinitSoTimeout();
     try {
       conn.sendCmd(cmd.getCmdBytes(), args);
     } finally {
-      conn.rollbackTimeout();
+      conn.resetSoTimeout();
     }
     return conn.getReply(cmd);
   }
 
   @Override
   public long sendBlockingCmd(final PrimCmd cmd, final String... args) {
-    conn.setTimeoutInfinite();
+    conn.setInfinitSoTimeout();
     try {
       conn.sendCmd(cmd.getCmdBytes(), args);
     } finally {
-      conn.rollbackTimeout();
+      conn.resetSoTimeout();
+    }
+    return conn.getReply(cmd);
+  }
+
+  @Override
+  public long sendBlockingCmd(final PrimCmd cmd, final Collection<String> args) {
+    conn.setInfinitSoTimeout();
+    try {
+      conn.sendCmd(cmd.getCmdBytes(), args);
+    } finally {
+      conn.resetSoTimeout();
     }
     return conn.getReply(cmd);
   }

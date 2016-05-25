@@ -37,46 +37,6 @@ public final class CRC16 {
       0x1ce0, 0x0cc1, 0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8, 0x6e17,
       0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0};
 
-  private static final String[] KNOWN_SLOT_HASHTAGS = new String[NUM_SLOTS];
-  private static final byte[][] KNOWN_SLOT_HASHTAG_BYTES = new byte[NUM_SLOTS][];
-
-  static {
-    for (int slot = 0, key = 0; slot < NUM_SLOTS; slot++) {
-
-      if (KNOWN_SLOT_HASHTAGS[slot] != null) {
-        continue;
-      }
-
-      for (;; key++) {
-        final String keyString = Integer.toString(key);
-        final int discoveredSlot = getSlot(RESP.toBytes(key));
-
-        if (discoveredSlot == slot) {
-          final String hashtag = createHashTag(keyString);
-          KNOWN_SLOT_HASHTAGS[slot] = hashtag;
-          KNOWN_SLOT_HASHTAG_BYTES[slot] = RESP.toBytes(hashtag);
-          break;
-        }
-
-        if (discoveredSlot > slot && KNOWN_SLOT_HASHTAGS[discoveredSlot] == null) {
-          final String hashtag = createHashTag(keyString);
-          KNOWN_SLOT_HASHTAGS[discoveredSlot] = hashtag;
-          KNOWN_SLOT_HASHTAG_BYTES[discoveredSlot] = RESP.toBytes(hashtag);
-        }
-      }
-    }
-  }
-
-  public String getSlotHashTag(final int slot) {
-
-    return KNOWN_SLOT_HASHTAGS[slot];
-  }
-
-  public byte[] getSlotHashTagBytes(final int slot) {
-
-    return KNOWN_SLOT_HASHTAG_BYTES[slot];
-  }
-
   public static int getRandomSlot() {
 
     return ThreadLocalRandom.current().nextInt(NUM_SLOTS);

@@ -17,6 +17,12 @@ public interface RedisClient extends Cmds, AutoCloseable {
 
   RedisClient skip();
 
+  void setSoTimeout(final int soTimeoutMillis);
+
+  void setInfinitSoTimeout();
+
+  void resetSoTimeout();
+
   int getSoTimeout();
 
   boolean isBroken();
