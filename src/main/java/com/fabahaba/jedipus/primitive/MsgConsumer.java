@@ -10,7 +10,7 @@ public interface MsgConsumer extends BiConsumer<String, String> {
     accept(channel, RESP.toString(payload));
   }
 
-  default void onSubscribed() {}
+  default void onSubscribed(final String channel) {}
 
-  default void onUnsubscribed() {}
+  default void onUnsubscribed(final String channel) {}
 }

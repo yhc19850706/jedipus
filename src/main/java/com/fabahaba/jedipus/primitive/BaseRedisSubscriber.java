@@ -37,12 +37,6 @@ public abstract class BaseRedisSubscriber implements RedisSubscriber {
     client.flush();
   }
 
-  public abstract void registerConsumer(final MsgConsumer msgConsumer, final String... channels);
-
-  public void registerPConsumer(final MsgConsumer msgConsumer, final String... patterns) {
-    registerConsumer(msgConsumer, patterns);
-  }
-
   @Override
   public final void unsubscribe(final String... channels) {
     client.unsubscribe(channels);

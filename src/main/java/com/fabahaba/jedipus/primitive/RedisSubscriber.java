@@ -1,7 +1,9 @@
 package com.fabahaba.jedipus.primitive;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cmds.RESP;
@@ -15,6 +17,17 @@ public interface RedisSubscriber extends Runnable {
   public static RedisSubscriber create(final RedisClient client,
       final Map<String, MsgConsumer> msgConsumers) {
     return new MappedSubscriber(client, msgConsumers);
+  }
+
+  public static RedisSubscriber create(final RedisClient client,
+      final Function<String, Collection<MsgConsumer>> consumerCollectionFactory) {
+    return create(client, new HashMap<>(), consumerCollectionFactory);
+  }
+
+  public static RedisSubscriber create(final RedisClient client,
+      final Map<String, Collection<MsgConsumer>> msgConsumers,
+      final Function<String, Collection<MsgConsumer>> consumerCollectionFactory) {
+    return new MultiMappedSubscriber(client, msgConsumers, consumerCollectionFactory);
   }
 
   long getSubCount();
@@ -47,6 +60,12 @@ public interface RedisSubscriber extends Runnable {
   }
 
   void psubscribe(final MsgConsumer msgConsumer, final String... patterns);
+
+  public void registerConsumer(final MsgConsumer msgConsumer, final String... channels);
+
+  default void registerPConsumer(final MsgConsumer msgConsumer, final String... patterns) {
+    registerConsumer(msgConsumer, patterns);
+  }
 
   void unsubscribe(final String... channels);
 

@@ -36,6 +36,7 @@ repositories {
 }
 
 dependencies {
+   //compile 'redis.clients:jedis:+'
    testCompile 'junit:junit:+'
 }
 

@@ -26,7 +26,7 @@ class MappedSubscriber extends BaseRedisSubscriber {
     if (msgConsumer == null) {
       return;
     }
-    msgConsumer.onSubscribed();
+    msgConsumer.onSubscribed(channel);
   }
 
   @Override
@@ -35,7 +35,7 @@ class MappedSubscriber extends BaseRedisSubscriber {
     if (msgConsumer == null) {
       return;
     }
-    msgConsumer.onUnsubscribed();
+    msgConsumer.onUnsubscribed(channel);
   }
 
   @Override

@@ -42,7 +42,6 @@ public class SSLClientTest {
 
   public static final Node DEFAULT_SSL_NODE = Node.create("localhost", REDIS_SSL_PORT);
 
-
   public static final RedisClientFactory.Builder DEFAULT_SSL_CLIENT_FACTORY_BUILDER =
       RedisClientFactory.startBuilding().withAuth(BaseRedisClientTest.REDIS_PASS).withSsl(true);
 
