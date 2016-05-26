@@ -1,6 +1,7 @@
-package com.fabahaba.jedipus.primitive;
+package com.fabahaba.jedipus.pubsub;
 
 import com.fabahaba.jedipus.client.RedisClient;
+import com.fabahaba.jedipus.primitive.MsgConsumer;
 
 public abstract class BaseRedisSubscriber implements RedisSubscriber {
 

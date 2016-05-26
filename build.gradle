@@ -35,8 +35,7 @@ repositories {
    jcenter()
 }
 
-dependencies {
-   //compile 'redis.clients:jedis:+'
+dependencies { 
    testCompile 'junit:junit:+'
 }
 

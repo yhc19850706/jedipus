@@ -1,8 +1,9 @@
-package com.fabahaba.jedipus.primitive;
+package com.fabahaba.jedipus.pubsub;
 
 import java.util.Map;
 
 import com.fabahaba.jedipus.client.RedisClient;
+import com.fabahaba.jedipus.primitive.MsgConsumer;
 
 class MappedSubscriber extends BaseRedisSubscriber {
 
@@ -17,6 +18,18 @@ class MappedSubscriber extends BaseRedisSubscriber {
   public void registerConsumer(final MsgConsumer msgConsumer, final String... channels) {
     for (final String channel : channels) {
       msgConsumers.put(channel, msgConsumer);
+    }
+  }
+
+  @Override
+  public void unRegisterConsumer(final MsgConsumer msgConsumer, final String... channels) {
+    for (final String channel : channels) {
+      synchronized (msgConsumers) {
+        final MsgConsumer consumer = msgConsumers.get(channel);
+        if (consumer != null && consumer.equals(msgConsumer)) {
+          msgConsumers.remove(channel);
+        }
+      }
     }
   }
 

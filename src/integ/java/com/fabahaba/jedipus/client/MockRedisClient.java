@@ -7,7 +7,7 @@ import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.PrimArrayCmd;
 import com.fabahaba.jedipus.cmds.PrimCmd;
 import com.fabahaba.jedipus.cmds.RESP;
-import com.fabahaba.jedipus.primitive.RedisSubscriber;
+import com.fabahaba.jedipus.pubsub.RedisSubscriber;
 
 public class MockRedisClient implements RedisClient {
 

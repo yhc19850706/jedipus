@@ -12,6 +12,7 @@ import com.fabahaba.jedipus.exceptions.RedisClusterDownException;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.exceptions.SlotMovedException;
+import com.fabahaba.jedipus.pubsub.RedisSubscriber;
 
 final class RESProtocol {
 

@@ -1,12 +1,14 @@
-package com.fabahaba.jedipus.primitive;
+package com.fabahaba.jedipus.pubsub;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.function.Function;
 
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cmds.RESP;
+import com.fabahaba.jedipus.primitive.MsgConsumer;
 
 public interface RedisSubscriber extends Runnable {
 
@@ -19,12 +21,16 @@ public interface RedisSubscriber extends Runnable {
     return new MappedSubscriber(client, msgConsumers);
   }
 
-  public static RedisSubscriber create(final RedisClient client,
-      final Function<String, Collection<MsgConsumer>> consumerCollectionFactory) {
-    return create(client, new HashMap<>(), consumerCollectionFactory);
+  public static RedisSubscriber createMulti(final RedisClient client) {
+    return createMulti(client, new HashMap<>(), ch -> new HashSet<>());
   }
 
-  public static RedisSubscriber create(final RedisClient client,
+  public static RedisSubscriber createMulti(final RedisClient client,
+      final Function<String, Collection<MsgConsumer>> consumerCollectionFactory) {
+    return createMulti(client, new HashMap<>(), consumerCollectionFactory);
+  }
+
+  public static RedisSubscriber createMulti(final RedisClient client,
       final Map<String, Collection<MsgConsumer>> msgConsumers,
       final Function<String, Collection<MsgConsumer>> consumerCollectionFactory) {
     return new MultiMappedSubscriber(client, msgConsumers, consumerCollectionFactory);
@@ -65,6 +71,12 @@ public interface RedisSubscriber extends Runnable {
 
   default void registerPConsumer(final MsgConsumer msgConsumer, final String... patterns) {
     registerConsumer(msgConsumer, patterns);
+  }
+
+  public void unRegisterConsumer(final MsgConsumer msgConsumer, final String... channels);
+
+  default void unRegisterPConsumer(final MsgConsumer msgConsumer, final String... patterns) {
+    unRegisterConsumer(msgConsumer, patterns);
   }
 
   void unsubscribe(final String... channels);

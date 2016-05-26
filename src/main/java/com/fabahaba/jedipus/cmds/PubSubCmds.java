@@ -1,6 +1,6 @@
 package com.fabahaba.jedipus.cmds;
 
-import com.fabahaba.jedipus.primitive.RedisSubscriber;
+import com.fabahaba.jedipus.pubsub.RedisSubscriber;
 
 public interface PubSubCmds extends DirectCmds {
 

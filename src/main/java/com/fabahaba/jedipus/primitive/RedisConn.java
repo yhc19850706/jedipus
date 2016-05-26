@@ -9,6 +9,7 @@ import java.util.function.Function;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
+import com.fabahaba.jedipus.pubsub.RedisSubscriber;
 
 abstract class RedisConn implements AutoCloseable {
 

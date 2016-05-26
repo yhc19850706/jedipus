@@ -9,6 +9,7 @@ import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.PrimArrayCmd;
 import com.fabahaba.jedipus.cmds.PrimCmd;
+import com.fabahaba.jedipus.pubsub.RedisSubscriber;
 
 abstract class BaseRedisClient implements RedisClient {
 
