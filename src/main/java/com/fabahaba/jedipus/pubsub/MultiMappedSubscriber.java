@@ -8,7 +8,7 @@ import java.util.function.Function;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.primitive.MsgConsumer;
 
-public class MultiMappedSubscriber extends BaseRedisSubscriber {
+class MultiMappedSubscriber extends BaseRedisSubscriber {
 
   private final Map<String, Collection<MsgConsumer>> msgConsumers;
   private final Function<String, Collection<MsgConsumer>> consumerCollectionFactory;

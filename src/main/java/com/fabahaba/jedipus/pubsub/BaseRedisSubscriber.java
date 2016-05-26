@@ -73,11 +73,13 @@ public abstract class BaseRedisSubscriber implements RedisSubscriber {
   @Override
   public void ping() {
     client.pubsubPing();
+    client.flush();
   }
 
   @Override
   public void ping(final String pong) {
     client.pubsubPing(pong);
+    client.flush();
   }
 
   @Override
