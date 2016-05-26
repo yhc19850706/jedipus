@@ -14,6 +14,7 @@
   * Primitive long, long[] return types to avoid auto boxing, [nice for BITFIELD commands](https://gist.github.com/jamespedwards42/3f99095e1addac8f6e4afd7dbe9ec2ee).
   * Load balance read-only requests across master and/or slave pools.
 * Zero dependencies and PGP signed releases.  [Bintray](https://bintray.com/jamespedwards42/libs/jedipus/_latestVersion) verifies signatures automatically.  See [verifying your Jedipus jar](scripts/gpgVerifyJedipus.sh).
+* [SSL support](https://github.com/jamespedwards42/jedipus/blob/master/src/integ/java/com/fabahaba/jedipus/client/SSLClientTest.java#L45).
 * Optional user supplied [`Node`](src/main/java/com/fabahaba/jedipus/cluster/Node.java) -> `ClientPool<RedisClient>` factories.
 * Optional user supplied [`LoadBalancedPools`](src/main/java/com/fabahaba/jedipus/concurrent/LoadBalancedPools.java) factories.  By default, a [round robin strategy](src/main/java/com/fabahaba/jedipus/cluster/RoundRobinPools.java) is used.
 * [Client side HostPort mapping](https://gist.github.com/jamespedwards42/5037cf03768280ab1d81a88e7929c608) to internally-networked clusters.
@@ -21,6 +22,7 @@
 * Execute directly against known or random nodes.
 * Utilities to manage and execute Lua scripts, see this [RedisLock Gist](https://gist.github.com/jamespedwards42/46bc6fcd6e2c81315d2d63a4e80b527f).
 * Frequent point releases for new features, utilities and bug fixes.
+* [Pub/Sub support](https://gist.github.com/jamespedwards42/5d2d77da970854fb40af707cc44dc3cd).
 
 ######Read Modes
 >Read modes control how pools to master and slave nodes are managed.
