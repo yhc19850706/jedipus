@@ -7,6 +7,7 @@ import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.PrimArrayCmd;
 import com.fabahaba.jedipus.cmds.PrimCmd;
 import com.fabahaba.jedipus.cmds.RESP;
+import com.fabahaba.jedipus.primitive.RedisSubscriber;
 
 public class MockRedisClient implements RedisClient {
 
@@ -380,4 +381,24 @@ public class MockRedisClient implements RedisClient {
 
   @Override
   public void resetSoTimeout() {}
+
+  @Override
+  public void consumePubSub(final RedisSubscriber pubsub) {}
+
+  @Override
+  public long publish(final byte[] channel, final byte[] msg) {
+    return 0;
+  }
+
+  @Override
+  public void subscribe(final String... channels) {}
+
+  @Override
+  public void psubscribe(final String... patterns) {}
+
+  @Override
+  public void unsubscribe(final String... channels) {}
+
+  @Override
+  public void punsubscribe(final String... patterns) {}
 }

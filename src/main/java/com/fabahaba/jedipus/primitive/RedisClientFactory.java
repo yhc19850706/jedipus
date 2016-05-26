@@ -39,7 +39,6 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
   private final int outputBufferSize;
   private final int inputBufferSize;
 
-
   protected RedisClientFactory(final Node node, final Function<Node, Node> hostPortMapper,
       final int connTimeoutMillis, final ConnectedSocketFactory<? extends Socket> socketFactory,
       final int soTimeoutMillis, final String pass, final String clientName,
@@ -204,21 +203,21 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
       return create(node, initReadOnly);
     }
 
-    private void initConnectedSocketFactory() {
+    public Builder initConnectedSocketFactory() {
 
       if (connectedSocketFactory != null) {
-        return;
+        return this;
       }
-
 
       if (ssl) {
         connectedSocketFactory = new ConnectedSSLSocketFactory(
             socketFactory == null ? SSLSocketFactory.getDefault() : socketFactory, soTimeoutMillis,
             sslParameters, hostnameVerifier);
-        return;
+        return this;
       }
 
       connectedSocketFactory = new BaseConnectedSocketFactory(socketFactory, soTimeoutMillis);
+      return this;
     }
 
     public RedisClient create(final Node node, final boolean initReadOnly) {
@@ -247,6 +246,16 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
 
         if (initReadOnly) {
           client.skip().sendCmd(Cmds.READONLY.raw());
+        }
+
+        switch (replyMode) {
+          case OFF:
+            client.replyOff();
+            break;
+          case SKIP:
+          case ON:
+          default:
+            break;
         }
 
         return client;

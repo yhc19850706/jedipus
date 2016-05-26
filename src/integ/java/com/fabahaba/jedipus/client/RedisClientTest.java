@@ -80,7 +80,6 @@ public class RedisClientTest extends BaseRedisClientTest {
       client.sendCmd(Cmds.SELECT.raw(), RESP.toBytes(0));
       assertNull(client.sendCmd(Cmds.GET.raw(), "foo"));
       client.sendCmd(Cmds.SELECT.raw(), RESP.toBytes(defaultDb));
-      assertEquals(1L, client.sendCmd(Cmds.DEL.prim(), "foo"));
     }
   }
 

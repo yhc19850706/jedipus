@@ -207,7 +207,7 @@ public class PipelineTest extends BaseRedisClientTest {
   @Test
   public void multiWithSync() {
 
-    client.sendCmd(Cmds.SET, "foo", "314");
+    client.sendCmd(Cmds.SET, "foo", "bar");
     client.sendCmd(Cmds.SET, "bar", "foo");
     client.sendCmd(Cmds.SET, "hello", "world");
 
@@ -221,7 +221,7 @@ public class PipelineTest extends BaseRedisClientTest {
       pipeline.sync();
 
       assertEquals("foo", r1.get());
-      assertEquals("314", r2.get());
+      assertEquals("bar", r2.get());
       assertEquals("world", r3.get());
     }
   }

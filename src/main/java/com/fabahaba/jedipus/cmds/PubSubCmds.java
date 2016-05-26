@@ -1,6 +1,24 @@
 package com.fabahaba.jedipus.cmds;
 
+import com.fabahaba.jedipus.primitive.RedisSubscriber;
+
 public interface PubSubCmds extends DirectCmds {
+
+  void consumePubSub(final RedisSubscriber subscriber);
+
+  default long publish(final String channel, final String msg) {
+    return publish(RESP.toBytes(channel), RESP.toBytes(msg));
+  }
+
+  long publish(final byte[] channel, final byte[] msg);
+
+  void subscribe(final String... channels);
+
+  void psubscribe(final String... patterns);
+
+  void unsubscribe(final String... channels);
+
+  void punsubscribe(final String... patterns);
 
   // http://redis.io/commands#pubsub
   static final Cmd<Object> PSUBSCRIBE = Cmd.createCast("PSUBSCRIBE");

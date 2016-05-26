@@ -226,6 +226,18 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
+  protected void consumePubSub(final RedisSubscriber subscriber) {
+    setInfinitSoTimeout();
+    try {
+      RESProtocol.consumePubSub(subscriber, getNode(), hostPortMapper, inputStream);
+    } catch (final RedisConnectionException exc) {
+      broken = true;
+      throw exc;
+    } finally {
+      resetSoTimeout();
+    }
+  }
+
   protected long[] getLongArray() {
     try {
       return RESProtocol.readLongArray(getNode(), hostPortMapper, inputStream);

@@ -184,11 +184,6 @@ final class RESProtocol {
     return new RedisUnhandledException(node, message);
   }
 
-  static String readErrorLineIfPossible(final RedisInputStream is) {
-
-    return is.readByte() == MINUS_BYTE ? is.readLine() : null;
-  }
-
   private static String[] parseTargetHostAndSlot(final String clusterRedirectReply,
       final int slotOffset) {
 
@@ -224,7 +219,7 @@ final class RESProtocol {
         final String msg = String.format(
             "Unknown reply where data type expected. Recieved '%s'. Supported types are '+', '-', ':', '$' and '*'.",
             (char) bite);
-        throw new RedisConnectionException(node, msg);
+        throw new RedisUnhandledException(node, msg);
     }
   }
 
@@ -254,7 +249,7 @@ final class RESProtocol {
         final String msg = String.format(
             "Unknown reply where data type expected. Recieved '%s'. Supported types are '+', '-', ':', '$' and '*'.",
             (char) bite);
-        throw new RedisConnectionException(node, msg);
+        throw new RedisUnhandledException(node, msg);
     }
   }
 
@@ -270,12 +265,11 @@ final class RESProtocol {
     for (int offset = 0; offset < len;) {
       final int size = is.read(read, offset, (len - offset));
       if (size == -1) {
-        throw new RedisConnectionException(node, "It seems like server has closed the connection.");
+        throw new RedisConnectionException(node, "Unexpected end of input stream.");
       }
       offset += size;
     }
 
-    // read 2 more bytes for the command delimiter
     is.readByte();
     is.readByte();
 
@@ -295,6 +289,61 @@ final class RESProtocol {
       reply[i] = read(node, hostPortMapper, is);
     }
     return reply;
+  }
+
+  static void consumePubSub(final RedisSubscriber subscriber, final Node node,
+      final Function<Node, Node> hostPortMapper, final RedisInputStream is) {
+
+    final byte bite = is.readByte();
+
+    switch (bite) {
+      case ASTERISK_BYTE:
+        is.readIntCRLF();
+
+        final String msgType = RESP.toString(read(node, hostPortMapper, is));
+
+        switch (msgType) {
+          case "message":
+            String channel = RESP.toString(read(node, hostPortMapper, is));
+            subscriber.onMsg(channel, (byte[]) read(node, hostPortMapper, is));
+            return;
+          case "pmessage":
+            final String pattern = RESP.toString(read(node, hostPortMapper, is));
+            channel = RESP.toString(read(node, hostPortMapper, is));
+            subscriber.onPMsg(pattern, channel, (byte[]) read(node, hostPortMapper, is));
+            return;
+          case "subscribe":
+            channel = RESP.toString(read(node, hostPortMapper, is));
+            subscriber.onSubscribe(channel, readLong(node, hostPortMapper, is));
+            return;
+          case "unsubscribe":
+            channel = RESP.toString(read(node, hostPortMapper, is));
+            subscriber.onUnsubscribe(channel, readLong(node, hostPortMapper, is));
+            return;
+          default:
+            final String msg = String.format("Unknown pubsub message type '%s'.", msgType);
+            throw new RedisConnectionException(node, msg);
+        }
+      case MINUS_BYTE:
+        throw processError(node, hostPortMapper, is);
+      case COLON_BYTE:
+        is.drain();
+        throw new RedisUnhandledException(null,
+            "Expected an Array (*) reply type, received an Integer (:) reply.");
+      case PLUS_BYTE:
+        is.drain();
+        throw new RedisUnhandledException(null,
+            "Expected an Array (*) reply type, received a Simple String (+) reply.");
+      case DOLLAR_BYTE:
+        is.drain();
+        throw new RedisUnhandledException(null,
+            "Expected an Array (*) reply type, received a Bulk String ($) reply.");
+      default:
+        final String msg = String.format(
+            "Unknown reply where data type expected. Recieved '%s'. Supported types are '+', '-', ':', '$' and '*'.",
+            (char) bite);
+        throw new RedisUnhandledException(node, msg);
+    }
   }
 
   static long[] readLongArray(final Node node, final Function<Node, Node> hostPortMapper,
@@ -332,7 +381,7 @@ final class RESProtocol {
         final String msg = String.format(
             "Unknown reply where data type expected. Recieved '%s'. Supported types are '+', '-', ':', '$' and '*'.",
             (char) bite);
-        throw new RedisConnectionException(node, msg);
+        throw new RedisUnhandledException(node, msg);
     }
   }
 
@@ -371,7 +420,7 @@ final class RESProtocol {
         final String msg = String.format(
             "Unknown reply where data type expected. Recieved '%s'. Supported types are '+', '-', ':', '$' and '*'.",
             (char) bite);
-        throw new RedisConnectionException(node, msg);
+        throw new RedisUnhandledException(node, msg);
     }
   }
 }
