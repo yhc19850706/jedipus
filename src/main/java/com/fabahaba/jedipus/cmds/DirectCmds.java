@@ -12,7 +12,6 @@ public interface DirectCmds extends DirectPrimCmds {
 
   <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[]... args);
 
-
   <T> T sendCmd(final Cmd<T> cmd, final byte[] arg);
 
   <T> T sendCmd(final Cmd<T> cmd, final byte[] arg1, final byte[] arg2);
@@ -42,7 +41,6 @@ public interface DirectCmds extends DirectPrimCmds {
   <T> T sendBlockingCmd(final Cmd<T> cmd);
 
   <T> T sendBlockingCmd(final Cmd<T> cmd, final byte[]... args);
-
 
   <T> T sendBlockingCmd(final Cmd<T> cmd, final String... args);
 

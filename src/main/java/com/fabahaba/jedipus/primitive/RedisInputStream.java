@@ -8,8 +8,6 @@ import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 
 final class RedisInputStream extends InputStream {
 
-  static final int DEFAULT_BUFFER_SIZE = 8192;
-
   private final Node node;
   private final InputStream in;
   private byte[] buf;
@@ -25,11 +23,6 @@ final class RedisInputStream extends InputStream {
     this.in = in;
     this.node = node;
     this.buf = new byte[size];
-  }
-
-  public RedisInputStream(final Node node, final InputStream in) {
-
-    this(node, in, DEFAULT_BUFFER_SIZE);
   }
 
   public Node getNode() {

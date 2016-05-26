@@ -1,10 +1,7 @@
 package com.fabahaba.jedipus.primitive;
 
+import java.net.Socket;
 import java.util.function.Function;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SSLSocketFactory;
 
 import com.fabahaba.jedipus.client.RedisPipeline;
 import com.fabahaba.jedipus.cluster.Node;
@@ -15,21 +12,11 @@ class PrimRedisClient extends BaseRedisClient {
   private PrimPipeline pipeline;
 
   PrimRedisClient(final Node node, final ReplyMode replyMode,
-      final Function<Node, Node> hostPortMapper, final int connTimeoutMillis,
-      final int soTimeoutMillis, final int outputBufferSize, final int inputBufferSize) {
+      final Function<Node, Node> hostPortMapper, final Socket socket, final int soTimeoutMillis,
+      final int outputBufferSize, final int inputBufferSize) {
 
-    this(node, replyMode, hostPortMapper, connTimeoutMillis, soTimeoutMillis, outputBufferSize,
-        inputBufferSize, false, null, null, null);
-  }
-
-  PrimRedisClient(final Node node, final ReplyMode replyMode,
-      final Function<Node, Node> hostPortMapper, final int connTimeoutMillis,
-      final int soTimeoutMillis, final int outputBufferSize, final int inputBufferSize,
-      final boolean ssl, final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
-      final HostnameVerifier hostnameVerifier) {
-
-    super(PrimRedisConn.create(node, replyMode, hostPortMapper, connTimeoutMillis, soTimeoutMillis,
-        outputBufferSize, inputBufferSize, ssl, sslSocketFactory, sslParameters, hostnameVerifier));
+    super(new PrimRedisConn(node, replyMode, hostPortMapper, socket, soTimeoutMillis,
+        outputBufferSize, inputBufferSize));
   }
 
   @Override

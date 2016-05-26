@@ -1,21 +1,12 @@
 package com.fabahaba.jedipus.primitive;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.function.Function;
 import java.util.function.LongUnaryOperator;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 
 import com.fabahaba.jedipus.client.RedisClient.ReplyMode;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.RESP;
-import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 final class PrimRedisConn extends RedisConn {
@@ -24,70 +15,11 @@ final class PrimRedisConn extends RedisConn {
   private boolean watching;
   private ReplyMode replyMode;
 
-  static PrimRedisConn create(final Node node, final ReplyMode replyMode,
-      final Function<Node, Node> hostPortMapper, final int connTimeoutMillis,
-      final int soTimeoutMillis, final int outputBufferSize, final int inputBufferSize,
-      final boolean ssl, final SSLSocketFactory sslSocketFactory, final SSLParameters sslParameters,
-      final HostnameVerifier hostnameVerifier) {
+  PrimRedisConn(final Node node, final ReplyMode replyMode,
+      final Function<Node, Node> hostPortMapper, final Socket socket, final int soTimeoutMillis,
+      final int outputBufferSize, final int inputBufferSize) {
 
-    try {
-      if (ssl) {
-        final SSLSocket sslSocket =
-            initSocket((SSLSocket) sslSocketFactory.createSocket(), soTimeoutMillis);
-        sslSocket.connect(new InetSocketAddress(node.getHost(), node.getPort()), connTimeoutMillis);
-
-        return createSSL(node, replyMode, hostPortMapper, connTimeoutMillis, soTimeoutMillis,
-            outputBufferSize, inputBufferSize, sslSocket, sslParameters, hostnameVerifier);
-      }
-
-      final Socket socket = initSocket(new Socket(), soTimeoutMillis);
-      socket.connect(new InetSocketAddress(node.getHost(), node.getPort()), connTimeoutMillis);
-
-      return new PrimRedisConn(node, replyMode, hostPortMapper, soTimeoutMillis, outputBufferSize,
-          inputBufferSize, socket);
-    } catch (final IOException ex) {
-      throw new RedisConnectionException(node, ex);
-    }
-  }
-
-  private static <S extends Socket> S initSocket(final S socket, final int soTimeoutMillis)
-      throws SocketException {
-
-    socket.setReuseAddress(true);
-    socket.setKeepAlive(true);
-    socket.setTcpNoDelay(true);
-    socket.setSoLinger(true, 0);
-    socket.setSoTimeout(soTimeoutMillis);
-
-    return socket;
-  }
-
-  private static PrimRedisConn createSSL(final Node node, final ReplyMode replyMode,
-      final Function<Node, Node> hostPortMapper, final int connTimeout, final int soTimeout,
-      final int outputBufferSize, final int inputBufferSize, final SSLSocket sslSocket,
-      final SSLParameters sslParameters, final HostnameVerifier hostnameVerifier) {
-
-    if (sslParameters != null) {
-      sslSocket.setSSLParameters(sslParameters);
-    }
-
-    if (hostnameVerifier != null
-        && !hostnameVerifier.verify(node.getHost(), sslSocket.getSession())) {
-
-      final String message = String
-          .format("The connection to '%s' failed ssl/tls hostname verification.", node.getHost());
-      throw new RedisConnectionException(node, message);
-    }
-
-    return new PrimRedisConn(node, replyMode, hostPortMapper, soTimeout, outputBufferSize,
-        inputBufferSize, sslSocket);
-  }
-
-  private PrimRedisConn(final Node node, final ReplyMode replyMode,
-      final Function<Node, Node> hostPortMapper, final int soTimeout, final int outputBufferSize,
-      final int inputBufferSize, final Socket socket) {
-
-    super(node, hostPortMapper, soTimeout, outputBufferSize, inputBufferSize, socket);
+    super(node, hostPortMapper, socket, soTimeoutMillis, outputBufferSize, inputBufferSize);
 
     this.replyMode = replyMode;
   }

@@ -5,8 +5,6 @@ import java.io.OutputStream;
 
 public final class RedisOutputStream extends OutputStream {
 
-  static final int DEFAULT_BUFFER_SIZE = 8192;
-
   private final OutputStream out;
   private final byte[] buf;
   private int count;
@@ -31,11 +29,6 @@ public final class RedisOutputStream extends OutputStream {
   private static final byte[] digits =
       {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
           'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
-
-  RedisOutputStream(final OutputStream out) {
-
-    this(out, DEFAULT_BUFFER_SIZE);
-  }
 
   RedisOutputStream(final OutputStream out, final int size) {
 

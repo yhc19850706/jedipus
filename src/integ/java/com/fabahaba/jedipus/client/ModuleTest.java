@@ -16,18 +16,15 @@ public class ModuleTest extends BaseRedisClientTest {
   @Test
   public void testModuleLoadAndCall() {
 
-    try (final RedisClient client = DEFAULT_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE)) {
+    final String reply = client.sendCmd(Cmds.MODULE, Cmds.MODULE_LOAD, "/redis/modules/integ.so");
+    assertEquals(RESP.OK, reply);
 
-      final String reply = client.sendCmd(Cmds.MODULE, Cmds.MODULE_LOAD, "/redis/modules/integ.so");
-      assertEquals(RESP.OK, reply);
+    client.sendCmd(Cmds.SELECT, "1");
+    long db = client.sendCmd(INTEG_GETDB);
+    assertEquals(1L, db);
 
-      client.sendCmd(Cmds.SELECT, "1");
-      long db = client.sendCmd(INTEG_GETDB);
-      assertEquals(1L, db);
-
-      client.sendCmd(Cmds.SELECT, "0");
-      db = client.sendCmd(INTEG_GETDB);
-      assertEquals(0L, db);
-    }
+    client.sendCmd(Cmds.SELECT, "0");
+    db = client.sendCmd(INTEG_GETDB);
+    assertEquals(0L, db);
   }
 }

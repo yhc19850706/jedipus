@@ -64,7 +64,6 @@ project.ext.set('numSlavesEach', '1')
 
 test {
    outputs.upToDateWhen { false }
-   maxParallelForks = Runtime.getRuntime().availableProcessors() / 2;
    testLogging {
       events "failed", "standardOut", "standardError"
       showExceptions true

@@ -6,8 +6,6 @@ import static org.junit.Assert.assertNull;
 
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import com.fabahaba.jedipus.cmds.CmdByteArray;
@@ -16,22 +14,6 @@ import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 public class PipelineTest extends BaseRedisClientTest {
-
-  private RedisClient client = null;
-
-  @Before
-  public void before() {
-    client = DEFAULT_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE);
-  }
-
-  @After
-  public void after() {
-    if (client == null) {
-      return;
-    }
-    client.sendCmd(Cmds.FLUSHALL.raw());
-    client.close();
-  }
 
   @Test
   public void pipeline() {
@@ -61,6 +43,7 @@ public class PipelineTest extends BaseRedisClientTest {
         bytesForSetRange);
 
     final RedisPipeline pipeline = client.pipeline();
+
     final FutureReply<String> string = pipeline.sendCmd(Cmds.GET, "string");
     final FutureReply<String> list = pipeline.sendCmd(Cmds.LPOP, "list");
     final FutureReply<String> hash = pipeline.sendCmd(Cmds.HGET, "hash", "foo");

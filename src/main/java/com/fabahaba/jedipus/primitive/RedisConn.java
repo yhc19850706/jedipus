@@ -20,16 +20,18 @@ abstract class RedisConn implements AutoCloseable {
   private boolean broken = false;
 
   protected RedisConn(final Node node, final Function<Node, Node> hostPortMapper,
-      final int soTimeoutMillis, final int outputBufferSize, final int inputBufferSize,
-      final Socket socket) {
+      final Socket socket, final int soTimeoutMillis, final int outputBufferSize,
+      final int inputBufferSize) {
 
     this.hostPortMapper = hostPortMapper;
     this.soTimeoutMillis = soTimeoutMillis;
     this.socket = socket;
 
     try {
-      outputStream = new RedisOutputStream(socket.getOutputStream(), outputBufferSize);
-      inputStream = new RedisInputStream(node, socket.getInputStream(), inputBufferSize);
+      outputStream = new RedisOutputStream(socket.getOutputStream(),
+          Math.min(outputBufferSize, socket.getSendBufferSize()));
+      inputStream = new RedisInputStream(node, socket.getInputStream(),
+          Math.min(inputBufferSize, socket.getReceiveBufferSize()));
     } catch (final IOException ex) {
       throw new RedisConnectionException(node, ex);
     }

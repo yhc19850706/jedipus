@@ -22,7 +22,16 @@ import com.fabahaba.jedipus.exceptions.RedisException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
-public class RedisClientPoolTest extends BaseRedisClientTest {
+public class RedisClientPoolTest {
+
+  static final PooledClientFactory<RedisClient> DEFAULT_POOLED_CLIENT_FACTORY =
+      BaseRedisClientTest.DEFAULT_CLIENT_FACTORY_BUILDER
+          .createPooled(BaseRedisClientTest.DEFAULT_NODE);
+
+  static final ClientPool.Builder DEFAULT_POOL_BUILDER =
+      ClientPool.startBuilding().withTestWhileIdle(true).withBlockWhenExhausted(true)
+          .withMaxBlockDuration(Duration.ofMillis(200));
+
 
   @Test(timeout = 1000)
   public void checkCloseableConnections() {
@@ -127,9 +136,9 @@ public class RedisClientPoolTest extends BaseRedisClientTest {
 
     final String clientName = "test_name";
 
-    try (final ClientPool<RedisClient> pool =
-        DEFAULT_POOL_BUILDER.create(RedisClientFactory.startBuilding().withClientName(clientName)
-            .withAuth(REDIS_PASS).createPooled(DEFAULT_NODE))) {
+    try (final ClientPool<RedisClient> pool = DEFAULT_POOL_BUILDER.create(RedisClientFactory
+        .startBuilding().withClientName(clientName).withAuth(BaseRedisClientTest.REDIS_PASS)
+        .createPooled(BaseRedisClientTest.DEFAULT_NODE))) {
 
       final RedisClient client = RedisClientPool.borrowClient(pool);
       assertEquals(clientName, client.getClientName());
@@ -298,8 +307,8 @@ public class RedisClientPoolTest extends BaseRedisClientTest {
   @Test(timeout = 1000, expected = RedisUnhandledException.class)
   public void testCloseConnectionOnMakeObject() {
 
-    try (final ClientPool<RedisClient> pool = ClientPool.startBuilding()
-        .create(RedisClientFactory.startBuilding().withAuth("wrong").createPooled(DEFAULT_NODE))) {
+    try (final ClientPool<RedisClient> pool = ClientPool.startBuilding().create(RedisClientFactory
+        .startBuilding().withAuth("wrong").createPooled(BaseRedisClientTest.DEFAULT_NODE))) {
       RedisClientPool.borrowClient(pool);
     }
   }
@@ -309,8 +318,9 @@ public class RedisClientPoolTest extends BaseRedisClientTest {
 
     final int defaultDb = 2;
 
-    try (final ClientPool<RedisClient> pool = ClientPool.startBuilding().create(RedisClientFactory
-        .startBuilding().withAuth(REDIS_PASS).withDb(defaultDb).createPooled(DEFAULT_NODE))) {
+    try (final ClientPool<RedisClient> pool = ClientPool.startBuilding()
+        .create(RedisClientFactory.startBuilding().withAuth(BaseRedisClientTest.REDIS_PASS)
+            .withDb(defaultDb).createPooled(BaseRedisClientTest.DEFAULT_NODE))) {
 
       final RedisClient client = RedisClientPool.borrowClient(pool);
       client.sendCmd(Cmds.SET.raw(), "foo", "bar");

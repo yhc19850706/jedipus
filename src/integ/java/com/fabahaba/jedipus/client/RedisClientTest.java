@@ -23,12 +23,9 @@ public class RedisClientTest extends BaseRedisClientTest {
   @Test
   public void testConnectedOnCreate() {
 
-    try (final RedisClient client = DEFAULT_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE)) {
-      client.sendCmd(Cmds.SET, "foo", "bar");
-      final long dbSize = client.sendCmd(Cmds.DBSIZE.prim());
-      assertTrue(dbSize > 0);
-      client.sendCmd(Cmds.DEL, "foo");
-    }
+    client.sendCmd(Cmds.SET, "foo", "bar");
+    final long dbSize = client.sendCmd(Cmds.DBSIZE.prim());
+    assertTrue(dbSize > 0);
   }
 
   @Test
@@ -42,13 +39,11 @@ public class RedisClientTest extends BaseRedisClientTest {
     final byte[] key = RESP.toBytes("hkey");
     final byte[] field = RESP.toBytes("data");
 
-    try (final RedisClient client = DEFAULT_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE)) {
-      final String reply = client.sendCmd(Cmds.HMSET, key, field, data);
-      assertEquals(RESP.OK, reply);
-      final Object[] bigdataReply = (Object[]) client.sendCmd(Cmds.HGETALL.raw(), key);
-      assertArrayEquals(field, (byte[]) bigdataReply[0]);
-      assertArrayEquals(data, (byte[]) bigdataReply[1]);
-    }
+    final String reply = client.sendCmd(Cmds.HMSET, key, field, data);
+    assertEquals(RESP.OK, reply);
+    final Object[] bigdataReply = (Object[]) client.sendCmd(Cmds.HGETALL.raw(), key);
+    assertArrayEquals(field, (byte[]) bigdataReply[0]);
+    assertArrayEquals(data, (byte[]) bigdataReply[1]);
   }
 
   @Test
@@ -65,8 +60,10 @@ public class RedisClientTest extends BaseRedisClientTest {
   @Test(expected = RedisUnhandledException.class)
   public void failWhenSendingNullValues() {
 
-    try (final RedisClient client = DEFAULT_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE)) {
+    try {
       client.sendCmd(Cmds.SET, RESP.toBytes("foo"), null);
+    } finally {
+      client = null;
     }
   }
 
