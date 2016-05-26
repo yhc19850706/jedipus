@@ -1,5 +1,7 @@
 package com.fabahaba.jedipus.pubsub;
 
+import java.util.function.Consumer;
+
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.primitive.MsgConsumer;
 
@@ -7,9 +9,11 @@ public abstract class BaseRedisSubscriber implements RedisSubscriber {
 
   private final RedisClient client;
   private long numSub = Long.MAX_VALUE;
+  private final Consumer<String> pongConsumer;
 
-  protected BaseRedisSubscriber(final RedisClient client) {
+  protected BaseRedisSubscriber(final RedisClient client, final Consumer<String> pongConsumer) {
     this.client = client;
+    this.pongConsumer = pongConsumer;
   }
 
   @Override
@@ -64,6 +68,21 @@ public abstract class BaseRedisSubscriber implements RedisSubscriber {
   public final void onUnsubscribe(final String channel, final long numSubs) {
     this.numSub = numSubs;
     onUnsubscribe(channel);
+  }
+
+  @Override
+  public void ping() {
+    client.pubsubPing();
+  }
+
+  @Override
+  public void ping(final String pong) {
+    client.pubsubPing(pong);
+  }
+
+  @Override
+  public void onPong(final String pong) {
+    pongConsumer.accept(pong);
   }
 
   @Override

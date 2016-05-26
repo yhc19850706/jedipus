@@ -205,7 +205,6 @@ final class RESProtocol {
     final byte bite = is.readByte();
 
     switch (bite) {
-
       case PLUS_BYTE:
         return is.readLineBytes();
       case DOLLAR_BYTE:
@@ -321,20 +320,23 @@ final class RESProtocol {
             channel = RESP.toString(read(node, hostPortMapper, is));
             subscriber.onUnsubscribe(channel, readLong(node, hostPortMapper, is));
             return;
+          case "pong":
+            subscriber.onPong(RESP.toString(read(node, hostPortMapper, is)));
+            return;
           default:
             final String msg = String.format("Unknown pubsub message type '%s'.", msgType);
             throw new RedisConnectionException(node, msg);
         }
       case MINUS_BYTE:
         throw processError(node, hostPortMapper, is);
+      case PLUS_BYTE:
+        is.drain();
+        throw new RedisUnhandledException(null,
+            "Expected an Array (*) reply type, received a String (+) reply.");
       case COLON_BYTE:
         is.drain();
         throw new RedisUnhandledException(null,
             "Expected an Array (*) reply type, received an Integer (:) reply.");
-      case PLUS_BYTE:
-        is.drain();
-        throw new RedisUnhandledException(null,
-            "Expected an Array (*) reply type, received a Simple String (+) reply.");
       case DOLLAR_BYTE:
         is.drain();
         throw new RedisUnhandledException(null,

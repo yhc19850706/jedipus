@@ -9,6 +9,7 @@ import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.PrimArrayCmd;
 import com.fabahaba.jedipus.cmds.PrimCmd;
+import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.pubsub.RedisSubscriber;
 
 abstract class BaseRedisClient implements RedisClient {
@@ -97,6 +98,16 @@ abstract class BaseRedisClient implements RedisClient {
   @Override
   public final long publish(final byte[] channel, final byte[] payload) {
     return sendCmd(Cmds.PUBLISH.prim(), channel, payload);
+  }
+
+  @Override
+  public void pubsubPing() {
+    conn.sendCmd(Cmds.PING.getCmdBytes());
+  }
+
+  @Override
+  public void pubsubPing(final String pong) {
+    conn.sendCmd(Cmds.PING.getCmdBytes(), RESP.toBytes(pong));
   }
 
   @Override

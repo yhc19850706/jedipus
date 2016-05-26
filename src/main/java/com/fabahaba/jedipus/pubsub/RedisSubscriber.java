@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import com.fabahaba.jedipus.client.RedisClient;
@@ -13,27 +14,31 @@ import com.fabahaba.jedipus.primitive.MsgConsumer;
 public interface RedisSubscriber extends Runnable {
 
   public static RedisSubscriber create(final RedisClient client) {
-    return create(client, new HashMap<>());
+    return create(client, new HashMap<>(), pong -> {
+    });
   }
 
   public static RedisSubscriber create(final RedisClient client,
-      final Map<String, MsgConsumer> msgConsumers) {
-    return new MappedSubscriber(client, msgConsumers);
+      final Map<String, MsgConsumer> msgConsumers, final Consumer<String> pongConsumer) {
+    return new MappedSubscriber(client, msgConsumers, pongConsumer);
   }
 
   public static RedisSubscriber createMulti(final RedisClient client) {
-    return createMulti(client, new HashMap<>(), ch -> new HashSet<>());
+    return createMulti(client, new HashMap<>(), ch -> new HashSet<>(), pong -> {
+    });
   }
 
   public static RedisSubscriber createMulti(final RedisClient client,
-      final Function<String, Collection<MsgConsumer>> consumerCollectionFactory) {
-    return createMulti(client, new HashMap<>(), consumerCollectionFactory);
+      final Function<String, Collection<MsgConsumer>> consumerCollectionFactory,
+      final Consumer<String> pongConsumer) {
+    return createMulti(client, new HashMap<>(), consumerCollectionFactory, pongConsumer);
   }
 
   public static RedisSubscriber createMulti(final RedisClient client,
       final Map<String, Collection<MsgConsumer>> msgConsumers,
-      final Function<String, Collection<MsgConsumer>> consumerCollectionFactory) {
-    return new MultiMappedSubscriber(client, msgConsumers, consumerCollectionFactory);
+      final Function<String, Collection<MsgConsumer>> consumerCollectionFactory,
+      final Consumer<String> pongConsumer) {
+    return new MultiMappedSubscriber(client, msgConsumers, consumerCollectionFactory, pongConsumer);
   }
 
   long getSubCount();
@@ -82,6 +87,12 @@ public interface RedisSubscriber extends Runnable {
   void unsubscribe(final String... channels);
 
   void punsubscribe(final String... patterns);
+
+  void ping();
+
+  void ping(final String pong);
+
+  void onPong(final String pong);
 
   void close();
 }

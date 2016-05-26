@@ -401,4 +401,10 @@ public class MockRedisClient implements RedisClient {
 
   @Override
   public void punsubscribe(final String... patterns) {}
+
+  @Override
+  public void pubsubPing() {}
+
+  @Override
+  public void pubsubPing(final String pong) {}
 }

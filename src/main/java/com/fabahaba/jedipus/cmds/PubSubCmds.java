@@ -20,6 +20,10 @@ public interface PubSubCmds extends DirectCmds {
 
   void punsubscribe(final String... patterns);
 
+  void pubsubPing();
+
+  void pubsubPing(final String pong);
+
   // http://redis.io/commands#pubsub
   static final Cmd<Object> PSUBSCRIBE = Cmd.createCast("PSUBSCRIBE");
   static final Cmd<Long> PUBLISH = Cmd.createCast("PUBLISH");

@@ -2,6 +2,7 @@ package com.fabahaba.jedipus.pubsub;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import com.fabahaba.jedipus.client.RedisClient;
@@ -14,8 +15,9 @@ public class MultiMappedSubscriber extends BaseRedisSubscriber {
 
   MultiMappedSubscriber(final RedisClient client,
       final Map<String, Collection<MsgConsumer>> msgConsumers,
-      final Function<String, Collection<MsgConsumer>> consumerCollectionFactory) {
-    super(client);
+      final Function<String, Collection<MsgConsumer>> consumerCollectionFactory,
+      final Consumer<String> pongConsumer) {
+    super(client, pongConsumer);
     this.msgConsumers = msgConsumers;
     this.consumerCollectionFactory = consumerCollectionFactory;
   }
