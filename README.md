@@ -75,7 +75,7 @@ try (final RedisClusterExecutor rce =
   final FutureLongReply numMembers = rce.applyPipeline(skey, pipeline -> {
     // Fire-And-Forget: skip() issues a pipelined CLIENT REPLY SKIP
     pipeline.skip().sendCmd(Cmds.SADD, skey, "member");
-    // Specify primitve return types with Cmd#prim() and Cmd#primArray()
+    // Optional primitive return types.
     final FutureLongReply futureReply = pipeline.sendCmd(Cmds.SCARD.prim(), skey);
     pipeline.sync();
     // Check reply to leverage library error handling.
@@ -83,7 +83,7 @@ try (final RedisClusterExecutor rce =
   });
 
   // This long was never auto boxed.
-  final long primitiveNumMembers = numMembers.getLong();
+  final long primitiveNumMembers = numMembers.getAsLong();
   System.out.format("'%s' has %d members.%n", skey, primitiveNumMembers);
 }
 ```
@@ -99,8 +99,9 @@ try (final RedisClusterExecutor rce =
 
   final String fooKey = hashTag + "foo";
 
+  // Implicit multi applied.
   final Object[] sortedBars = rce.applyPipelinedTransaction(ReadMode.MASTER, slot, pipeline -> {
-     // MULTI already executed by Jedipus.
+
     pipeline.sendCmd(Cmds.ZADD, fooKey, "NX", "-1", "barowitch");
     // New key will still be hashtag pinned to the same slot/node.
     pipeline.sendCmd(Cmds.ZADD, fooKey + "a", "XX", "-2", "barowitch");
@@ -111,16 +112,16 @@ try (final RedisClusterExecutor rce =
         RESP.toBytes(.37), RESP.toBytes("barinsky")}));
     pipeline.sendCmd(Cmds.ZADD, fooKey, "42", "barikoviev");
 
-    final FutureReply<Object[]> barsResponse =
-        pipeline.sendCmd(Cmds.ZRANGE, fooKey, "0", "-1", "WITHSCORES");
+    final FutureReply<Object[]> barsReply =
+        pipeline.sendCmd(Cmds.ZRANGE_WITHSCORES, fooKey, "0", "-1", "WITHSCORES");
 
     // Note: Pipelines and transactions (multi) are merely started by the the library.
     // 'exec' and 'sync' must be called by the user.
     pipeline.execSync();
 
-    // Note: Responses must be captured within this lambda closure in order to properly
+    // Note: Replys must be captured within this lambda closure in order to properly
     // leverage error handling.
-    return barsResponse.get();
+    return barsReply.get();
   });
 
   // '{HT}:foo': [barowitch (-1.0), barinsky (0.37), barikoviev (42.0)]
