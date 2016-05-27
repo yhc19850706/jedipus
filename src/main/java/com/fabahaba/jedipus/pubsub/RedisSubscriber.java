@@ -8,7 +8,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import com.fabahaba.jedipus.client.RedisClient;
-import com.fabahaba.jedipus.primitive.MsgConsumer;
 
 public interface RedisSubscriber extends Runnable {
 

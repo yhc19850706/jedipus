@@ -3,7 +3,6 @@ package com.fabahaba.jedipus.pubsub;
 import java.util.function.Consumer;
 
 import com.fabahaba.jedipus.client.RedisClient;
-import com.fabahaba.jedipus.primitive.MsgConsumer;
 
 public class SingleSubscriber implements RedisSubscriber {
 

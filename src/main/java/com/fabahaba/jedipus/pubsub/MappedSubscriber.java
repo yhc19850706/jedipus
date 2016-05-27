@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import com.fabahaba.jedipus.client.RedisClient;
-import com.fabahaba.jedipus.primitive.MsgConsumer;
 
 class MappedSubscriber extends SingleSubscriber {
 
