@@ -8,16 +8,16 @@ import java.util.function.Function;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.primitive.MsgConsumer;
 
-class MultiMappedSubscriber extends BaseRedisSubscriber {
+class MultiMappedSubscriber extends SingleSubscriber {
 
   private final Map<String, Collection<MsgConsumer>> msgConsumers;
   private final Function<String, Collection<MsgConsumer>> consumerCollectionFactory;
 
-  MultiMappedSubscriber(final RedisClient client,
+  MultiMappedSubscriber(final RedisClient client, final MsgConsumer defaultConsumer,
       final Map<String, Collection<MsgConsumer>> msgConsumers,
       final Function<String, Collection<MsgConsumer>> consumerCollectionFactory,
       final Consumer<String> pongConsumer) {
-    super(client, pongConsumer);
+    super(client, defaultConsumer, pongConsumer);
     this.msgConsumers = msgConsumers;
     this.consumerCollectionFactory = consumerCollectionFactory;
   }
@@ -44,6 +44,7 @@ class MultiMappedSubscriber extends BaseRedisSubscriber {
   public void onSubscribe(final String channel) {
     final Collection<MsgConsumer> consumers = msgConsumers.get(channel);
     if (consumers == null) {
+      defaultConsumer.onSubscribed(channel);
       return;
     }
     for (final MsgConsumer msgConsumer : consumers) {
@@ -52,9 +53,10 @@ class MultiMappedSubscriber extends BaseRedisSubscriber {
   }
 
   @Override
-  public void onUnsubscribe(final String channel) {
+  public void onUnsubscribed(final String channel) {
     final Collection<MsgConsumer> consumers = msgConsumers.get(channel);
     if (consumers == null) {
+      defaultConsumer.onUnsubscribed(channel);
       return;
     }
     for (final MsgConsumer msgConsumer : consumers) {
@@ -63,9 +65,10 @@ class MultiMappedSubscriber extends BaseRedisSubscriber {
   }
 
   @Override
-  public void onMsg(final String channel, final String payload) {
+  public void onMsg(final String channel, final byte[] payload) {
     final Collection<MsgConsumer> consumers = msgConsumers.get(channel);
     if (consumers == null) {
+      defaultConsumer.accept(channel, payload);
       return;
     }
     for (final MsgConsumer msgConsumer : consumers) {
@@ -74,13 +77,14 @@ class MultiMappedSubscriber extends BaseRedisSubscriber {
   }
 
   @Override
-  public void onPMsg(final String pattern, final String channel, final String payload) {
+  public void onPMsg(final String pattern, final String channel, final byte[] payload) {
     final Collection<MsgConsumer> consumers = msgConsumers.get(pattern);
     if (consumers == null) {
+      defaultConsumer.accept(pattern, channel, payload);
       return;
     }
     for (final MsgConsumer msgConsumer : consumers) {
-      msgConsumer.accept(channel, payload);
+      msgConsumer.accept(pattern, channel, payload);
     }
   }
 }

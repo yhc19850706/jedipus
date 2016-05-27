@@ -7,12 +7,12 @@
 * Flexible generic or primitive return types to match the dynamic return type design of Redis.
 * Flexible command interface allows for [calling Modules](src/integ/java/com/fabahaba/jedipus/client/ModuleTest.java#L17) or renamed commands.
 * Performance focused:
-  * Reuse known slot integers for direct O(1) primitive array access to a corresponding `RedisClient` pool.
   * Minimal enforced (de)serialization.  Write directly to the socket output stream buffer or socket output stream, and retrieve raw responses.
   * Official Fire-And-Forget support using [`CLIENT REPLY ON|OFF|SKIP`](http://redis.io/commands/client-reply).
   * Locking is only applied to threads which are accessing slots that are migrating; there is no known node; or for which a client connection continually cannot be established; all of which will trigger a slot cache refresh.
   * Primitive long, long[] return types to avoid auto boxing, [nice for BITFIELD commands](https://gist.github.com/jamespedwards42/3f99095e1addac8f6e4afd7dbe9ec2ee).
   * Load balance read-only requests across master and/or slave pools.
+  * Reuse known slot integers for direct O(1) primitive array access to a corresponding `RedisClient` pool.
 * Zero dependencies and PGP signed releases.  [Bintray](https://bintray.com/jamespedwards42/libs/jedipus/_latestVersion) verifies signatures automatically.  See [verifying your Jedipus jar](scripts/gpgVerifyJedipus.sh).
 * [SSL support](https://github.com/jamespedwards42/jedipus/blob/master/src/integ/java/com/fabahaba/jedipus/client/SSLClientTest.java#L45).
 * Optional user supplied [`Node`](src/main/java/com/fabahaba/jedipus/cluster/Node.java) -> `ClientPool<RedisClient>` factories.

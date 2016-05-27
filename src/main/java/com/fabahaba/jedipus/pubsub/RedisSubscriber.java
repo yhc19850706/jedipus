@@ -8,77 +8,39 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import com.fabahaba.jedipus.client.RedisClient;
-import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.primitive.MsgConsumer;
 
 public interface RedisSubscriber extends Runnable {
 
-  public static RedisSubscriber create(final RedisClient client) {
-    return create(client, new HashMap<>(), pong -> {
-    });
-  }
-
-  public static RedisSubscriber create(final RedisClient client,
-      final Map<String, MsgConsumer> msgConsumers, final Consumer<String> pongConsumer) {
-    return new MappedSubscriber(client, msgConsumers, pongConsumer);
-  }
-
-  public static RedisSubscriber createMulti(final RedisClient client) {
-    return createMulti(client, new HashMap<>(), ch -> new HashSet<>(), pong -> {
-    });
-  }
-
-  public static RedisSubscriber createMulti(final RedisClient client,
-      final Function<String, Collection<MsgConsumer>> consumerCollectionFactory,
-      final Consumer<String> pongConsumer) {
-    return createMulti(client, new HashMap<>(), consumerCollectionFactory, pongConsumer);
-  }
-
-  public static RedisSubscriber createMulti(final RedisClient client,
-      final Map<String, Collection<MsgConsumer>> msgConsumers,
-      final Function<String, Collection<MsgConsumer>> consumerCollectionFactory,
-      final Consumer<String> pongConsumer) {
-    return new MultiMappedSubscriber(client, msgConsumers, consumerCollectionFactory, pongConsumer);
+  public static Builder startBuilding() {
+    return new Builder();
   }
 
   long getSubCount();
 
   void onSubscribe(final String channel, final long numSubs);
 
-  void onUnsubscribe(final String channel, final long numSubs);
+  void onUnsubscribed(final String channel, final long numSubs);
 
-  default void onMsg(final String channel, final byte[] payload) {
-    onMsg(channel, RESP.toString(payload));
-  }
+  void onMsg(final String channel, final byte[] payload);
 
-  void onMsg(final String channel, final String payload);
+  void onPMsg(final String pattern, final String channel, final byte[] payload);
 
-  default void onPMsg(final String pattern, final String channel, final byte[] payload) {
-    onPMsg(pattern, channel, RESP.toString(payload));
-  }
-
-  void onPMsg(final String pattern, final String channel, final String payload);
-
-
-  default void subscribe(final String... channels) {
-    subscribe(null, channels);
-  }
+  void subscribe(final String... channels);
 
   void subscribe(final MsgConsumer msgConsumer, final String... channels);
 
-  default void psubscribe(final String... channels) {
-    psubscribe(null, channels);
-  }
+  void psubscribe(final String... channels);
 
   void psubscribe(final MsgConsumer msgConsumer, final String... patterns);
 
-  public void registerConsumer(final MsgConsumer msgConsumer, final String... channels);
+  void registerConsumer(final MsgConsumer msgConsumer, final String... channels);
 
   default void registerPConsumer(final MsgConsumer msgConsumer, final String... patterns) {
     registerConsumer(msgConsumer, patterns);
   }
 
-  public void unRegisterConsumer(final MsgConsumer msgConsumer, final String... channels);
+  void unRegisterConsumer(final MsgConsumer msgConsumer, final String... channels);
 
   default void unRegisterPConsumer(final MsgConsumer msgConsumer, final String... patterns) {
     unRegisterConsumer(msgConsumer, patterns);
@@ -95,4 +57,67 @@ public interface RedisSubscriber extends Runnable {
   void onPong(final String pong);
 
   void close();
+
+  public static class Builder {
+
+    private MsgConsumer defaultConsumer = (ch, payload) -> {
+    };
+    private Function<String, Collection<MsgConsumer>> consumerCollectionFactory =
+        ch -> new HashSet<>();
+    private Consumer<String> pongConsumer = pong -> {
+    };
+
+    private Builder() {}
+
+    public RedisSubscriber createSingleConsumer(final RedisClient client) {
+      return new SingleSubscriber(client, defaultConsumer, pongConsumer);
+    }
+
+    public RedisSubscriber create(final RedisClient client) {
+      return create(client, new HashMap<>());
+    }
+
+    public RedisSubscriber create(final RedisClient client,
+        final Map<String, MsgConsumer> msgConsumers) {
+      return new MappedSubscriber(client, defaultConsumer, msgConsumers, pongConsumer);
+    }
+
+    public RedisSubscriber createMulti(final RedisClient client) {
+      return createMulti(client, new HashMap<>());
+    }
+
+    public RedisSubscriber createMulti(final RedisClient client,
+        final Map<String, Collection<MsgConsumer>> msgConsumers) {
+      return new MultiMappedSubscriber(client, defaultConsumer, msgConsumers,
+          consumerCollectionFactory, pongConsumer);
+    }
+
+    public MsgConsumer getDefaultConsumer() {
+      return defaultConsumer;
+    }
+
+    public Builder withDefaultConsumer(final MsgConsumer defaultConsumer) {
+      this.defaultConsumer = defaultConsumer;
+      return this;
+    }
+
+    public Function<String, Collection<MsgConsumer>> getConsumerCollectionFactory() {
+      return consumerCollectionFactory;
+    }
+
+    public Builder withConsumerCollectionFactory(
+        final Function<String, Collection<MsgConsumer>> consumerCollectionFactory) {
+      this.consumerCollectionFactory = consumerCollectionFactory;
+      return this;
+    }
+
+    public Consumer<String> getPongConsumer() {
+      return pongConsumer;
+    }
+
+    public Builder withPongConsumer(final Consumer<String> pongConsumer) {
+      this.pongConsumer = pongConsumer;
+      return this;
+    }
+  }
 }

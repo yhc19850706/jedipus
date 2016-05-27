@@ -6,13 +6,13 @@ import java.util.function.Consumer;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.primitive.MsgConsumer;
 
-class MappedSubscriber extends BaseRedisSubscriber {
+class MappedSubscriber extends SingleSubscriber {
 
   private final Map<String, MsgConsumer> msgConsumers;
 
-  MappedSubscriber(final RedisClient client, final Map<String, MsgConsumer> msgConsumers,
-      final Consumer<String> pongConsumer) {
-    super(client, pongConsumer);
+  MappedSubscriber(final RedisClient client, final MsgConsumer defaultConsumer,
+      final Map<String, MsgConsumer> msgConsumers, final Consumer<String> pongConsumer) {
+    super(client, defaultConsumer, pongConsumer);
     this.msgConsumers = msgConsumers;
   }
 
@@ -37,37 +37,25 @@ class MappedSubscriber extends BaseRedisSubscriber {
 
   @Override
   public void onSubscribe(final String channel) {
-    final MsgConsumer msgConsumer = msgConsumers.get(channel);
-    if (msgConsumer == null) {
-      return;
-    }
+    final MsgConsumer msgConsumer = msgConsumers.getOrDefault(channel, defaultConsumer);
     msgConsumer.onSubscribed(channel);
   }
 
   @Override
-  public void onUnsubscribe(final String channel) {
-    final MsgConsumer msgConsumer = msgConsumers.get(channel);
-    if (msgConsumer == null) {
-      return;
-    }
+  public void onUnsubscribed(final String channel) {
+    final MsgConsumer msgConsumer = msgConsumers.getOrDefault(channel, defaultConsumer);
     msgConsumer.onUnsubscribed(channel);
   }
 
   @Override
-  public void onMsg(final String channel, final String payload) {
-    final MsgConsumer msgConsumer = msgConsumers.get(channel);
-    if (msgConsumer == null) {
-      return;
-    }
+  public void onMsg(final String channel, final byte[] payload) {
+    final MsgConsumer msgConsumer = msgConsumers.getOrDefault(channel, defaultConsumer);
     msgConsumer.accept(channel, payload);
   }
 
   @Override
-  public void onPMsg(final String pattern, final String channel, final String payload) {
-    final MsgConsumer msgConsumer = msgConsumers.get(pattern);
-    if (msgConsumer == null) {
-      return;
-    }
-    msgConsumer.accept(channel, payload);
+  public void onPMsg(final String pattern, final String channel, final byte[] payload) {
+    final MsgConsumer msgConsumer = msgConsumers.getOrDefault(pattern, defaultConsumer);
+    msgConsumer.accept(pattern, channel, payload);
   }
 }

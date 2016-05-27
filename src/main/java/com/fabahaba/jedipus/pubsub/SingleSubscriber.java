@@ -5,14 +5,17 @@ import java.util.function.Consumer;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.primitive.MsgConsumer;
 
-public abstract class BaseRedisSubscriber implements RedisSubscriber {
+public class SingleSubscriber implements RedisSubscriber {
 
   private final RedisClient client;
   private long numSub = Long.MAX_VALUE;
   private final Consumer<String> pongConsumer;
+  protected final MsgConsumer defaultConsumer;
 
-  protected BaseRedisSubscriber(final RedisClient client, final Consumer<String> pongConsumer) {
+  protected SingleSubscriber(final RedisClient client, final MsgConsumer defaultConsumer,
+      final Consumer<String> pongConsumer) {
     this.client = client;
+    this.defaultConsumer = defaultConsumer;
     this.pongConsumer = pongConsumer;
   }
 
@@ -29,9 +32,21 @@ public abstract class BaseRedisSubscriber implements RedisSubscriber {
   }
 
   @Override
+  public void subscribe(final String... channels) {
+    client.subscribe(channels);
+    client.flush();
+  }
+
+  @Override
   public final void subscribe(final MsgConsumer msgConsumer, final String... channels) {
     client.subscribe(channels);
     registerConsumer(msgConsumer, channels);
+    client.flush();
+  }
+
+  @Override
+  public void psubscribe(final String... patterns) {
+    client.psubscribe(patterns);
     client.flush();
   }
 
@@ -54,20 +69,16 @@ public abstract class BaseRedisSubscriber implements RedisSubscriber {
     client.flush();
   }
 
-  protected abstract void onSubscribe(final String channel);
-
   @Override
   public final void onSubscribe(final String channel, final long numSubs) {
     this.numSub = numSubs;
     onSubscribe(channel);
   }
 
-  public abstract void onUnsubscribe(final String channel);
-
   @Override
-  public final void onUnsubscribe(final String channel, final long numSubs) {
+  public final void onUnsubscribed(final String channel, final long numSubs) {
     this.numSub = numSubs;
-    onUnsubscribe(channel);
+    onUnsubscribed(channel);
   }
 
   @Override
@@ -91,4 +102,28 @@ public abstract class BaseRedisSubscriber implements RedisSubscriber {
   public void close() {
     client.close();
   }
+
+  protected void onSubscribe(final String channel) {
+    defaultConsumer.onSubscribed(channel);
+  }
+
+  public void onUnsubscribed(final String channel) {
+    defaultConsumer.onUnsubscribed(channel);
+  }
+
+  @Override
+  public void onMsg(final String channel, final byte[] payload) {
+    defaultConsumer.accept(channel, payload);
+  }
+
+  @Override
+  public void onPMsg(final String pattern, final String channel, final byte[] payload) {
+    defaultConsumer.accept(pattern, channel, payload);
+  }
+
+  @Override
+  public void registerConsumer(final MsgConsumer msgConsumer, final String... channels) {}
+
+  @Override
+  public void unRegisterConsumer(final MsgConsumer msgConsumer, final String... channels) {}
 }

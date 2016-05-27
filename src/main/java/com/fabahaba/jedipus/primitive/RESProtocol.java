@@ -318,7 +318,7 @@ final class RESProtocol {
             return;
           case "unsubscribe":
             channel = RESP.toString(read(node, hostPortMapper, is));
-            subscriber.onUnsubscribe(channel, readLong(node, hostPortMapper, is));
+            subscriber.onUnsubscribed(channel, readLong(node, hostPortMapper, is));
             return;
           case "pong":
             subscriber.onPong(RESP.toString(read(node, hostPortMapper, is)));
