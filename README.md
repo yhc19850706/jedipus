@@ -9,8 +9,8 @@
 * Performance focused:
   * Minimal enforced (de)serialization.  Write directly to the socket output stream buffer or socket output stream, and retrieve raw responses.
   * Official Fire-And-Forget support using [`CLIENT REPLY ON|OFF|SKIP`](http://redis.io/commands/client-reply).
-  * Locking is only applied to threads which are accessing slots that are migrating; there is no known node; or for which a client connection continually cannot be established; all of which will trigger a slot cache refresh.
   * Primitive long, long[] return types to avoid auto boxing, [nice for BITFIELD commands](https://gist.github.com/jamespedwards42/3f99095e1addac8f6e4afd7dbe9ec2ee).
+  * Locking is only applied to threads which are accessing slots that are migrating; there is no known node; or for which a client connection continually cannot be established; all of which will trigger a slot cache refresh.
   * Load balance read-only requests across master and/or slave pools.
   * Reuse known slot integers for direct O(1) primitive array access to a corresponding `RedisClient` pool.
 * Zero dependencies and PGP signed releases.  [Bintray](https://bintray.com/jamespedwards42/libs/jedipus/_latestVersion) verifies signatures automatically.  See [verifying your Jedipus jar](scripts/gpgVerifyJedipus.sh).
@@ -33,7 +33,7 @@
 * MIXED: Pools are managed for both masters and slave nodes.  Calls are load balanced across both master and slave pools. Individual calls can be overridden with `ReadMode.MASTER` or `ReadMode.SLAVES`.  When overriding with `ReadMode.SLAVES` and no slave pools are available the master pool is used.
 
 ######Gotchas
-* All commands issued within a single lambda should be idempotent.  If they are not, split them into separate calls, use a pipelined transaction, use a Lua script, or compile a new C Module.
+* All commands issued within a single lambda should be idempotent.  If they are not, split them into separate calls, use a pipelined transaction, use a Lua script, or compile a C Module.
 * ASK redirects within pipelines are not supported, instead an `UnhandledAskNodeException` is thrown.  The reason for this is that even if all of the keys point to the same slot Redis requires a new ASKING request in front of each command.  It is cleaner to let the user handle recovery rather than injecting ASKING requests internally.  See this [integration test](src/integ/java/com/fabahaba/jedipus/cluster/RedisClusterTest.java#L539) for an example of how to recover.  MOVE redirects are supported within pipelines.
 * If only using CLIENT REPLY OFF your client will be oblivious to slot migrations.  If you want to be resilient to re-partitioning, refresh the slot cache at a frequency you can tolerate.
 

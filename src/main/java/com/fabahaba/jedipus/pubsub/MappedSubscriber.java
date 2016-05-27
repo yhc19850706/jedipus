@@ -9,9 +9,10 @@ class MappedSubscriber extends SingleSubscriber {
 
   private final Map<String, MsgConsumer> msgConsumers;
 
-  MappedSubscriber(final RedisClient client, final MsgConsumer defaultConsumer,
-      final Map<String, MsgConsumer> msgConsumers, final Consumer<String> pongConsumer) {
-    super(client, defaultConsumer, pongConsumer);
+  MappedSubscriber(final RedisClient client, final int testSocketAliveMillis,
+      final MsgConsumer defaultConsumer, final Map<String, MsgConsumer> msgConsumers,
+      final Consumer<String> pongConsumer) {
+    super(client, testSocketAliveMillis, defaultConsumer, pongConsumer);
     this.msgConsumers = msgConsumers;
   }
 
@@ -35,7 +36,7 @@ class MappedSubscriber extends SingleSubscriber {
   }
 
   @Override
-  public void onSubscribe(final String channel) {
+  public void onSubscribed(final String channel) {
     final MsgConsumer msgConsumer = msgConsumers.getOrDefault(channel, defaultConsumer);
     msgConsumer.onSubscribed(channel);
   }

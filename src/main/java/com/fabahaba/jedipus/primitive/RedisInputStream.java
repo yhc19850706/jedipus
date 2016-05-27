@@ -169,11 +169,15 @@ final class RedisInputStream extends InputStream {
       final int read = in.read(buf, off, len);
 
       if (read == -1) {
+        limit = 0;
+        pos = 0;
         throw new RedisConnectionException(node, "Unexpected end of stream.");
       }
 
       return read;
     } catch (final IOException e) {
+      limit = 0;
+      pos = 0;
       throw new RedisConnectionException(node, e);
     }
   }

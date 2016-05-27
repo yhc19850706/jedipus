@@ -3,6 +3,7 @@ package com.fabahaba.jedipus.primitive;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.Collection;
 import java.util.function.Function;
 
@@ -221,19 +222,23 @@ abstract class RedisConn implements AutoCloseable {
   protected <R> R getReply() {
     try {
       return (R) RESProtocol.read(getNode(), hostPortMapper, inputStream);
-    } catch (final RedisConnectionException exc) {
+    } catch (final RedisConnectionException rce) {
       broken = true;
-      throw exc;
+      throw rce;
     }
   }
 
-  protected void consumePubSub(final RedisSubscriber subscriber) {
-    setInfinitSoTimeout();
+  protected boolean consumePubSub(final int timeoutMillis, final RedisSubscriber subscriber) {
+    setSoTimeout(timeoutMillis);
     try {
       RESProtocol.consumePubSub(subscriber, getNode(), hostPortMapper, inputStream);
-    } catch (final RedisConnectionException exc) {
+      return true;
+    } catch (final RedisConnectionException rce) {
+      if (rce.getCause() != null && rce.getCause() instanceof SocketTimeoutException) {
+        return false;
+      }
       broken = true;
-      throw exc;
+      throw rce;
     } finally {
       resetSoTimeout();
     }
@@ -242,27 +247,27 @@ abstract class RedisConn implements AutoCloseable {
   protected long[] getLongArray() {
     try {
       return RESProtocol.readLongArray(getNode(), hostPortMapper, inputStream);
-    } catch (final RedisConnectionException exc) {
+    } catch (final RedisConnectionException rce) {
       broken = true;
-      throw exc;
+      throw rce;
     }
   }
 
   protected long[][] getLong2DArray() {
     try {
       return RESProtocol.readLong2DArray(getNode(), hostPortMapper, inputStream);
-    } catch (final RedisConnectionException exc) {
+    } catch (final RedisConnectionException rce) {
       broken = true;
-      throw exc;
+      throw rce;
     }
   }
 
   protected long getLong() {
     try {
       return RESProtocol.readLong(getNode(), hostPortMapper, inputStream);
-    } catch (final RedisConnectionException exc) {
+    } catch (final RedisConnectionException rce) {
       broken = true;
-      throw exc;
+      throw rce;
     }
   }
 

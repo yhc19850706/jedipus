@@ -7,16 +7,16 @@ import java.util.function.Function;
 
 import com.fabahaba.jedipus.client.RedisClient;
 
-class MultiMappedSubscriber extends SingleSubscriber {
+final class MultiMappedSubscriber extends SingleSubscriber {
 
   private final Map<String, Collection<MsgConsumer>> msgConsumers;
   private final Function<String, Collection<MsgConsumer>> consumerCollectionFactory;
 
-  MultiMappedSubscriber(final RedisClient client, final MsgConsumer defaultConsumer,
-      final Map<String, Collection<MsgConsumer>> msgConsumers,
+  MultiMappedSubscriber(final RedisClient client, final int testSocketAliveMillis,
+      final MsgConsumer defaultConsumer, final Map<String, Collection<MsgConsumer>> msgConsumers,
       final Function<String, Collection<MsgConsumer>> consumerCollectionFactory,
       final Consumer<String> pongConsumer) {
-    super(client, defaultConsumer, pongConsumer);
+    super(client, testSocketAliveMillis, defaultConsumer, pongConsumer);
     this.msgConsumers = msgConsumers;
     this.consumerCollectionFactory = consumerCollectionFactory;
   }
@@ -40,15 +40,13 @@ class MultiMappedSubscriber extends SingleSubscriber {
   }
 
   @Override
-  public void onSubscribe(final String channel) {
+  public void onSubscribed(final String channel) {
     final Collection<MsgConsumer> consumers = msgConsumers.get(channel);
     if (consumers == null) {
       defaultConsumer.onSubscribed(channel);
       return;
     }
-    for (final MsgConsumer msgConsumer : consumers) {
-      msgConsumer.onSubscribed(channel);
-    }
+    consumers.forEach(consumer -> consumer.onSubscribed(channel));
   }
 
   @Override
@@ -58,9 +56,7 @@ class MultiMappedSubscriber extends SingleSubscriber {
       defaultConsumer.onUnsubscribed(channel);
       return;
     }
-    for (final MsgConsumer msgConsumer : consumers) {
-      msgConsumer.onUnsubscribed(channel);
-    }
+    consumers.forEach(consumer -> consumer.onUnsubscribed(channel));
   }
 
   @Override
@@ -70,9 +66,7 @@ class MultiMappedSubscriber extends SingleSubscriber {
       defaultConsumer.accept(channel, payload);
       return;
     }
-    for (final MsgConsumer msgConsumer : consumers) {
-      msgConsumer.accept(channel, payload);
-    }
+    consumers.forEach(consumer -> consumer.accept(channel, payload));
   }
 
   @Override
@@ -82,8 +76,6 @@ class MultiMappedSubscriber extends SingleSubscriber {
       defaultConsumer.accept(pattern, channel, payload);
       return;
     }
-    for (final MsgConsumer msgConsumer : consumers) {
-      msgConsumer.accept(pattern, channel, payload);
-    }
+    consumers.forEach(consumer -> consumer.accept(pattern, channel, payload));
   }
 }

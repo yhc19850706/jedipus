@@ -383,7 +383,9 @@ public class MockRedisClient implements RedisClient {
   public void resetSoTimeout() {}
 
   @Override
-  public void consumePubSub(final RedisSubscriber pubsub) {}
+  public boolean consumePubSub(final int testSocketAliveMillis, final RedisSubscriber pubsub) {
+    return true;
+  }
 
   @Override
   public long publish(final byte[] channel, final byte[] msg) {
@@ -407,4 +409,69 @@ public class MockRedisClient implements RedisClient {
 
   @Override
   public void pubsubPing(final String pong) {}
+
+  @Override
+  public <T> T sendBlockingCmd(final int timeoutMillis, final Cmd<T> cmd) {
+    return null;
+  }
+
+  @Override
+  public <T> T sendBlockingCmd(final int timeoutMillis, final Cmd<T> cmd, final byte[]... args) {
+    return null;
+  }
+
+  @Override
+  public <T> T sendBlockingCmd(final int timeoutMillis, final Cmd<T> cmd, final String... args) {
+    return null;
+  }
+
+  @Override
+  public <T> T sendBlockingCmd(final int timeoutMillis, final Cmd<T> cmd,
+      final Collection<String> args) {
+    return null;
+  }
+
+  @Override
+  public long sendBlockingCmd(final int timeoutMillis, final PrimCmd cmd) {
+    return 0;
+  }
+
+  @Override
+  public long sendBlockingCmd(final int timeoutMillis, final PrimCmd cmd, final byte[]... args) {
+    return 0;
+  }
+
+  @Override
+  public long sendBlockingCmd(final int timeoutMillis, final PrimCmd cmd, final String... args) {
+    return 0;
+  }
+
+  @Override
+  public long sendBlockingCmd(final int timeoutMillis, final PrimCmd cmd,
+      final Collection<String> args) {
+    return 0;
+  }
+
+  @Override
+  public long[] sendBlockingCmd(final int timeoutMillis, final PrimArrayCmd cmd) {
+    return null;
+  }
+
+  @Override
+  public long[] sendBlockingCmd(final int timeoutMillis, final PrimArrayCmd cmd,
+      final byte[]... args) {
+    return null;
+  }
+
+  @Override
+  public long[] sendBlockingCmd(final int timeoutMillis, final PrimArrayCmd cmd,
+      final String... args) {
+    return null;
+  }
+
+  @Override
+  public long[] sendBlockingCmd(final int timeoutMillis, final PrimArrayCmd cmd,
+      final Collection<String> args) {
+    return null;
+  }
 }

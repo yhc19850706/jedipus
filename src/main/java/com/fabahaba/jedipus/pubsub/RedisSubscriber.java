@@ -17,7 +17,7 @@ public interface RedisSubscriber extends Runnable {
 
   long getSubCount();
 
-  void onSubscribe(final String channel, final long numSubs);
+  void onSubscribed(final String channel, final long numSubs);
 
   void onUnsubscribed(final String channel, final long numSubs);
 
@@ -59,6 +59,7 @@ public interface RedisSubscriber extends Runnable {
 
   public static class Builder {
 
+    private int testSocketAliveMillis = 0; // silently block forever.
     private MsgConsumer defaultConsumer = (ch, payload) -> {
     };
     private Function<String, Collection<MsgConsumer>> consumerCollectionFactory =
@@ -69,7 +70,7 @@ public interface RedisSubscriber extends Runnable {
     private Builder() {}
 
     public RedisSubscriber createSingleConsumer(final RedisClient client) {
-      return new SingleSubscriber(client, defaultConsumer, pongConsumer);
+      return new SingleSubscriber(client, testSocketAliveMillis, defaultConsumer, pongConsumer);
     }
 
     public RedisSubscriber create(final RedisClient client) {
@@ -78,7 +79,8 @@ public interface RedisSubscriber extends Runnable {
 
     public RedisSubscriber create(final RedisClient client,
         final Map<String, MsgConsumer> msgConsumers) {
-      return new MappedSubscriber(client, defaultConsumer, msgConsumers, pongConsumer);
+      return new MappedSubscriber(client, testSocketAliveMillis, defaultConsumer, msgConsumers,
+          pongConsumer);
     }
 
     public RedisSubscriber createMulti(final RedisClient client) {
@@ -87,8 +89,17 @@ public interface RedisSubscriber extends Runnable {
 
     public RedisSubscriber createMulti(final RedisClient client,
         final Map<String, Collection<MsgConsumer>> msgConsumers) {
-      return new MultiMappedSubscriber(client, defaultConsumer, msgConsumers,
+      return new MultiMappedSubscriber(client, testSocketAliveMillis, defaultConsumer, msgConsumers,
           consumerCollectionFactory, pongConsumer);
+    }
+
+    public int getTestSocketAliveMillis() {
+      return testSocketAliveMillis;
+    }
+
+    public Builder withTestSocketAliveMillis(final int testSocketAliveMillis) {
+      this.testSocketAliveMillis = testSocketAliveMillis;
+      return this;
     }
 
     public MsgConsumer getDefaultConsumer() {

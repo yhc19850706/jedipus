@@ -7,12 +7,14 @@ import com.fabahaba.jedipus.client.RedisClient;
 public class SingleSubscriber implements RedisSubscriber {
 
   private final RedisClient client;
+  private final int testSocketAliveMillis;
   private long numSub = Long.MAX_VALUE;
   private final Consumer<String> pongConsumer;
   protected final MsgConsumer defaultConsumer;
 
-  protected SingleSubscriber(final RedisClient client, final MsgConsumer defaultConsumer,
-      final Consumer<String> pongConsumer) {
+  protected SingleSubscriber(final RedisClient client, final int testSocketAliveMillis,
+      final MsgConsumer defaultConsumer, final Consumer<String> pongConsumer) {
+    this.testSocketAliveMillis = testSocketAliveMillis;
     this.client = client;
     this.defaultConsumer = defaultConsumer;
     this.pongConsumer = pongConsumer;
@@ -21,7 +23,9 @@ public class SingleSubscriber implements RedisSubscriber {
   @Override
   public final void run() {
     for (; numSub > 0;) {
-      client.consumePubSub(this);
+      if (!client.consumePubSub(testSocketAliveMillis, this)) {
+        ping();
+      }
     }
   }
 
@@ -69,9 +73,9 @@ public class SingleSubscriber implements RedisSubscriber {
   }
 
   @Override
-  public final void onSubscribe(final String channel, final long numSubs) {
+  public final void onSubscribed(final String channel, final long numSubs) {
     this.numSub = numSubs;
-    onSubscribe(channel);
+    onSubscribed(channel);
   }
 
   @Override
@@ -102,7 +106,7 @@ public class SingleSubscriber implements RedisSubscriber {
     client.close();
   }
 
-  protected void onSubscribe(final String channel) {
+  protected void onSubscribed(final String channel) {
     defaultConsumer.onSubscribed(channel);
   }
 

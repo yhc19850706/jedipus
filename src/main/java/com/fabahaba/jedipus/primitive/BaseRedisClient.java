@@ -111,8 +111,8 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public void consumePubSub(final RedisSubscriber subscriber) {
-    conn.consumePubSub(subscriber);
+  public boolean consumePubSub(final int timeoutMillis, final RedisSubscriber subscriber) {
+    return conn.consumePubSub(timeoutMillis, subscriber);
   }
 
   @Override
@@ -200,8 +200,8 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public <T> T sendBlockingCmd(final Cmd<T> cmd) {
-    conn.setInfinitSoTimeout();
+  public <T> T sendBlockingCmd(final int timeoutMillis, final Cmd<T> cmd) {
+    conn.setSoTimeout(timeoutMillis);
     try {
       conn.sendCmd(cmd.getCmdBytes());
     } finally {
@@ -211,8 +211,8 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public <T> T sendBlockingCmd(final Cmd<T> cmd, final String... args) {
-    conn.setInfinitSoTimeout();
+  public <T> T sendBlockingCmd(final int timeoutMillis, final Cmd<T> cmd, final String... args) {
+    conn.setSoTimeout(timeoutMillis);
     try {
       conn.sendCmd(cmd.getCmdBytes(), args);
     } finally {
@@ -222,8 +222,9 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public <T> T sendBlockingCmd(final Cmd<T> cmd, final Collection<String> args) {
-    conn.setInfinitSoTimeout();
+  public <T> T sendBlockingCmd(final int timeoutMillis, final Cmd<T> cmd,
+      final Collection<String> args) {
+    conn.setSoTimeout(timeoutMillis);
     try {
       conn.sendCmd(cmd.getCmdBytes(), args);
     } finally {
@@ -233,8 +234,8 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public <T> T sendBlockingCmd(final Cmd<T> cmd, final byte[]... args) {
-    conn.setInfinitSoTimeout();
+  public <T> T sendBlockingCmd(final int timeoutMillis, final Cmd<T> cmd, final byte[]... args) {
+    conn.setSoTimeout(timeoutMillis);
     try {
       conn.sendCmd(cmd.getCmdBytes(), args);
     } finally {
@@ -312,8 +313,8 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public long[] sendBlockingCmd(final PrimArrayCmd cmd) {
-    conn.setInfinitSoTimeout();
+  public long[] sendBlockingCmd(final int timeoutMillis, final PrimArrayCmd cmd) {
+    conn.setSoTimeout(timeoutMillis);
     try {
       conn.sendCmd(cmd.getCmdBytes());
     } finally {
@@ -323,8 +324,9 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public long[] sendBlockingCmd(final PrimArrayCmd cmd, final byte[]... args) {
-    conn.setInfinitSoTimeout();
+  public long[] sendBlockingCmd(final int timeoutMillis, final PrimArrayCmd cmd,
+      final byte[]... args) {
+    conn.setSoTimeout(timeoutMillis);
     try {
       conn.sendCmd(cmd.getCmdBytes(), args);
     } finally {
@@ -334,8 +336,9 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public long[] sendBlockingCmd(final PrimArrayCmd cmd, final String... args) {
-    conn.setInfinitSoTimeout();
+  public long[] sendBlockingCmd(final int timeoutMillis, final PrimArrayCmd cmd,
+      final String... args) {
+    conn.setSoTimeout(timeoutMillis);
     try {
       conn.sendCmd(cmd.getCmdBytes(), args);
     } finally {
@@ -345,8 +348,9 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public long[] sendBlockingCmd(final PrimArrayCmd cmd, final Collection<String> args) {
-    conn.setInfinitSoTimeout();
+  public long[] sendBlockingCmd(final int timeoutMillis, final PrimArrayCmd cmd,
+      final Collection<String> args) {
+    conn.setSoTimeout(timeoutMillis);
     try {
       conn.sendCmd(cmd.getCmdBytes(), args);
     } finally {
@@ -422,8 +426,8 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public long sendBlockingCmd(final PrimCmd cmd) {
-    conn.setInfinitSoTimeout();
+  public long sendBlockingCmd(final int timeoutMillis, final PrimCmd cmd) {
+    conn.setSoTimeout(timeoutMillis);
     try {
       conn.sendCmd(cmd.getCmdBytes());
     } finally {
@@ -433,8 +437,8 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public long sendBlockingCmd(final PrimCmd cmd, final byte[]... args) {
-    conn.setInfinitSoTimeout();
+  public long sendBlockingCmd(final int timeoutMillis, final PrimCmd cmd, final byte[]... args) {
+    conn.setSoTimeout(timeoutMillis);
     try {
       conn.sendCmd(cmd.getCmdBytes(), args);
     } finally {
@@ -444,8 +448,8 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public long sendBlockingCmd(final PrimCmd cmd, final String... args) {
-    conn.setInfinitSoTimeout();
+  public long sendBlockingCmd(final int timeoutMillis, final PrimCmd cmd, final String... args) {
+    conn.setSoTimeout(timeoutMillis);
     try {
       conn.sendCmd(cmd.getCmdBytes(), args);
     } finally {
@@ -455,8 +459,9 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public long sendBlockingCmd(final PrimCmd cmd, final Collection<String> args) {
-    conn.setInfinitSoTimeout();
+  public long sendBlockingCmd(final int timeoutMillis, final PrimCmd cmd,
+      final Collection<String> args) {
+    conn.setSoTimeout(timeoutMillis);
     try {
       conn.sendCmd(cmd.getCmdBytes(), args);
     } finally {

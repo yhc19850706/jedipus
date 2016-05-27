@@ -298,8 +298,8 @@ final class RESProtocol {
 
     switch (bite) {
       case ASTERISK_BYTE:
-        is.readIntCRLF();
 
+        is.readIntCRLF();
         final String msgType = RESP.toString(read(node, hostPortMapper, is));
 
         switch (msgType) {
@@ -314,7 +314,7 @@ final class RESProtocol {
             return;
           case "subscribe":
             channel = RESP.toString(read(node, hostPortMapper, is));
-            subscriber.onSubscribe(channel, readLong(node, hostPortMapper, is));
+            subscriber.onSubscribed(channel, readLong(node, hostPortMapper, is));
             return;
           case "unsubscribe":
             channel = RESP.toString(read(node, hostPortMapper, is));
@@ -324,6 +324,7 @@ final class RESProtocol {
             subscriber.onPong(RESP.toString(read(node, hostPortMapper, is)));
             return;
           default:
+            is.drain();
             final String msg = String.format("Unknown pubsub message type '%s'.", msgType);
             throw new RedisConnectionException(node, msg);
         }

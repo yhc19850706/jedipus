@@ -38,13 +38,30 @@ public interface DirectCmds extends DirectPrimCmds {
 
   <T> T sendCmd(final Cmd<T> cmd, final Collection<String> args);
 
-  <T> T sendBlockingCmd(final Cmd<T> cmd);
+  default <T> T sendBlockingCmd(final Cmd<T> cmd) {
+    return sendBlockingCmd(0, cmd);
+  }
 
-  <T> T sendBlockingCmd(final Cmd<T> cmd, final byte[]... args);
+  default <T> T sendBlockingCmd(final Cmd<T> cmd, final byte[]... args) {
+    return sendBlockingCmd(0, cmd, args);
+  }
 
-  <T> T sendBlockingCmd(final Cmd<T> cmd, final String... args);
+  default <T> T sendBlockingCmd(final Cmd<T> cmd, final String... args) {
+    return sendBlockingCmd(0, cmd, args);
+  }
 
-  <T> T sendBlockingCmd(final Cmd<T> cmd, final Collection<String> args);
+  default <T> T sendBlockingCmd(final Cmd<T> cmd, final Collection<String> args) {
+    return sendBlockingCmd(0, cmd, args);
+  }
+
+  <T> T sendBlockingCmd(final int timeoutMillis, final Cmd<T> cmd);
+
+  <T> T sendBlockingCmd(final int timeoutMillis, final Cmd<T> cmd, final byte[]... args);
+
+  <T> T sendBlockingCmd(final int timeoutMillis, final Cmd<T> cmd, final String... args);
+
+  <T> T sendBlockingCmd(final int timeoutMillis, final Cmd<T> cmd, final Collection<String> args);
+
 
   default <R> R sendDirect(final CmdByteArray<R> cmdArgs) {
     return sendDirect(cmdArgs.getCmd(), cmdArgs.getCmdArgs());

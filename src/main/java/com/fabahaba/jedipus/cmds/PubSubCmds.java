@@ -4,7 +4,11 @@ import com.fabahaba.jedipus.pubsub.RedisSubscriber;
 
 public interface PubSubCmds extends DirectCmds {
 
-  void consumePubSub(final RedisSubscriber subscriber);
+  default boolean consumePubSub(final RedisSubscriber subscriber) {
+    return consumePubSub(0, subscriber);
+  }
+
+  boolean consumePubSub(final int timeoutMillis, final RedisSubscriber subscriber);
 
   default long publish(final String channel, final String msg) {
     return publish(RESP.toBytes(channel), RESP.toBytes(msg));

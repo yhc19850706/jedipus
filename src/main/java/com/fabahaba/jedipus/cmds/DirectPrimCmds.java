@@ -38,13 +38,29 @@ public interface DirectPrimCmds {
 
   long sendCmd(final PrimCmd cmd, final Collection<String> args);
 
-  long sendBlockingCmd(final PrimCmd cmd);
+  default long sendBlockingCmd(final PrimCmd cmd) {
+    return sendBlockingCmd(0, cmd);
+  }
 
-  long sendBlockingCmd(final PrimCmd cmd, final byte[]... args);
+  default long sendBlockingCmd(final PrimCmd cmd, final byte[]... args) {
+    return sendBlockingCmd(0, cmd, args);
+  }
 
-  long sendBlockingCmd(final PrimCmd cmd, final String... args);
+  default long sendBlockingCmd(final PrimCmd cmd, final String... args) {
+    return sendBlockingCmd(0, cmd, args);
+  }
 
-  long sendBlockingCmd(final PrimCmd cmd, final Collection<String> args);
+  default long sendBlockingCmd(final PrimCmd cmd, final Collection<String> args) {
+    return sendBlockingCmd(0, cmd, args);
+  }
+
+  long sendBlockingCmd(final int timeoutMillis, final PrimCmd cmd);
+
+  long sendBlockingCmd(final int timeoutMillis, final PrimCmd cmd, final byte[]... args);
+
+  long sendBlockingCmd(final int timeoutMillis, final PrimCmd cmd, final String... args);
+
+  long sendBlockingCmd(final int timeoutMillis, final PrimCmd cmd, final Collection<String> args);
 
   long[] sendCmd(final PrimArrayCmd cmd);
 
@@ -80,13 +96,30 @@ public interface DirectPrimCmds {
 
   long[] sendCmd(final PrimArrayCmd cmd, final Collection<String> args);
 
-  long[] sendBlockingCmd(final PrimArrayCmd cmd);
+  default long[] sendBlockingCmd(final PrimArrayCmd cmd) {
+    return sendBlockingCmd(0, cmd);
+  }
 
-  long[] sendBlockingCmd(final PrimArrayCmd cmd, final byte[]... args);
+  default long[] sendBlockingCmd(final PrimArrayCmd cmd, final byte[]... args) {
+    return sendBlockingCmd(0, cmd, args);
+  }
 
-  long[] sendBlockingCmd(final PrimArrayCmd cmd, final String... args);
+  default long[] sendBlockingCmd(final PrimArrayCmd cmd, final String... args) {
+    return sendBlockingCmd(0, cmd, args);
+  }
 
-  long[] sendBlockingCmd(final PrimArrayCmd cmd, final Collection<String> args);
+  default long[] sendBlockingCmd(final PrimArrayCmd cmd, final Collection<String> args) {
+    return sendBlockingCmd(0, cmd, args);
+  }
+
+  long[] sendBlockingCmd(final int timeoutMillis, final PrimArrayCmd cmd);
+
+  long[] sendBlockingCmd(final int timeoutMillis, final PrimArrayCmd cmd, final byte[]... args);
+
+  long[] sendBlockingCmd(final int timeoutMillis, final PrimArrayCmd cmd, final String... args);
+
+  long[] sendBlockingCmd(final int timeoutMillis, final PrimArrayCmd cmd,
+      final Collection<String> args);
 
   default long sendDirectPrim(final CmdByteArray<?> cmdArgs) {
     return sendDirect(cmdArgs.getCmd().prim(), cmdArgs.getCmdArgs());
