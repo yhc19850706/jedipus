@@ -11,7 +11,7 @@ import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
-public class BaseRedisExecutor implements RedisClientExecutor {
+class SingleClientRedisExecutor implements RedisClientExecutor {
 
   private final Supplier<Node> nodeSupplier;
   private final RedisClientFactory.Builder clientFactory;
@@ -20,7 +20,7 @@ public class BaseRedisExecutor implements RedisClientExecutor {
   private final ElementRetryDelay<Node> retryDelay;
   private final int maxRetries;
 
-  public BaseRedisExecutor(final Supplier<Node> nodeSupplier,
+  SingleClientRedisExecutor(final Supplier<Node> nodeSupplier,
       final RedisClientFactory.Builder clientFactory, final ElementRetryDelay<Node> retryDelay,
       final int maxRetries) {
 
@@ -34,18 +34,18 @@ public class BaseRedisExecutor implements RedisClientExecutor {
   @Override
   public long applyPrim(final ToLongFunction<RedisClient> clientConsumer, final int maxRetries) {
     for (;;) {
-      long lockStamp = readLock(maxRetries);
+      long readStamp = readLock(maxRetries);
       try {
         final long result = clientConsumer.applyAsLong(client);
         retryDelay.markSuccess(client.getNode());
         return result;
       } catch (final RedisConnectionException rce) {
-        clientLock.unlockRead(lockStamp);
-        lockStamp = 0;
+        clientLock.unlockRead(readStamp);
+        readStamp = 0;
         handleRCE(rce);
       } finally {
-        if (lockStamp != 0) {
-          clientLock.unlockRead(lockStamp);
+        if (readStamp != 0) {
+          clientLock.unlockRead(readStamp);
         }
       }
     }
@@ -54,18 +54,18 @@ public class BaseRedisExecutor implements RedisClientExecutor {
   @Override
   public <R> R apply(final Function<RedisClient, R> clientConsumer, final int maxRetries) {
     for (;;) {
-      long lockStamp = readLock(maxRetries);
+      long readStamp = readLock(maxRetries);
       try {
         final R result = clientConsumer.apply(client);
         retryDelay.markSuccess(client.getNode());
         return result;
       } catch (final RedisConnectionException rce) {
-        clientLock.unlockRead(lockStamp);
-        lockStamp = 0;
+        clientLock.unlockRead(readStamp);
+        readStamp = 0;
         handleRCE(rce);
       } finally {
-        if (lockStamp != 0) {
-          clientLock.unlockRead(lockStamp);
+        if (readStamp != 0) {
+          clientLock.unlockRead(readStamp);
         }
       }
     }

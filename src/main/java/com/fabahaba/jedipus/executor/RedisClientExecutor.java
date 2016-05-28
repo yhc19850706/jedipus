@@ -59,7 +59,7 @@ public interface RedisClientExecutor extends AutoCloseable {
         retryDelay = ElementRetryDelay.startBuilding().withMaxDelay(Duration.ofSeconds(3)).create();
       }
 
-      return new BaseRedisExecutor(nodeSupplier, clientFactory, retryDelay, maxRetries);
+      return new SingleClientRedisExecutor(nodeSupplier, clientFactory, retryDelay, maxRetries);
     }
 
     public RedisClientFactory.Builder getClientFactory() {
