@@ -9,10 +9,12 @@ class MappedSubscriber extends SingleSubscriber {
 
   private final Map<String, MsgConsumer> msgConsumers;
 
-  MappedSubscriber(final RedisClient client, final int testSocketAliveMillis,
-      final MsgConsumer defaultConsumer, final Map<String, MsgConsumer> msgConsumers,
-      final Consumer<String> pongConsumer) {
-    super(client, testSocketAliveMillis, defaultConsumer, pongConsumer);
+  MappedSubscriber(final RedisClient client, final int soTimeoutMillis,
+      final Consumer<RedisSubscriber> onSocketTimeout, final MsgConsumer defaultConsumer,
+      final Map<String, MsgConsumer> msgConsumers, final Consumer<String> pongConsumer) {
+
+    super(client, soTimeoutMillis, onSocketTimeout, defaultConsumer, pongConsumer);
+
     this.msgConsumers = msgConsumers;
   }
 

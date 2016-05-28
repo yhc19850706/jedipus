@@ -12,11 +12,14 @@ final class MultiMappedSubscriber extends SingleSubscriber {
   private final Map<String, Collection<MsgConsumer>> msgConsumers;
   private final Function<String, Collection<MsgConsumer>> consumerCollectionFactory;
 
-  MultiMappedSubscriber(final RedisClient client, final int testSocketAliveMillis,
-      final MsgConsumer defaultConsumer, final Map<String, Collection<MsgConsumer>> msgConsumers,
+  MultiMappedSubscriber(final RedisClient client, final int soTimeoutMillis,
+      final Consumer<RedisSubscriber> onSocketTimeout, final MsgConsumer defaultConsumer,
+      final Map<String, Collection<MsgConsumer>> msgConsumers,
       final Function<String, Collection<MsgConsumer>> consumerCollectionFactory,
       final Consumer<String> pongConsumer) {
-    super(client, testSocketAliveMillis, defaultConsumer, pongConsumer);
+
+    super(client, soTimeoutMillis, onSocketTimeout, defaultConsumer, pongConsumer);
+
     this.msgConsumers = msgConsumers;
     this.consumerCollectionFactory = consumerCollectionFactory;
   }

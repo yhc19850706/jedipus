@@ -7,31 +7,36 @@ import com.fabahaba.jedipus.client.RedisClient;
 public class SingleSubscriber implements RedisSubscriber {
 
   private final RedisClient client;
-  private final int testSocketAliveMillis;
-  private long numSub = Long.MAX_VALUE;
+  private final int soTimeoutMillis;
+  private final Consumer<RedisSubscriber> onSocketTimeout;
+  private long subCount = Long.MAX_VALUE;
   private final Consumer<String> pongConsumer;
   protected final MsgConsumer defaultConsumer;
 
-  protected SingleSubscriber(final RedisClient client, final int testSocketAliveMillis,
-      final MsgConsumer defaultConsumer, final Consumer<String> pongConsumer) {
-    this.testSocketAliveMillis = testSocketAliveMillis;
+  protected SingleSubscriber(final RedisClient client, final int soTimeoutMillis,
+      final Consumer<RedisSubscriber> onSocketTimeout, final MsgConsumer defaultConsumer,
+      final Consumer<String> pongConsumer) {
+
     this.client = client;
+    this.soTimeoutMillis = soTimeoutMillis;
+    this.onSocketTimeout = onSocketTimeout;
     this.defaultConsumer = defaultConsumer;
     this.pongConsumer = pongConsumer;
   }
 
   @Override
   public final void run() {
-    for (; numSub > 0;) {
-      if (!client.consumePubSub(testSocketAliveMillis, this)) {
-        ping();
+
+    while (subCount > 0) {
+      if (!client.consumePubSub(soTimeoutMillis, this)) {
+        onSocketTimeout.accept(this);
       }
     }
   }
 
   @Override
   public long getSubCount() {
-    return numSub;
+    return subCount;
   }
 
   @Override
@@ -73,14 +78,14 @@ public class SingleSubscriber implements RedisSubscriber {
   }
 
   @Override
-  public final void onSubscribed(final String channel, final long numSubs) {
-    this.numSub = numSubs;
+  public final void onSubscribed(final String channel, final long subCount) {
+    this.subCount = subCount;
     onSubscribed(channel);
   }
 
   @Override
-  public final void onUnsubscribed(final String channel, final long numSubs) {
-    this.numSub = numSubs;
+  public final void onUnsubscribed(final String channel, final long subCount) {
+    this.subCount = subCount;
     onUnsubscribed(channel);
   }
 

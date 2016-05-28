@@ -17,9 +17,9 @@ public interface RedisSubscriber extends Runnable {
 
   long getSubCount();
 
-  void onSubscribed(final String channel, final long numSubs);
+  void onSubscribed(final String channel, final long subCount);
 
-  void onUnsubscribed(final String channel, final long numSubs);
+  void onUnsubscribed(final String channel, final long subCount);
 
   void onMsg(final String channel, final byte[] payload);
 
@@ -59,7 +59,8 @@ public interface RedisSubscriber extends Runnable {
 
   public static class Builder {
 
-    private int testSocketAliveMillis = 0; // silently block forever.
+    private int soTimeoutMillis = 0; // silently block forever.
+    private Consumer<RedisSubscriber> onSocketTimeout = subscriber -> subscriber.ping();
     private MsgConsumer defaultConsumer = (ch, payload) -> {
     };
     private Function<String, Collection<MsgConsumer>> consumerCollectionFactory =
@@ -69,8 +70,10 @@ public interface RedisSubscriber extends Runnable {
 
     private Builder() {}
 
-    public RedisSubscriber createSingleConsumer(final RedisClient client) {
-      return new SingleSubscriber(client, testSocketAliveMillis, defaultConsumer, pongConsumer);
+    public RedisSubscriber createSingleSubscriber(final RedisClient client) {
+
+      return new SingleSubscriber(client, soTimeoutMillis, onSocketTimeout, defaultConsumer,
+          pongConsumer);
     }
 
     public RedisSubscriber create(final RedisClient client) {
@@ -79,8 +82,9 @@ public interface RedisSubscriber extends Runnable {
 
     public RedisSubscriber create(final RedisClient client,
         final Map<String, MsgConsumer> msgConsumers) {
-      return new MappedSubscriber(client, testSocketAliveMillis, defaultConsumer, msgConsumers,
-          pongConsumer);
+
+      return new MappedSubscriber(client, soTimeoutMillis, onSocketTimeout, defaultConsumer,
+          msgConsumers, pongConsumer);
     }
 
     public RedisSubscriber createMulti(final RedisClient client) {
@@ -89,16 +93,26 @@ public interface RedisSubscriber extends Runnable {
 
     public RedisSubscriber createMulti(final RedisClient client,
         final Map<String, Collection<MsgConsumer>> msgConsumers) {
-      return new MultiMappedSubscriber(client, testSocketAliveMillis, defaultConsumer, msgConsumers,
-          consumerCollectionFactory, pongConsumer);
+
+      return new MultiMappedSubscriber(client, soTimeoutMillis, onSocketTimeout, defaultConsumer,
+          msgConsumers, consumerCollectionFactory, pongConsumer);
     }
 
-    public int getTestSocketAliveMillis() {
-      return testSocketAliveMillis;
+    public int getSoTimeoutMillis() {
+      return soTimeoutMillis;
     }
 
-    public Builder withTestSocketAliveMillis(final int testSocketAliveMillis) {
-      this.testSocketAliveMillis = testSocketAliveMillis;
+    public Builder withSoTimeoutMillis(final int soTimeoutMillis) {
+      this.soTimeoutMillis = soTimeoutMillis;
+      return this;
+    }
+
+    public Consumer<RedisSubscriber> getOnSocketTimeout() {
+      return onSocketTimeout;
+    }
+
+    public Builder withOnSocketTimeout(final Consumer<RedisSubscriber> onSocketTimeout) {
+      this.onSocketTimeout = onSocketTimeout;
       return this;
     }
 

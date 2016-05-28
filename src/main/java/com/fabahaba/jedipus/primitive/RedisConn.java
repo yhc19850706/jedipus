@@ -228,8 +228,8 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
-  protected boolean consumePubSub(final int timeoutMillis, final RedisSubscriber subscriber) {
-    setSoTimeout(timeoutMillis);
+  protected boolean consumePubSub(final int soTimeoutMillis, final RedisSubscriber subscriber) {
+    setSoTimeout(soTimeoutMillis);
     try {
       RESProtocol.consumePubSub(subscriber, getNode(), hostPortMapper, inputStream);
       return true;

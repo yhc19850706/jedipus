@@ -66,7 +66,6 @@ public class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
 
   @Override
   public void markSuccess(final E element, final long retries) {
-
     if (!retrySemaphores.isEmpty()) {
       retrySemaphores.remove(element);
     }
@@ -74,7 +73,6 @@ public class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
 
   @Override
   public void clear(final E element) {
-
     final RetrySemaphore retrySemaphore = retrySemaphores.remove(element);
     if (retrySemaphore != null) {
       retrySemaphore.failureAdder.reset();
@@ -92,14 +90,12 @@ public class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
     }
 
     public long incrAndGet() {
-
       failureAdder.increment();
       return failureAdder.sum();
     }
 
     @Override
     public String toString() {
-
       return new StringBuilder("RetrySemaphore [failureAdder=").append(failureAdder)
           .append(", semaphore=").append(semaphore).append("]").toString();
     }
@@ -107,7 +103,6 @@ public class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
 
   @Override
   public String toString() {
-
     return new StringBuilder("SemaphoredRetryDelay [retrySemaphores=").append(retrySemaphores)
         .append(", maxDelay=").append(maxDelay).append("]").toString();
   }

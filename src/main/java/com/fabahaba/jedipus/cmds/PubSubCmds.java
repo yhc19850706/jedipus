@@ -8,7 +8,7 @@ public interface PubSubCmds extends DirectCmds {
     return consumePubSub(0, subscriber);
   }
 
-  boolean consumePubSub(final int timeoutMillis, final RedisSubscriber subscriber);
+  boolean consumePubSub(final int soTimeoutMillis, final RedisSubscriber subscriber);
 
   default long publish(final String channel, final String msg) {
     return publish(RESP.toBytes(channel), RESP.toBytes(msg));

@@ -69,6 +69,7 @@ public interface ElementRetryDelay<E> {
 
   public static final class Builder {
 
+    private int baseDelayMillis = 10;
     private LongFunction<Duration> delayFunction;
     private Duration maxDelay;
     private int numConurrentRetries = 1;
@@ -82,7 +83,7 @@ public interface ElementRetryDelay<E> {
       }
 
       if (delayFunction == null) {
-        delayFunction = StaticDelayFunction.create(exponentialBackoff(10), maxDelay);
+        delayFunction = StaticDelayFunction.create(exponentialBackoff(baseDelayMillis), maxDelay);
       }
 
       return new SemaphoredRetryDelay<>(numConurrentRetries, delayFunction, maxDelay);
@@ -115,11 +116,20 @@ public interface ElementRetryDelay<E> {
       return this;
     }
 
+    public int getBaseDelayMillis() {
+      return baseDelayMillis;
+    }
+
+    public Builder withBaseDelayMillis(final int baseDelayMillis) {
+      this.baseDelayMillis = baseDelayMillis;
+      return this;
+    }
+
     @Override
     public String toString() {
-
       return new StringBuilder("Builder [maxDelay=").append(maxDelay)
-          .append(", numConurrentRetries=").append(numConurrentRetries).append("]").toString();
+          .append(", numConurrentRetries=").append(numConurrentRetries).append(", baseDelayMillis=")
+          .append(baseDelayMillis).append("]").toString();
     }
   }
 }

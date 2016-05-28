@@ -111,8 +111,8 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public boolean consumePubSub(final int timeoutMillis, final RedisSubscriber subscriber) {
-    return conn.consumePubSub(timeoutMillis, subscriber);
+  public boolean consumePubSub(final int soTimeoutMillis, final RedisSubscriber subscriber) {
+    return conn.consumePubSub(soTimeoutMillis, subscriber);
   }
 
   @Override
