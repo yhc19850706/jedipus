@@ -74,20 +74,22 @@ public class BaseRedisExecutor implements RedisClientExecutor {
   private void handleRCE(RedisConnectionException rce) {
     final long writeStamp = clientLock.writeLock();
     try {
-      for (final Node previousNode = client.getNode();;) {
+      for (Node previousNode = client.getNode();;) {
         try {
           final Node node = nodeSupplier.get();
           if (node.equals(previousNode)) {
             retryDelay.markFailure(node, maxRetries, rce);
           } else {
             retryDelay.clear(previousNode);
+            previousNode = node;
           }
+
           client = null;
           client = clientFactory.create(node);
           retryDelay.markSuccess(client.getNode());
           return;
-        } catch (final RedisConnectionException rcex2) {
-          rce = rcex2;
+        } catch (final RedisConnectionException rce2) {
+          rce = rce2;
           continue;
         }
       }
@@ -103,12 +105,17 @@ public class BaseRedisExecutor implements RedisClientExecutor {
     if (client == null) {
       final long writeStamp = clientLock.writeLock();
       try {
-        for (; client == null;) {
+        for (Node previousNode = null; client == null;) {
           final Node node = nodeSupplier.get();
+          if (previousNode != null && !node.equals(previousNode)) {
+            retryDelay.clear(previousNode);
+          }
+
           try {
             client = clientFactory.create(node);
             retryDelay.markSuccess(client.getNode());
           } catch (final RedisConnectionException rcex) {
+            previousNode = node;
             retryDelay.markFailure(node, maxRetries, rcex);
             continue;
           }

@@ -33,6 +33,11 @@ public interface Cmd<R> extends Function<Object, R> {
     return new HandledReplyCmd<>(name, STRING_REPLY);
   }
 
+  public static Cmd<String[]> createStringArrayReply(final String name) {
+
+    return new HandledReplyCmd<>(name, STRING_ARRAY_REPLY);
+  }
+
   public static Cmd<Object[]> createInPlaceStringArrayReply(final String name) {
 
     return new HandledReplyCmd<>(name, IN_PLACE_STRING_ARRAY_REPLY);
