@@ -1,19 +1,20 @@
 package com.fabahaba.jedipus.pubsub;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import com.fabahaba.jedipus.client.RedisClient;
+import com.fabahaba.jedipus.executor.RedisClientExecutor;
 
 class MappedSubscriber extends SingleSubscriber {
 
   private final Map<String, MsgConsumer> msgConsumers;
 
-  MappedSubscriber(final RedisClient client, final int soTimeoutMillis,
+  MappedSubscriber(final RedisClientExecutor clientExecutor, final int soTimeoutMillis,
       final Consumer<RedisSubscriber> onSocketTimeout, final MsgConsumer defaultConsumer,
       final Map<String, MsgConsumer> msgConsumers, final Consumer<String> pongConsumer) {
 
-    super(client, soTimeoutMillis, onSocketTimeout, defaultConsumer, pongConsumer);
+    super(clientExecutor, soTimeoutMillis, onSocketTimeout, defaultConsumer, pongConsumer);
 
     this.msgConsumers = msgConsumers;
   }
@@ -26,7 +27,26 @@ class MappedSubscriber extends SingleSubscriber {
   }
 
   @Override
+  public void registerConsumer(final MsgConsumer msgConsumer, final Collection<String> channels) {
+    for (final String channel : channels) {
+      msgConsumers.put(channel, msgConsumer);
+    }
+  }
+
+  @Override
   public void unRegisterConsumer(final MsgConsumer msgConsumer, final String... channels) {
+    for (final String channel : channels) {
+      synchronized (msgConsumers) {
+        final MsgConsumer consumer = msgConsumers.get(channel);
+        if (consumer != null && consumer.equals(msgConsumer)) {
+          msgConsumers.remove(channel);
+        }
+      }
+    }
+  }
+
+  @Override
+  public void unRegisterConsumer(final MsgConsumer msgConsumer, final Collection<String> channels) {
     for (final String channel : channels) {
       synchronized (msgConsumers) {
         final MsgConsumer consumer = msgConsumers.get(channel);

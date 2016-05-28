@@ -5,20 +5,20 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import com.fabahaba.jedipus.client.RedisClient;
+import com.fabahaba.jedipus.executor.RedisClientExecutor;
 
 final class MultiMappedSubscriber extends SingleSubscriber {
 
   private final Map<String, Collection<MsgConsumer>> msgConsumers;
   private final Function<String, Collection<MsgConsumer>> consumerCollectionFactory;
 
-  MultiMappedSubscriber(final RedisClient client, final int soTimeoutMillis,
+  MultiMappedSubscriber(final RedisClientExecutor clientExecutor, final int soTimeoutMillis,
       final Consumer<RedisSubscriber> onSocketTimeout, final MsgConsumer defaultConsumer,
       final Map<String, Collection<MsgConsumer>> msgConsumers,
       final Function<String, Collection<MsgConsumer>> consumerCollectionFactory,
       final Consumer<String> pongConsumer) {
 
-    super(client, soTimeoutMillis, onSocketTimeout, defaultConsumer, pongConsumer);
+    super(clientExecutor, soTimeoutMillis, onSocketTimeout, defaultConsumer, pongConsumer);
 
     this.msgConsumers = msgConsumers;
     this.consumerCollectionFactory = consumerCollectionFactory;
@@ -32,7 +32,25 @@ final class MultiMappedSubscriber extends SingleSubscriber {
   }
 
   @Override
+  public void registerConsumer(final MsgConsumer msgConsumer, final Collection<String> channels) {
+    for (final String channel : channels) {
+      msgConsumers.computeIfAbsent(channel, consumerCollectionFactory).add(msgConsumer);
+    }
+  }
+
+  @Override
   public void unRegisterConsumer(final MsgConsumer msgConsumer, final String... channels) {
+    for (final String channel : channels) {
+      final Collection<MsgConsumer> consumers = msgConsumers.get(channel);
+      if (consumers == null) {
+        continue;
+      }
+      consumers.remove(msgConsumer);
+    }
+  }
+
+  @Override
+  public void unRegisterConsumer(final MsgConsumer msgConsumer, final Collection<String> channels) {
     for (final String channel : channels) {
       final Collection<MsgConsumer> consumers = msgConsumers.get(channel);
       if (consumers == null) {

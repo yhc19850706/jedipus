@@ -6,7 +6,7 @@ import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.client.RedisPipeline;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 
-public interface PrimClientExecutor {
+public interface PrimClusterExecutor {
 
   public ReadMode getDefaultReadMode();
 

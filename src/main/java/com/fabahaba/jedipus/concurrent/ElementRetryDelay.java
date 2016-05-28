@@ -1,6 +1,7 @@
 package com.fabahaba.jedipus.concurrent;
 
 import java.time.Duration;
+import java.util.function.Function;
 import java.util.function.LongFunction;
 
 import com.fabahaba.jedipus.cluster.Node;
@@ -19,8 +20,36 @@ public interface ElementRetryDelay<E> {
    * @param retry The current requests' retry count, starting at zero, against this element.
    * @return The retry value that should be used in the next execution loop.
    */
+  default long markFailure(final E element, final long maxRetries, final RuntimeException cause) {
+    return markFailure(element, maxRetries, cause, 0);
+  }
+
+  /**
+   * This method may block until the next request to this element should be applied.
+   * 
+   * Note: Internal to this implementation subclass, a global retry count should be tracked as
+   * concurrent requests can be made against a node.
+   * 
+   * @param element The element for the current failed request.
+   * @param maxRetries The maximum number of retries before the given exception is thrown.
+   * @param cause The current failure cause.
+   * @param retry The current requests' retry count, starting at zero, against this element.
+   * @return The retry value that should be used in the next execution loop.
+   */
   long markFailure(final E element, final long maxRetries, final RuntimeException cause,
       long retry);
+
+  long delayIfFailing(final E element, final long maxRetries,
+      final Function<E, ? extends RuntimeException> retriesExceededEx);
+
+  /**
+   * Called after a successful request immediately following a failed request.
+   * 
+   * @param element The element for the current successful request.
+   */
+  default void markSuccess(final E element) {
+    markSuccess(element, 0);
+  }
 
   /**
    * Called after a successful request immediately following a failed request.
@@ -42,27 +71,62 @@ public interface ElementRetryDelay<E> {
    * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
    *         multiplies it by the {@code baseFactor}.
    */
-  public static LongFunction<Duration> exponentialBackoff(final Duration baseFactor) {
+  static LongFunction<Duration> exponentialBackoff(final Duration baseFactor) {
 
     return exponentialBackoff(baseFactor.toMillis());
   }
 
-  static final Duration DELAY_FOREVER = Duration.ofNanos(Long.MAX_VALUE);
-
   /**
-   * @param baseFactorMillis used as {@code Math.exp(x) * baseFactorMillis}.
+   * @param baseDelayMillis used as {@code Math.exp(x) * baseFactorMillis}.
    * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
    *         multiplies it by the {@code baseFactorMillis}.
    */
-  public static LongFunction<Duration> exponentialBackoff(final double baseFactorMillis) {
+  static LongFunction<Duration> exponentialBackoff(final double baseDelayMillis) {
 
-    final long maxX = (long) Math.log(Long.MAX_VALUE / baseFactorMillis);
-
-    return x -> x >= maxX ? DELAY_FOREVER
-        : Duration.ofMillis((long) (Math.exp(x) * baseFactorMillis));
+    return exponentialBackoff(baseDelayMillis, Long.MAX_VALUE);
   }
 
-  public static Builder startBuilding() {
+  /**
+   * @param baseDelayMillis used as {@code Math.exp(x) * baseFactorMillis}.
+   * @param maxDelayMillis the maximum delay duration this function may return.
+   * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
+   *         multiplies it by the {@code baseFactorMillis}.
+   */
+  static LongFunction<Duration> exponentialBackoff(final double baseDelayMillis,
+      final long maxDelayMillis) {
+
+    final long maxX = (long) Math.log(maxDelayMillis / baseDelayMillis);
+
+    return exponentialBackoff(baseDelayMillis, maxX, Duration.ofMillis(maxDelayMillis));
+  }
+
+  /**
+   * @param baseDelayMillis used as {@code Math.exp(x) * baseFactorMillis}.
+   * @param maxDelayMillis the maximum delay duration this function may return.
+   * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
+   *         multiplies it by the {@code baseFactorMillis}.
+   */
+  static LongFunction<Duration> exponentialBackoff(final double baseDelayMillis,
+      final Duration maxDelay) {
+
+    final long maxX = (long) Math.log(maxDelay.toMillis() / baseDelayMillis);
+
+    return exponentialBackoff(baseDelayMillis, maxX, maxDelay);
+  }
+
+  /**
+   * @param baseDelayMillis used as {@code Math.exp(x) * baseFactorMillis}.
+   * @param maxDelayMillis the maximum delay duration this function may return.
+   * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
+   *         multiplies it by the {@code baseFactorMillis}.
+   */
+  static LongFunction<Duration> exponentialBackoff(final double baseDelayMillis, final long maxX,
+      final Duration maxDelay) {
+
+    return x -> x > maxX ? maxDelay : Duration.ofMillis((long) (Math.exp(x) * baseDelayMillis));
+  }
+
+  static Builder startBuilding() {
 
     return new Builder();
   }
@@ -83,10 +147,11 @@ public interface ElementRetryDelay<E> {
       }
 
       if (delayFunction == null) {
-        delayFunction = StaticDelayFunction.create(exponentialBackoff(baseDelayMillis), maxDelay);
+        delayFunction =
+            StaticDelayFunction.create(exponentialBackoff(baseDelayMillis, maxDelay), maxDelay);
       }
 
-      return new SemaphoredRetryDelay<>(numConurrentRetries, delayFunction, maxDelay);
+      return new SemaphoredRetryDelay<>(numConurrentRetries, delayFunction);
     }
 
     public LongFunction<Duration> getDelayFunction() {

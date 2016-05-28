@@ -12,7 +12,7 @@ import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.client.RedisPipeline;
 import com.fabahaba.jedipus.cluster.Jedipus.Builder;
 
-public interface RedisClusterExecutor extends PrimClientExecutor, AutoCloseable {
+public interface RedisClusterExecutor extends PrimClusterExecutor, AutoCloseable {
 
   public static enum ReadMode {
     MASTER, SLAVES, MIXED, MIXED_SLAVES;
@@ -33,14 +33,16 @@ public interface RedisClusterExecutor extends PrimClientExecutor, AutoCloseable 
     return new Jedipus.Builder(discoveryNodes);
   }
 
+  @Override
   public ReadMode getDefaultReadMode();
 
   public int getMaxRedirections();
 
+  @Override
   public int getMaxRetries();
 
   @Override
-  public void close();
+  void close();
 
   public <R> R apply(final ReadMode readMode, final int slot,
       final Function<RedisClient, R> clientConsumer, final int maxRetries);

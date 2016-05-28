@@ -95,6 +95,27 @@ abstract class BaseRedisClient implements RedisClient {
     conn.sendCmd(Cmds.PUNSUBSCRIBE.getCmdBytes(), patterns);
   }
 
+
+  @Override
+  public void subscribe(final Collection<String> channels) {
+    conn.sendCmd(Cmds.SUBSCRIBE.getCmdBytes(), channels);
+  }
+
+  @Override
+  public void psubscribe(final Collection<String> patterns) {
+    conn.sendCmd(Cmds.PSUBSCRIBE.getCmdBytes(), patterns);
+  }
+
+  @Override
+  public void unsubscribe(final Collection<String> channels) {
+    conn.sendCmd(Cmds.UNSUBSCRIBE.getCmdBytes(), channels);
+  }
+
+  @Override
+  public void punsubscribe(final Collection<String> patterns) {
+    conn.sendCmd(Cmds.PSUBSCRIBE.getCmdBytes(), patterns);
+  }
+
   @Override
   public final long publish(final byte[] channel, final byte[] payload) {
     return sendCmd(Cmds.PUBLISH.prim(), channel, payload);

@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import com.fabahaba.jedipus.client.RedisClient;
+import com.fabahaba.jedipus.executor.RedisClientExecutor;
 
 public interface RedisSubscriber extends Runnable {
 
@@ -25,13 +25,29 @@ public interface RedisSubscriber extends Runnable {
 
   void onPMsg(final String pattern, final String channel, final byte[] payload);
 
-  void subscribe(final String... channels);
+  default void subscribe(final String... channels) {
+    subscribe(null, channels);
+  }
 
   void subscribe(final MsgConsumer msgConsumer, final String... channels);
 
-  void psubscribe(final String... channels);
+  default void subscribe(final Collection<String> channels) {
+    subscribe(null, channels);
+  }
+
+  void subscribe(final MsgConsumer msgConsumer, final Collection<String> channels);
+
+  default void psubscribe(final String... patterns) {
+    psubscribe(null, patterns);
+  }
 
   void psubscribe(final MsgConsumer msgConsumer, final String... patterns);
+
+  default void psubscribe(final Collection<String> patterns) {
+    psubscribe(null, patterns);
+  }
+
+  void psubscribe(final MsgConsumer msgConsumer, final Collection<String> patterns);
 
   void registerConsumer(final MsgConsumer msgConsumer, final String... channels);
 
@@ -45,9 +61,26 @@ public interface RedisSubscriber extends Runnable {
     unRegisterConsumer(msgConsumer, patterns);
   }
 
+  void registerConsumer(final MsgConsumer msgConsumer, final Collection<String> channels);
+
+  default void registerPConsumer(final MsgConsumer msgConsumer, final Collection<String> patterns) {
+    registerConsumer(msgConsumer, patterns);
+  }
+
+  void unRegisterConsumer(final MsgConsumer msgConsumer, final Collection<String> channels);
+
+  default void unRegisterPConsumer(final MsgConsumer msgConsumer,
+      final Collection<String> patterns) {
+    unRegisterConsumer(msgConsumer, patterns);
+  }
+
   void unsubscribe(final String... channels);
 
   void punsubscribe(final String... patterns);
+
+  void unsubscribe(final Collection<String> channels);
+
+  void punsubscribe(final Collection<String> patterns);
 
   void ping();
 
@@ -70,32 +103,32 @@ public interface RedisSubscriber extends Runnable {
 
     private Builder() {}
 
-    public RedisSubscriber createSingleSubscriber(final RedisClient client) {
+    public RedisSubscriber createSingleSubscriber(final RedisClientExecutor clientExecutor) {
 
-      return new SingleSubscriber(client, soTimeoutMillis, onSocketTimeout, defaultConsumer,
+      return new SingleSubscriber(clientExecutor, soTimeoutMillis, onSocketTimeout, defaultConsumer,
           pongConsumer);
     }
 
-    public RedisSubscriber create(final RedisClient client) {
-      return create(client, new HashMap<>());
+    public RedisSubscriber create(final RedisClientExecutor clientExecutor) {
+      return create(clientExecutor, new HashMap<>());
     }
 
-    public RedisSubscriber create(final RedisClient client,
+    public RedisSubscriber create(final RedisClientExecutor clientExecutor,
         final Map<String, MsgConsumer> msgConsumers) {
 
-      return new MappedSubscriber(client, soTimeoutMillis, onSocketTimeout, defaultConsumer,
+      return new MappedSubscriber(clientExecutor, soTimeoutMillis, onSocketTimeout, defaultConsumer,
           msgConsumers, pongConsumer);
     }
 
-    public RedisSubscriber createMulti(final RedisClient client) {
-      return createMulti(client, new HashMap<>());
+    public RedisSubscriber createMulti(final RedisClientExecutor clientExecutor) {
+      return createMulti(clientExecutor, new HashMap<>());
     }
 
-    public RedisSubscriber createMulti(final RedisClient client,
+    public RedisSubscriber createMulti(final RedisClientExecutor clientExecutor,
         final Map<String, Collection<MsgConsumer>> msgConsumers) {
 
-      return new MultiMappedSubscriber(client, soTimeoutMillis, onSocketTimeout, defaultConsumer,
-          msgConsumers, consumerCollectionFactory, pongConsumer);
+      return new MultiMappedSubscriber(clientExecutor, soTimeoutMillis, onSocketTimeout,
+          defaultConsumer, msgConsumers, consumerCollectionFactory, pongConsumer);
     }
 
     public int getSoTimeoutMillis() {

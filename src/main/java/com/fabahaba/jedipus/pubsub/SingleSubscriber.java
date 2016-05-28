@@ -1,23 +1,30 @@
 package com.fabahaba.jedipus.pubsub;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import com.fabahaba.jedipus.client.RedisClient;
+import com.fabahaba.jedipus.executor.RedisClientExecutor;
 
 public class SingleSubscriber implements RedisSubscriber {
 
-  private final RedisClient client;
+  private final RedisClientExecutor clientExecutor;
   private final int soTimeoutMillis;
   private final Consumer<RedisSubscriber> onSocketTimeout;
   private long subCount = Long.MAX_VALUE;
   private final Consumer<String> pongConsumer;
   protected final MsgConsumer defaultConsumer;
+  private final Set<String> subscriptions = Collections.newSetFromMap(new ConcurrentHashMap<>());
+  private final Set<String> psubscriptions = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-  protected SingleSubscriber(final RedisClient client, final int soTimeoutMillis,
+  protected SingleSubscriber(final RedisClientExecutor clientExecutor, final int soTimeoutMillis,
       final Consumer<RedisSubscriber> onSocketTimeout, final MsgConsumer defaultConsumer,
       final Consumer<String> pongConsumer) {
 
-    this.client = client;
+    this.clientExecutor = clientExecutor;
     this.soTimeoutMillis = soTimeoutMillis;
     this.onSocketTimeout = onSocketTimeout;
     this.defaultConsumer = defaultConsumer;
@@ -26,9 +33,14 @@ public class SingleSubscriber implements RedisSubscriber {
 
   @Override
   public final void run() {
-
     while (subCount > 0) {
-      if (!client.consumePubSub(soTimeoutMillis, this)) {
+
+      final boolean consumedMsg = clientExecutor.apply(client -> {
+        subscribeNewClient(client);
+        return client.consumePubSub(soTimeoutMillis, this) ? Boolean.TRUE : Boolean.FALSE;
+      }).booleanValue();
+
+      if (!consumedMsg) {
         onSocketTimeout.accept(this);
       }
     }
@@ -40,41 +52,159 @@ public class SingleSubscriber implements RedisSubscriber {
   }
 
   @Override
-  public void subscribe(final String... channels) {
-    client.subscribe(channels);
-    client.flush();
-  }
-
-  @Override
   public final void subscribe(final MsgConsumer msgConsumer, final String... channels) {
-    client.subscribe(channels);
-    registerConsumer(msgConsumer, channels);
-    client.flush();
+    clientExecutor.accept(client -> {
+      subscribeNewClient(client);
+      client.subscribe(channels);
+      if (msgConsumer != null) {
+        registerConsumer(msgConsumer, channels);
+      }
+      client.flush();
+    });
+
+    for (final String channel : channels) {
+      subscriptions.add(channel);
+    }
   }
 
   @Override
-  public void psubscribe(final String... patterns) {
-    client.psubscribe(patterns);
-    client.flush();
+  public void subscribe(final MsgConsumer msgConsumer, final Collection<String> channels) {
+    clientExecutor.accept(client -> {
+      subscribeNewClient(client);
+      client.subscribe(channels);
+      if (msgConsumer != null) {
+        registerConsumer(msgConsumer, channels);
+      }
+      client.flush();
+    });
+
+    for (final String channel : channels) {
+      subscriptions.add(channel);
+    }
   }
 
   @Override
   public final void psubscribe(final MsgConsumer msgConsumer, final String... patterns) {
-    client.psubscribe(patterns);
-    registerPConsumer(msgConsumer, patterns);
-    client.flush();
+    clientExecutor.accept(client -> {
+      subscribeNewClient(client);
+      client.psubscribe(patterns);
+      if (msgConsumer != null) {
+        registerPConsumer(msgConsumer, patterns);
+      }
+      client.flush();
+    });
+
+    for (final String pattern : patterns) {
+      psubscriptions.add(pattern);
+    }
+  }
+
+  @Override
+  public void psubscribe(final MsgConsumer msgConsumer, final Collection<String> patterns) {
+    clientExecutor.accept(client -> {
+      subscribeNewClient(client);
+      client.psubscribe(patterns);
+      if (msgConsumer != null) {
+        registerPConsumer(msgConsumer, patterns);
+      }
+      client.flush();
+    });
+
+    for (final String pattern : patterns) {
+      psubscriptions.add(pattern);
+    }
   }
 
   @Override
   public final void unsubscribe(final String... channels) {
-    client.unsubscribe(channels);
-    client.flush();
+    if (channels.length == 0) {
+      subscriptions.clear();
+    } else {
+      for (final String channel : channels) {
+        subscriptions.remove(channel);
+      }
+    }
+
+    clientExecutor.accept(client -> {
+      subscribeNewClient(client);
+      client.unsubscribe(channels);
+      client.flush();
+    });
+  }
+
+  @Override
+  public void unsubscribe(final Collection<String> channels) {
+    if (channels.isEmpty()) {
+      subscriptions.clear();
+    } else {
+      for (final String channel : channels) {
+        subscriptions.remove(channel);
+      }
+    }
+
+    clientExecutor.accept(client -> {
+      subscribeNewClient(client);
+      client.unsubscribe(channels);
+      client.flush();
+    });
   }
 
   @Override
   public final void punsubscribe(final String... patterns) {
-    client.punsubscribe(patterns);
-    client.flush();
+    if (patterns.length == 0) {
+      psubscriptions.clear();
+    } else {
+      for (final String pattern : patterns) {
+        psubscriptions.remove(pattern);
+      }
+    }
+
+    clientExecutor.accept(client -> {
+      subscribeNewClient(client);
+      client.punsubscribe(patterns);
+      client.flush();
+    });
+  }
+
+  @Override
+  public void punsubscribe(final Collection<String> patterns) {
+    if (patterns.isEmpty()) {
+      psubscriptions.clear();
+    } else {
+      for (final String pattern : patterns) {
+        psubscriptions.remove(pattern);
+      }
+    }
+
+    clientExecutor.accept(client -> {
+      subscribeNewClient(client);
+      client.punsubscribe(patterns);
+      client.flush();
+    });
+  }
+
+  private volatile RedisClient previousClient = null;
+
+  private void subscribeNewClient(final RedisClient client) {
+
+    if (previousClient == null) {
+      this.previousClient = client;
+      return;
+    }
+
+    if (previousClient == client) {
+      return;
+    }
+
+    if (!subscriptions.isEmpty()) {
+      client.subscribe(subscriptions);
+    }
+
+    if (!psubscriptions.isEmpty()) {
+      client.psubscribe(psubscriptions);
+    }
+
+    this.previousClient = client;
   }
 
   @Override
@@ -91,14 +221,18 @@ public class SingleSubscriber implements RedisSubscriber {
 
   @Override
   public void ping() {
-    client.pubsubPing();
-    client.flush();
+    clientExecutor.accept(client -> {
+      client.pubsubPing();
+      client.flush();
+    });
   }
 
   @Override
   public void ping(final String pong) {
-    client.pubsubPing(pong);
-    client.flush();
+    clientExecutor.accept(client -> {
+      client.pubsubPing(pong);
+      client.flush();
+    });
   }
 
   @Override
@@ -108,7 +242,7 @@ public class SingleSubscriber implements RedisSubscriber {
 
   @Override
   public void close() {
-    client.close();
+    clientExecutor.close();
   }
 
   protected void onSubscribed(final String channel) {
@@ -134,4 +268,11 @@ public class SingleSubscriber implements RedisSubscriber {
 
   @Override
   public void unRegisterConsumer(final MsgConsumer msgConsumer, final String... channels) {}
+
+  @Override
+  public void registerConsumer(final MsgConsumer msgConsumer, final Collection<String> channels) {}
+
+  @Override
+  public void unRegisterConsumer(final MsgConsumer msgConsumer,
+      final Collection<String> channels) {}
 }

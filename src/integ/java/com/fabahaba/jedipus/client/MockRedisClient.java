@@ -474,4 +474,16 @@ public class MockRedisClient implements RedisClient {
       final Collection<String> args) {
     return null;
   }
+
+  @Override
+  public void subscribe(final Collection<String> channels) {}
+
+  @Override
+  public void psubscribe(final Collection<String> patterns) {}
+
+  @Override
+  public void unsubscribe(final Collection<String> channels) {}
+
+  @Override
+  public void punsubscribe(final Collection<String> patterns) {}
 }
