@@ -22,8 +22,8 @@ int TryAcquire_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int a
 
     mstime_t px;
     if (RedisModule_StringToLongLong(argv[3], &px) != REDISMODULE_OK) {
-        RedisModule_CloseKey(lockKey);
-        return RedisModule_ReplyWithError(ctx, "ERR invalid pexire");
+      RedisModule_CloseKey(lockKey);
+      return RedisModule_ReplyWithError(ctx, "ERR invalid pexire");
     }
 
     RedisModule_StringSet(lockKey, requestingOwner);
@@ -45,8 +45,8 @@ int TryAcquire_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int a
 
     mstime_t px;
     if (RedisModule_StringToLongLong(argv[3], &px) != REDISMODULE_OK) {
-        RedisModule_CloseKey(lockKey);
-        return RedisModule_ReplyWithError(ctx, "ERR invalid pexire");
+      RedisModule_CloseKey(lockKey);
+      return RedisModule_ReplyWithError(ctx, "ERR invalid pexire");
     }
 
     RedisModule_SetExpire(lockKey, px);
@@ -107,15 +107,15 @@ int TryRelease_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int a
 int RedisModule_OnLoad(RedisModuleCtx *ctx) {
 
    if (RedisModule_Init(ctx, "redislock", 1, REDISMODULE_APIVER_1) == REDISMODULE_ERR) {
-      return REDISMODULE_ERR;
+     return REDISMODULE_ERR;
    }
 
    if (RedisModule_CreateCommand(ctx, "redislock.try.acquire", TryAcquire_RedisCommand, "write deny-oom fast", 1, 1, 1) == REDISMODULE_ERR) {
-      return REDISMODULE_ERR;
+     return REDISMODULE_ERR;
    }
 
    if (RedisModule_CreateCommand(ctx, "redislock.try.release", TryRelease_RedisCommand, "write fast", 1, 1, 1) == REDISMODULE_ERR) {
-      return REDISMODULE_ERR;
+     return REDISMODULE_ERR;
    }
 
    return REDISMODULE_OK;

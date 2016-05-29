@@ -2,6 +2,7 @@ package com.fabahaba.jedipus.client;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -47,6 +48,20 @@ public class ModuleTest extends BaseRedisClientTest {
     assertNull(owners[0]);
     assertEquals(ownerId, RESP.toString(owners[1]));
     assertEquals(pexpire, RESP.longValue(owners[2]));
+
+    final Object[] renewedOwners =
+        client.sendCmd(TRY_ACQUIRE, lockName, ownerId, Long.toString(pexpire));
+
+    assertEquals(ownerId, RESP.toString(renewedOwners[0]));
+    assertEquals(ownerId, RESP.toString(renewedOwners[1]));
+    assertEquals(pexpire, RESP.longValue(renewedOwners[2]));
+
+    final Object[] existingOwners =
+        client.sendCmd(TRY_ACQUIRE, lockName, "nottheowner", Long.toString(pexpire));
+
+    assertEquals(ownerId, RESP.toString(existingOwners[0]));
+    assertEquals(ownerId, RESP.toString(existingOwners[1]));
+    assertTrue(pexpire > RESP.longValue(existingOwners[2]));
 
     final String releasedOwner = client.sendCmd(TRY_RELEASE, lockName, ownerId);
     assertEquals(ownerId, releasedOwner);
