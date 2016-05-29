@@ -98,6 +98,15 @@ public class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
     }
   }
 
+  @Override
+  public long getNumFailures(final E element) {
+    final RetrySemaphore retrySemaphore = retrySemaphores.get(element);
+    if (retrySemaphore == null) {
+      return 0;
+    }
+    return retrySemaphore.failureAdder.sum();
+  }
+
   private static class RetrySemaphore {
 
     private final LongAdder failureAdder;

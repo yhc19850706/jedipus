@@ -66,6 +66,8 @@ public interface ElementRetryDelay<E> {
    */
   void clear(final E element);
 
+  long getNumFailures(final E element);
+
   /**
    * @param baseFactor used as {@code Math.exp(x) * baseFactor}.
    * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and

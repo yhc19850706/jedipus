@@ -169,8 +169,7 @@ public interface ClientPool<C> extends AutoCloseable {
       return durationBetweenEvictionRuns;
     }
 
-    public Builder withDurationBetweenEvictionRuns(
-        final Duration durationBetweenEvictionRuns) {
+    public Builder withDurationBetweenEvictionRuns(final Duration durationBetweenEvictionRuns) {
       this.durationBetweenEvictionRuns = durationBetweenEvictionRuns;
       return this;
     }
