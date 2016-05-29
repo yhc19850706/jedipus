@@ -12,6 +12,8 @@ import com.fabahaba.jedipus.cmds.RESP;
 public class ModuleTest extends BaseRedisClientTest {
 
   private static final PrimCmd INTEG_GETDB = Cmd.create("INTEG.GETDB").prim();
+  static final Cmd<Object[]> TRY_ACQUIRE = Cmd.createCast("REDISLOCK.TRY.ACQUIRE");
+  static final Cmd<Object[]> TRY_RELEASE = Cmd.createCast("REDISLOCK.TRY.RELEASE");
 
   @Test
   public void testModuleLoadAndCall() {
@@ -26,5 +28,13 @@ public class ModuleTest extends BaseRedisClientTest {
     client.sendCmd(Cmds.SELECT, "0");
     db = client.sendCmd(INTEG_GETDB);
     assertEquals(0L, db);
+  }
+
+  @Test
+  public void testRedisLock() {
+
+    final String reply =
+        client.sendCmd(Cmds.MODULE, Cmds.MODULE_LOAD, "/redis/modules/redis_lock.so");
+    assertEquals(RESP.OK, reply);
   }
 }
