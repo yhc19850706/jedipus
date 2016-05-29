@@ -7,7 +7,6 @@ int GetDb_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) 
     return REDISMODULE_OK;
 }
 
-
 int RedisModule_OnLoad(RedisModuleCtx *ctx) {
 
    if (RedisModule_Init(ctx, "integ", 1, REDISMODULE_APIVER_1) == REDISMODULE_ERR) {

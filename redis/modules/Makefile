@@ -1,7 +1,5 @@
-# find the OS
 uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
 
-# Compile flags for linux / osx
 ifeq ($(uname_S),Linux)
 	SHOBJ_CFLAGS ?=  -fno-common -g -ggdb
 	SHOBJ_LDFLAGS ?= -shared
@@ -13,7 +11,7 @@ endif
 
 .SUFFIXES: .c .so .xo .o
 
-all: integ.so
+all: integ.so redis_lock.so
 
 .c.xo:
 	$(CC) -I. $(CFLAGS) $(SHOBJ_CFLAGS) -fPIC -c $< -o $@
@@ -21,6 +19,11 @@ all: integ.so
 integ.xo: ../redismodule.h
 
 integ.so: integ.xo
+	$(LD) -o $@ $< $(SHOBJ_LDFLAGS) $(LIBS) -lc
+
+redis_lock.xo: ../redismodule.h
+
+redis_lock.so: redis_lock.xo
 	$(LD) -o $@ $< $(SHOBJ_LDFLAGS) $(LIBS) -lc
 
 clean:
