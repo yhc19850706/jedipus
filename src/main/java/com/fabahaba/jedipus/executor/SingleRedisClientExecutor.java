@@ -36,7 +36,7 @@ class SingleRedisClientExecutor implements RedisClientExecutor {
         retryDelay.markSuccess(client.getNode());
         return result;
       } catch (final RedisConnectionException rce) {
-        client = handleRCE(rce);
+        client = getClient(maxRetries, client.getNode(), rce);
       }
     }
   }
@@ -49,12 +49,17 @@ class SingleRedisClientExecutor implements RedisClientExecutor {
         retryDelay.markSuccess(client.getNode());
         return result;
       } catch (final RedisConnectionException rce) {
-        client = handleRCE(rce);
+        client = getClient(maxRetries, client.getNode(), rce);
       }
     }
   }
 
-  private RedisClient handleRCE(RedisConnectionException rce) {
+  private RedisClient getClient(final int maxRetries) {
+    return getClient(maxRetries, null, null);
+  }
+
+  private RedisClient getClient(final int maxRetries, final Node failedNode,
+      RedisConnectionException rce) {
 
     RedisClient redisClient = client;
     if (redisClient != null && !redisClient.isBroken()) {
@@ -62,51 +67,28 @@ class SingleRedisClientExecutor implements RedisClientExecutor {
     }
 
     synchronized (clientFactory) {
-      for (Node previousNode = client.getNode(); client.isBroken();) {
-        try {
-          final Node node = nodeSupplier.get();
-          if (node.equals(previousNode)) {
-            retryDelay.markFailure(node, maxRetries, rce);
-          } else {
-            retryDelay.clear(previousNode);
-            previousNode = node;
-          }
+      if (client != null && !client.isBroken()) {
+        return client;
+      }
 
+      for (Node node = nodeSupplier.get(), previousNode = failedNode;;) {
+
+        if (previousNode != null && !node.equals(previousNode)) {
+          retryDelay.clear(previousNode);
+          previousNode = node;
+        } else if (rce != null) {
+          retryDelay.markFailure(node, maxRetries, rce);
+        }
+
+        try {
           redisClient = clientFactory.create(node);
           retryDelay.markSuccess(redisClient.getNode());
           return client = redisClient;
         } catch (final RedisConnectionException rce2) {
           rce = rce2;
+          node = nodeSupplier.get();
         }
       }
-      return client;
-    }
-  }
-
-  private RedisClient getClient(final int maxRetries) {
-
-    RedisClient redisClient = client;
-    if (redisClient != null && !redisClient.isBroken()) {
-      return redisClient;
-    }
-
-    synchronized (clientFactory) {
-      for (Node previousNode = null; client == null || client.isBroken();) {
-        final Node node = nodeSupplier.get();
-        if (previousNode != null && !node.equals(previousNode)) {
-          retryDelay.clear(previousNode);
-        }
-
-        try {
-          redisClient = clientFactory.create(node);
-          retryDelay.markSuccess(redisClient.getNode());
-          return client = redisClient;
-        } catch (final RedisConnectionException rcex) {
-          previousNode = node;
-          retryDelay.markFailure(node, maxRetries, rcex);
-        }
-      }
-      return client;
     }
   }
 
