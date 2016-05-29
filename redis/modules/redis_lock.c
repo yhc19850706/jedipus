@@ -3,7 +3,7 @@
 
 int TryAcquire_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 
-  if (argc != 3) {
+  if (argc != 4) {
     return RedisModule_WrongArity(ctx);
   }
 
@@ -69,7 +69,7 @@ int TryAcquire_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int a
 
 int TryRelease_RedisCommand(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
 
-  if (argc != 2) {
+  if (argc != 3) {
     return RedisModule_WrongArity(ctx);
   }
 
@@ -114,7 +114,7 @@ int RedisModule_OnLoad(RedisModuleCtx *ctx) {
       return REDISMODULE_ERR;
    }
 
-   if (RedisModule_CreateCommand(ctx, "redislock.try.release", TryRelease_RedisCommand, "write deny-oom fast", 1, 1, 1) == REDISMODULE_ERR) {
+   if (RedisModule_CreateCommand(ctx, "redislock.try.release", TryRelease_RedisCommand, "write fast", 1, 1, 1) == REDISMODULE_ERR) {
       return REDISMODULE_ERR;
    }
 

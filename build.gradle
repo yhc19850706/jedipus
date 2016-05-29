@@ -35,7 +35,7 @@ repositories {
    jcenter()
 }
 
-dependencies { 
+dependencies {
    testCompile 'junit:junit:+'
 }
 

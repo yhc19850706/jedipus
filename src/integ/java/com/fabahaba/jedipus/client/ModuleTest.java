@@ -1,6 +1,7 @@
 package com.fabahaba.jedipus.client;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import org.junit.Test;
 
@@ -13,7 +14,7 @@ public class ModuleTest extends BaseRedisClientTest {
 
   private static final PrimCmd INTEG_GETDB = Cmd.create("INTEG.GETDB").prim();
   static final Cmd<Object[]> TRY_ACQUIRE = Cmd.createCast("REDISLOCK.TRY.ACQUIRE");
-  static final Cmd<Object[]> TRY_RELEASE = Cmd.createCast("REDISLOCK.TRY.RELEASE");
+  static final Cmd<String> TRY_RELEASE = Cmd.createStringReply("REDISLOCK.TRY.RELEASE");
 
   @Test
   public void testModuleLoadAndCall() {
@@ -36,5 +37,18 @@ public class ModuleTest extends BaseRedisClientTest {
     final String reply =
         client.sendCmd(Cmds.MODULE, Cmds.MODULE_LOAD, "/redis/modules/redis_lock.so");
     assertEquals(RESP.OK, reply);
+
+    final String lockName = "lockname";
+    final String ownerId = "tester";
+    final long pexpire = 2000;
+
+    final Object[] owners = client.sendCmd(TRY_ACQUIRE, lockName, ownerId, Long.toString(pexpire));
+
+    assertNull(owners[0]);
+    assertEquals(ownerId, RESP.toString(owners[1]));
+    assertEquals(pexpire, RESP.longValue(owners[2]));
+
+    final String releasedOwner = client.sendCmd(TRY_RELEASE, lockName, ownerId);
+    assertEquals(ownerId, releasedOwner);
   }
 }
