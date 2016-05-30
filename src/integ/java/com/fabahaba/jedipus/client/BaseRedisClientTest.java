@@ -11,6 +11,8 @@ import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
 public class BaseRedisClientTest {
 
+  protected BaseRedisClientTest() {}
+
   public static final int REDIS_PORT = Optional.ofNullable(System.getProperty("jedipus.redis.port"))
       .map(Integer::parseInt).orElse(9736);
 

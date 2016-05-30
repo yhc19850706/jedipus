@@ -4,17 +4,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.fabahaba.jedipus.cluster.CRC16;
 import com.fabahaba.jedipus.primitive.RedisOutputStream;
 
 public class CmdByteArray<R> {
 
   private final Cmd<R> cmd;
   private final byte[] cmdArgs;
+  private final int slot;
 
-  private CmdByteArray(final Cmd<R> cmd, final byte[] cmdArgs) {
+  private CmdByteArray(final Cmd<R> cmd, final byte[] cmdArgs, final int slot) {
 
     this.cmd = cmd;
     this.cmdArgs = cmdArgs;
+    this.slot = slot;
   }
 
   public Cmd<R> getCmd() {
@@ -23,6 +26,10 @@ public class CmdByteArray<R> {
 
   public byte[] getCmdArgs() {
     return cmdArgs;
+  }
+
+  public int getSlot() {
+    return slot;
   }
 
   public static <R> Builder<R> startBuilding(final Cmd<R> cmd) {
@@ -44,6 +51,8 @@ public class CmdByteArray<R> {
     protected int numArgBytes;
 
     protected int offset;
+
+    protected int slot;
 
     private Builder(final Cmd<R> cmd) {
 
@@ -70,6 +79,21 @@ public class CmdByteArray<R> {
       System.arraycopy(asteriskLengthCRLF, 0, cmdArgsBytes, 0, offset);
 
       return cmdArgsBytes;
+    }
+
+    public Builder<R> addSlotKey(final String key) {
+      return addKey(RESP.toBytes(key));
+    }
+
+    public Builder<R> addKey(final byte[] key) {
+      this.slot = CRC16.getSlot(key);
+      addArg(key);
+      return this;
+    }
+
+    public Builder<R> setSlot(final int slot) {
+      this.slot = slot;
+      return this;
     }
 
     public Builder<R> addSubCmd(final Cmd<?> cmd) {
@@ -189,7 +213,7 @@ public class CmdByteArray<R> {
         offset += cmdArg.length;
       }
 
-      return new CmdByteArray<>(overrideReturnTypeCmd, cmdArgsBytes);
+      return new CmdByteArray<>(overrideReturnTypeCmd, cmdArgsBytes, slot);
     }
 
     @Override
@@ -246,7 +270,7 @@ public class CmdByteArray<R> {
         offset += cmdArg.length;
       }
 
-      return new CmdByteArray<>(overrideReturnTypeCmd, cmdArgsBytes);
+      return new CmdByteArray<>(overrideReturnTypeCmd, cmdArgsBytes, slot);
     }
 
     @Override

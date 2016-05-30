@@ -4,6 +4,8 @@ import java.util.function.Function;
 
 public interface Cmd<R> extends Function<Object, R> {
 
+  static final Function<Object, Object[]> CAST_OBJECT_ARRAY_REPLY = reply -> (Object[]) reply;
+
   static final Function<Object, String> STRING_REPLY = RESP::toString;
 
   static final Function<Object, Object[]> IN_PLACE_STRING_ARRAY_REPLY = obj -> {
@@ -22,6 +24,10 @@ public interface Cmd<R> extends Function<Object, R> {
     }
     return stringArray;
   };
+
+  default <A> Cmd<A> adapt(final Function<Object, A> replyHandler) {
+    return new HandledReplyCmd<>(name(), replyHandler);
+  }
 
   public static <R> Cmd<R> create(final String name, final Function<Object, R> replyHandler) {
 

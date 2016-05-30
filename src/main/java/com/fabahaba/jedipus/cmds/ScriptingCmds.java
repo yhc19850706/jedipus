@@ -1,18 +1,6 @@
 package com.fabahaba.jedipus.cmds;
 
-import com.fabahaba.jedipus.params.LuaParams;
-
 public interface ScriptingCmds extends DirectCmds {
-
-  default Object evalSha1Hex(final byte[] sha1Hex, final byte[] keyCount, final byte[][] params) {
-
-    return evalSha1Hex(LuaParams.createEvalArgs(sha1Hex, keyCount, params));
-  }
-
-  default Object evalSha1Hex(final byte[][] allArgs) {
-
-    return sendCmd(EVALSHA, allArgs);
-  }
 
   default String scriptLoad(final byte[] script) {
 
