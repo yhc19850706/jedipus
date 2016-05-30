@@ -52,7 +52,7 @@ public class CmdByteArray<R> {
 
     protected int offset;
 
-    protected int slot;
+    protected int slot = Integer.MIN_VALUE;
 
     private Builder(final Cmd<R> cmd) {
 
