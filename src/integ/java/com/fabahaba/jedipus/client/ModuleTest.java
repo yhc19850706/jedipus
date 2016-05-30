@@ -33,7 +33,7 @@ public class ModuleTest extends BaseRedisClientTest {
   }
 
   @Test
-  public void testRedisLock() {
+  public void testRedisLock() throws InterruptedException {
 
     final String reply =
         client.sendCmd(Cmds.MODULE, Cmds.MODULE_LOAD, "/redis/modules/redis_lock.so");
@@ -55,6 +55,8 @@ public class ModuleTest extends BaseRedisClientTest {
     assertEquals(ownerId, RESP.toString(renewedOwners[0]));
     assertEquals(ownerId, RESP.toString(renewedOwners[1]));
     assertEquals(pexpire, RESP.longValue(renewedOwners[2]));
+
+    Thread.sleep(1);
 
     final Object[] existingOwners =
         client.sendCmd(TRY_ACQUIRE, lockName, "nottheowner", Long.toString(pexpire));
