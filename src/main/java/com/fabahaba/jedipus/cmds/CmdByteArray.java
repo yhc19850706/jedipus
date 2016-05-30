@@ -82,10 +82,10 @@ public class CmdByteArray<R> {
     }
 
     public Builder<R> addSlotKey(final String key) {
-      return addKey(RESP.toBytes(key));
+      return addSlotKey(RESP.toBytes(key));
     }
 
-    public Builder<R> addKey(final byte[] key) {
+    public Builder<R> addSlotKey(final byte[] key) {
       this.slot = CRC16.getSlot(key);
       addArg(key);
       return this;

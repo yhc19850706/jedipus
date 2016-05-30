@@ -55,6 +55,14 @@ public interface LuaScript {
     rce.acceptAllMasters(client -> loadIfNotExists(client, scriptSha1Bytes, luaScripts));
   }
 
+  public static void loadMissingScripts(final RedisClient client, final LuaScript... luaScripts) {
+
+    final byte[][] scriptSha1Bytes =
+        Stream.of(luaScripts).map(LuaScript::getSha1HexBytes).toArray(byte[][]::new);
+
+    loadIfNotExists(client, scriptSha1Bytes, luaScripts);
+  }
+
   default <R> R eval(final RedisClient client, final int keyCount, final String param) {
 
     return eval(client, keyCount, RESP.toBytes(param));
