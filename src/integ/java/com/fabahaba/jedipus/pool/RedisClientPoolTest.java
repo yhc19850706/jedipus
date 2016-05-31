@@ -30,7 +30,7 @@ public class RedisClientPoolTest {
 
   static final ClientPool.Builder DEFAULT_POOL_BUILDER =
       ClientPool.startBuilding().withTestWhileIdle(true).withBlockWhenExhausted(true)
-          .withMaxBlockDuration(Duration.ofMillis(200));
+          .withBorrowTimeout(Duration.ofMillis(200));
 
 
   @Test(timeout = 1000)

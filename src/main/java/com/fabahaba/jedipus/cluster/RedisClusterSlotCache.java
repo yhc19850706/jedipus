@@ -22,7 +22,6 @@ import java.util.function.Supplier;
 
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
-import com.fabahaba.jedipus.cmds.ClusterCmds;
 import com.fabahaba.jedipus.cmds.ClusterCmds.ClusterSlotVotes;
 import com.fabahaba.jedipus.cmds.ClusterCmds.SlotNodes;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
@@ -162,9 +161,8 @@ class RedisClusterSlotCache implements AutoCloseable {
       case FIRST:
         for (final Node discoveryNode : discoveryNodes) {
           try (final RedisClient client = nodeUnknownFactory.apply(discoveryNode)) {
-            initSlotCache(client.sendCmd(ClusterCmds.CLUSTER, ClusterCmds.CLUSTER_SLOTS),
-                defaultReadMode, hostPortMapper, masterPoolFactory, slavePoolFactory, lbFactory,
-                masterPools, masterSlots, slavePools, slaveSlots);
+            initSlotCache(client.clusterSlots(), defaultReadMode, hostPortMapper, masterPoolFactory,
+                slavePoolFactory, lbFactory, masterPools, masterSlots, slavePools, slaveSlots);
             break;
           } catch (final RedisConnectionException | RedisRetryableUnhandledException e) {
             // Try the next discovery node...
@@ -292,7 +290,7 @@ class RedisClusterSlotCache implements AutoCloseable {
       final Map<Node, ClientPool<RedisClient>> slavePools) {
 
     final ConcurrentHashMap<ClusterSlotVotes, ClusterSlotVotes> clusterSlots =
-        new ConcurrentHashMap<>(2);
+        new ConcurrentHashMap<>(4);
 
     final Set<Node> discoveryNodes =
         Collections.newSetFromMap(new ConcurrentHashMap<>(nodes.size()));
@@ -304,28 +302,22 @@ class RedisClusterSlotCache implements AutoCloseable {
     final ForkJoinPool forkJoinPool = ForkJoinPool.commonPool();
 
     for (final Entry<Node, ClientPool<RedisClient>> pool : masterPools.entrySet()) {
-      voteFutures.add(forkJoinPool.submit(() -> getSlotNodesVotes(clusterSlots, pool)));
+      voteFutures.add(
+          forkJoinPool.submit(() -> getSlotNodesVotes(clusterSlots, pool, nodeUnknownFactory)));
       discoveryNodes.remove(pool.getKey());
     }
 
     for (final Entry<Node, ClientPool<RedisClient>> pool : slavePools.entrySet()) {
-      voteFutures.add(forkJoinPool.submit(() -> getSlotNodesVotes(clusterSlots, pool)));
+      voteFutures.add(
+          forkJoinPool.submit(() -> getSlotNodesVotes(clusterSlots, pool, nodeUnknownFactory)));
       discoveryNodes.remove(pool.getKey());
     }
 
     discoveryNodes.parallelStream().forEach(node -> {
       try (final RedisClient client = nodeUnknownFactory.apply(node)) {
-        final ClusterSlotVotes slotNodes =
-            client.sendCmd(ClusterCmds.CLUSTER, ClusterCmds.CLUSTER_SLOTS);
-
-        final ClusterSlotVotes existingValue = clusterSlots.putIfAbsent(slotNodes, slotNodes);
-        if (existingValue == null) {
-          slotNodes.addVote(node, () -> Collections.newSetFromMap(new ConcurrentHashMap<>()));
-        } else {
-          existingValue.addVote(node, () -> Collections.newSetFromMap(new ConcurrentHashMap<>()));
-        }
+        getSlotNodesVotes(clusterSlots, client);
       } catch (final RedisConnectionException | RedisRetryableUnhandledException e) {
-        //
+        // Getting votes from whomever we can.
       }
     });
 
@@ -341,28 +333,41 @@ class RedisClusterSlotCache implements AutoCloseable {
 
   private static void getSlotNodesVotes(
       final ConcurrentHashMap<ClusterSlotVotes, ClusterSlotVotes> clusterSlots,
-      final Entry<Node, ClientPool<RedisClient>> pool) {
+      final Entry<Node, ClientPool<RedisClient>> pool,
+      final Function<Node, RedisClient> nodeUnknownFactory) {
     try {
-      // TODO create borrowIfPresent to prevent blocking on exhausted pool.
-      final RedisClient client = RedisClientPool.borrowClient(pool.getValue());
-      try {
-        final ClusterSlotVotes slotNodes =
-            client.sendCmd(ClusterCmds.CLUSTER, ClusterCmds.CLUSTER_SLOTS);
-
-        final ClusterSlotVotes existingValue = clusterSlots.putIfAbsent(slotNodes, slotNodes);
-        if (existingValue == null) {
-          slotNodes.addVote(pool.getKey(),
-              () -> Collections.newSetFromMap(new ConcurrentHashMap<>()));
-        } else {
-          existingValue.addVote(pool.getKey(),
-              () -> Collections.newSetFromMap(new ConcurrentHashMap<>()));
+      final RedisClient pooledClient = pool.getValue().borrowIfPresent();
+      if (pooledClient == null) {
+        try (final RedisClient client = nodeUnknownFactory.apply(pool.getKey())) {
+          getSlotNodesVotes(clusterSlots, client);
         }
-      } finally {
-        RedisClientPool.returnClient(pool.getValue(), client);
+      } else {
+        try {
+          getSlotNodesVotes(clusterSlots, pooledClient);
+        } finally {
+          RedisClientPool.returnClient(pool.getValue(), pooledClient);
+        }
       }
     } catch (final RedisConnectionException | RedisRetryableUnhandledException e) {
-      //
+      // Getting votes from whomever we can.
     }
+  }
+
+  private static void getSlotNodesVotes(
+      final ConcurrentHashMap<ClusterSlotVotes, ClusterSlotVotes> clusterSlots,
+      final RedisClient client) {
+
+    final ClusterSlotVotes slotNodes = client.clusterSlots();
+    final ClusterSlotVotes existingValue = clusterSlots.putIfAbsent(slotNodes, slotNodes);
+
+    if (existingValue == null) {
+      slotNodes.addVote(client.getNode(),
+          () -> Collections.newSetFromMap(new ConcurrentHashMap<>()));
+      return;
+    }
+
+    existingValue.addVote(client.getNode(),
+        () -> Collections.newSetFromMap(new ConcurrentHashMap<>()));
   }
 
   void discoverClusterSlots() {
@@ -400,7 +405,7 @@ class RedisClusterSlotCache implements AutoCloseable {
         case FIRST:
           if (client != null) {
             try {
-              cacheClusterSlots(client.sendCmd(ClusterCmds.CLUSTER, ClusterCmds.CLUSTER_SLOTS));
+              cacheClusterSlots(client.clusterSlots());
               return;
             } catch (final RedisConnectionException | RedisRetryableUnhandledException e) {
               // try all other known nodes...
@@ -408,39 +413,14 @@ class RedisClusterSlotCache implements AutoCloseable {
           }
 
           final Set<Node> discoveryNodes = new HashSet<>(discoveryNodeSupplier.get());
-
-          for (final Entry<Node, ClientPool<RedisClient>> masterPool : masterPools.entrySet()) {
-            try {
-              final RedisClient master = RedisClientPool.borrowClient(masterPool.getValue());
-              try {
-                cacheClusterSlots(master.sendCmd(ClusterCmds.CLUSTER, ClusterCmds.CLUSTER_SLOTS));
-                return;
-              } finally {
-                RedisClientPool.returnClient(masterPool.getValue(), master);
-              }
-            } catch (final RedisConnectionException | RedisRetryableUnhandledException e) {
-              discoveryNodes.remove(masterPool.getKey());
-            }
-          }
-
-          for (final Entry<Node, ClientPool<RedisClient>> slavePool : slavePools.entrySet()) {
-            try {
-              final RedisClient slave = RedisClientPool.borrowClient(slavePool.getValue());
-              try {
-                cacheClusterSlots(slave.sendCmd(ClusterCmds.CLUSTER, ClusterCmds.CLUSTER_SLOTS));
-                return;
-              } finally {
-                RedisClientPool.returnClient(slavePool.getValue(), slave);
-              }
-            } catch (final RedisConnectionException | RedisRetryableUnhandledException e) {
-              discoveryNodes.remove(slavePool.getKey());
-            }
+          if (discoverFirstClusterSlots(masterPools, discoveryNodes)
+              || discoverFirstClusterSlots(slavePools, discoveryNodes)) {
+            return;
           }
 
           for (final Node discoveryNode : discoveryNodes) {
             try (final RedisClient discoveryNodeClient = nodeUnknownFactory.apply(discoveryNode)) {
-              cacheClusterSlots(
-                  discoveryNodeClient.sendCmd(ClusterCmds.CLUSTER, ClusterCmds.CLUSTER_SLOTS));
+              cacheClusterSlots(discoveryNodeClient.clusterSlots());
               return;
             } catch (final RedisConnectionException | RedisRetryableUnhandledException e) {
               // try next discovery node...
@@ -492,6 +472,31 @@ class RedisClusterSlotCache implements AutoCloseable {
         lock.unlockWrite(writeStamp);
       }
     }
+  }
+
+  private boolean discoverFirstClusterSlots(final Map<Node, ClientPool<RedisClient>> pools,
+      final Set<Node> discoveryNodes) {
+    for (final Entry<Node, ClientPool<RedisClient>> pool : pools.entrySet()) {
+      try {
+        final RedisClient pooledClient = pool.getValue().borrowIfPresent();
+        if (pooledClient == null) {
+          try (final RedisClient client = nodeUnknownFactory.apply(pool.getKey())) {
+            cacheClusterSlots(client.clusterSlots());
+            return true;
+          }
+        } else {
+          try {
+            cacheClusterSlots(pooledClient.clusterSlots());
+            return true;
+          } finally {
+            RedisClientPool.returnClient(pool.getValue(), pooledClient);
+          }
+        }
+      } catch (final RedisConnectionException | RedisRetryableUnhandledException e) {
+        discoveryNodes.remove(pool.getKey());
+      }
+    }
+    return false;
   }
 
   private void cacheClusterSlots(final ClusterSlotVotes clusterSlots) {

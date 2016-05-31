@@ -440,7 +440,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+        .withPartitionedStrategy(PartitionedStrategy.TOP).create()) {
 
       final Node exporting = rce.apply(slot, RedisClient::getNode);
       final Node importing = rce.applyUnknown(newNode, client -> {
@@ -682,7 +682,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
   public void testIfPoolConfigAppliesToClusterPools() {
 
     final Function<Node, ClientPool<RedisClient>> poolFactory = node -> ClientPool.startBuilding()
-        .withMaxTotal(0).withMaxBlockDuration(Duration.ofMillis(20)).withBlockWhenExhausted(true)
+        .withMaxTotal(0).withBorrowTimeout(Duration.ofMillis(20)).withBlockWhenExhausted(true)
         .create(RedisClientFactory.startBuilding().createPooled(node));
 
     try (final RedisClusterExecutor rce =

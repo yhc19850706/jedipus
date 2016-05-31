@@ -18,7 +18,7 @@ final class FinalClientPool<C> implements ClientPool<C> {
   private final int maxIdle;
   private final int maxTotal;
   private final boolean blockWhenExhausted;
-  private final long maxWaitMillis;
+  private final long defaultBorrowTimeoutNanos;
   private final boolean lifo;
   private final boolean fairness;
   private final boolean testOnCreate;
@@ -52,8 +52,8 @@ final class FinalClientPool<C> implements ClientPool<C> {
     this.maxTotal = poolBuilder.getMaxTotal() < 0 ? Integer.MAX_VALUE : poolBuilder.getMaxTotal();
     this.maxIdle = Math.min(maxTotal, poolBuilder.getMaxIdle());
     this.blockWhenExhausted = poolBuilder.isBlockWhenExhausted();
-    this.maxWaitMillis = poolBuilder.getMaxBlockDuration() != null && blockWhenExhausted
-        ? poolBuilder.getMaxBlockDuration().toMillis() : Long.MIN_VALUE;
+    this.defaultBorrowTimeoutNanos = poolBuilder.getBorrowTimeout() != null && blockWhenExhausted
+        ? poolBuilder.getBorrowTimeout().toNanos() : Long.MIN_VALUE;
     this.testOnCreate = poolBuilder.isTestOnCreate();
     this.testOnBorrow = poolBuilder.isTestOnBorrow();
     this.testOnReturn = poolBuilder.isTestOnReturn();
@@ -110,8 +110,8 @@ final class FinalClientPool<C> implements ClientPool<C> {
     return blockWhenExhausted;
   }
 
-  public long getMaxWaitMillis() {
-    return maxWaitMillis;
+  public long getDefaultBorrowTimeoutNanos() {
+    return defaultBorrowTimeoutNanos;
   }
 
   public boolean isLifo() {
@@ -176,16 +176,60 @@ final class FinalClientPool<C> implements ClientPool<C> {
     }
   }
 
+  @Override
+  public C borrowIfCapacity() {
+    for (;;) {
+      assertOpen();
+
+      final PooledClient<C> pooledClient = pollOrCreatePooledClient();
+      if (pooledClient == null) {
+        return null;
+      }
+
+      if (activate(pooledClient, true)) {
+        return pooledClient.getClient();
+      }
+      continue;
+    }
+  }
+
+  @Override
+  public C borrowIfPresent() {
+    for (;;) {
+      assertOpen();
+
+      final PooledClient<C> pooledClient = pollClient();
+      if (pooledClient == null) {
+        return null;
+      }
+
+      if (activate(pooledClient, true)) {
+        return pooledClient.getClient();
+      }
+      continue;
+    }
+  }
 
   @Override
   public C borrowClient() {
+    if (defaultBorrowTimeoutNanos == Long.MIN_VALUE) {
+      return pollOrCreateClient();
+    }
 
-    return maxWaitMillis == Long.MIN_VALUE ? pollOrCreateClient() : pollOrCreate(maxWaitMillis);
+    return pollOrCreate(defaultBorrowTimeoutNanos, TimeUnit.NANOSECONDS);
   }
 
-  C pollOrCreate(final long maxWaitMillis) {
+  @Override
+  public C borrowClient(final long timeout, final TimeUnit unit) {
 
-    CREATE: for (final long deadline = System.currentTimeMillis() + maxWaitMillis;;) {
+    return pollOrCreate(timeout, unit);
+  }
+
+  C pollOrCreate(final long timeout, final TimeUnit unit) {
+
+    final long timeoutNanos = TimeUnit.NANOSECONDS.convert(timeout, unit);
+
+    CREATE: for (final long deadline = System.nanoTime() + timeoutNanos;;) {
       assertOpen();
 
       PooledClient<C> pooledClient = pollOrCreatePooledClient();
@@ -208,8 +252,8 @@ final class FinalClientPool<C> implements ClientPool<C> {
             break;
           }
 
-          final long maxWait = deadline - System.currentTimeMillis();
-          if (maxWait <= 0 || !newIdleClient.await(maxWait, TimeUnit.MILLISECONDS)) {
+          final long maxWait = deadline - System.nanoTime();
+          if (maxWait <= 0 || !newIdleClient.await(maxWait, TimeUnit.NANOSECONDS)) {
             throw new NoSuchElementException("Pool exhausted, timed out waiting for object.");
           }
           assertOpen();
@@ -238,22 +282,22 @@ final class FinalClientPool<C> implements ClientPool<C> {
 
   private PooledClient<C> pollOrCreatePooledClient() {
 
-    PooledClient<C> pooledClient = null;
+    final PooledClient<C> pooledClient = pollClient();
 
-    if (!idleClients.isEmpty()) {
-      idleClientsLock.lock();
-      try {
-        pooledClient = idleClients.pollFirst();
-      } finally {
-        idleClientsLock.unlock();
-      }
+    return pooledClient == null ? create() : pooledClient;
+  }
+
+  private PooledClient<C> pollClient() {
+    if (idleClients.isEmpty()) {
+      return null;
     }
 
-    if (pooledClient != null) {
-      return pooledClient;
+    idleClientsLock.lock();
+    try {
+      return idleClients.pollFirst();
+    } finally {
+      idleClientsLock.unlock();
     }
-
-    return create();
   }
 
   C pollOrCreateClient() {

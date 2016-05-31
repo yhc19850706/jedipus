@@ -4,12 +4,19 @@ import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 
 import com.fabahaba.jedipus.pool.EvictionStrategy.DefaultEvictionStrategy;
 
 public interface ClientPool<C> extends AutoCloseable {
 
-  C borrowClient() throws NoSuchElementException, IllegalStateException;
+  C borrowClient() throws NoSuchElementException;
+
+  C borrowClient(final long timeout, final TimeUnit unit) throws NoSuchElementException;
+
+  C borrowIfCapacity();
+
+  C borrowIfPresent();
 
   void returnClient(C client);
 
@@ -40,7 +47,7 @@ public interface ClientPool<C> extends AutoCloseable {
     private boolean lifo = true;
     private boolean fair = false;
     // Null blocks forever
-    private Duration maxBlockDuration = null;
+    private Duration borrowTimeout = null;
     private boolean blockWhenExhausted = true;
     // Evict after 5 minutes regardless of min idle.
     private Duration minEvictableIdleDuration = DEFAULT_MIN_EVICTABLE_IDLE_DURATION;
@@ -93,12 +100,12 @@ public interface ClientPool<C> extends AutoCloseable {
       return this;
     }
 
-    public Duration getMaxBlockDuration() {
-      return maxBlockDuration;
+    public Duration getBorrowTimeout() {
+      return borrowTimeout;
     }
 
-    public Builder withMaxBlockDuration(final Duration maxBlockDuration) {
-      this.maxBlockDuration = maxBlockDuration;
+    public Builder withBorrowTimeout(final Duration borrowTimeout) {
+      this.borrowTimeout = borrowTimeout;
       return this;
     }
 

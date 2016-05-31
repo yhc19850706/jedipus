@@ -1,5 +1,8 @@
 package com.fabahaba.jedipus.cluster;
 
+import java.util.NoSuchElementException;
+import java.util.concurrent.TimeUnit;
+
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.pool.ClientPool;
 
@@ -15,7 +18,6 @@ class OneLifePool implements ClientPool<RedisClient> {
 
   @Override
   public RedisClient borrowClient() {
-
     synchronized (this) {
       if (client == null) {
         return null;
@@ -23,6 +25,22 @@ class OneLifePool implements ClientPool<RedisClient> {
       numActive = 1;
       return client;
     }
+  }
+
+  @Override
+  public RedisClient borrowClient(final long timeout, final TimeUnit unit)
+      throws NoSuchElementException {
+    return borrowClient();
+  }
+
+  @Override
+  public RedisClient borrowIfCapacity() {
+    return borrowClient();
+  }
+
+  @Override
+  public RedisClient borrowIfPresent() {
+    return borrowClient();
   }
 
   @Override

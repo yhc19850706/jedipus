@@ -47,14 +47,14 @@ public interface ClusterCmds extends DirectCmds {
 
   static byte[][] slotsToBytes(final int... slots) {
 
-    final byte[][] args = new byte[slots.length][];
+    final byte[][] slotBytes = new byte[slots.length][];
 
     int index = 0;
     for (final int slot : slots) {
-      args[index++] = RESP.toBytes(slot);
+      slotBytes[index++] = RESP.toBytes(slot);
     }
 
-    return args;
+    return slotBytes;
   }
 
   default String clusterAddSlots(final int... slots) {
