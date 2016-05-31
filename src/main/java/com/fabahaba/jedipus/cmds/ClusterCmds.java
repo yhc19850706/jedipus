@@ -1,7 +1,10 @@
 package com.fabahaba.jedipus.cmds;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
 
 import com.fabahaba.jedipus.client.HostPort;
 import com.fabahaba.jedipus.cluster.Node;
@@ -132,9 +135,9 @@ public interface ClusterCmds extends DirectCmds {
     return sendCmd(CLUSTER, SLAVES, nodeId);
   }
 
-  default Object[] clusterSlots() {
+  default ClusterSlotVotes clusterSlots() {
 
-    return sendCmd(CLUSTER, SLOTS);
+    return sendCmd(CLUSTER, CLUSTER_SLOTS);
   }
 
   default String clusterReset(final Cmd<String> mode) {
@@ -254,5 +257,140 @@ public interface ClusterCmds extends DirectCmds {
     }
 
     return nodes;
+  }
+
+  public static Cmd<ClusterSlotVotes> CLUSTER_SLOTS = Cmd.create("SLOTS", data -> {
+
+    final Object[] clusterSlotData = (Object[]) data;
+    final SlotNodes[] clusterSlots = new SlotNodes[clusterSlotData.length];
+
+    int clusterSlotsIndex = 0;
+    for (final Object slotInfoObj : clusterSlotData) {
+
+      final Object[] slotInfo = (Object[]) slotInfoObj;
+
+      final int slotBegin = RESP.longToInt(slotInfo[0]);
+      final int slotEndExclusive = RESP.longToInt(slotInfo[1]) + 1;
+      final Node[] nodes = new Node[slotInfo.length - 2];
+
+      for (int i = 2, nodesIndex = 0; i < slotInfo.length; i++, nodesIndex++) {
+        nodes[nodesIndex] = Node.create((Object[]) slotInfo[i]);
+      }
+
+      clusterSlots[clusterSlotsIndex++] = new SlotNodes(slotBegin, slotEndExclusive, nodes);
+    }
+
+    return new ClusterSlotVotes(clusterSlots);
+  });
+
+  public static final class ClusterSlotVotes implements Comparable<ClusterSlotVotes> {
+
+    private final SlotNodes[] clusterSlots;
+    private volatile Set<Node> nodeVotes = null;
+
+    public ClusterSlotVotes(final SlotNodes[] clusterNodes) {
+      this.clusterSlots = clusterNodes;
+    }
+
+    public SlotNodes[] getClusterSlots() {
+      return clusterSlots;
+    }
+
+    public Set<Node> getNodeVotes() {
+      return nodeVotes;
+    }
+
+    public ClusterSlotVotes addVote(final Node node, final Supplier<Set<Node>> setSupplier) {
+      if (nodeVotes == null) {
+        synchronized (clusterSlots) {
+          if (nodeVotes == null) {
+            nodeVotes = setSupplier.get();
+          }
+        }
+      }
+
+      nodeVotes.add(node);
+      return this;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + Arrays.hashCode(clusterSlots);
+      return result;
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (getClass() != obj.getClass())
+        return false;
+      final ClusterSlotVotes other = (ClusterSlotVotes) obj;
+      if (!Arrays.equals(clusterSlots, other.clusterSlots))
+        return false;
+      return true;
+    }
+
+    @Override
+    public int compareTo(final ClusterSlotVotes other) {
+      return Integer.compare(other.nodeVotes.size(), nodeVotes.size());
+    }
+  }
+
+  public static final class SlotNodes {
+
+    private final int slotBegin;
+    private final int slotEndExclusive;
+    private final Node[] nodes;
+
+    private SlotNodes(final int slotBegin, final int slotEndExclusive, final Node[] nodes) {
+      this.slotBegin = slotBegin;
+      this.slotEndExclusive = slotEndExclusive;
+      this.nodes = nodes;
+    }
+
+    public int getSlotBegin() {
+      return slotBegin;
+    }
+
+    public int getSlotEndExclusive() {
+      return slotEndExclusive;
+    }
+
+    public Node[] getNodes() {
+      return nodes;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + Arrays.hashCode(nodes);
+      result = prime * result + slotBegin;
+      result = prime * result + slotEndExclusive;
+      return result;
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (getClass() != obj.getClass())
+        return false;
+      final SlotNodes other = (SlotNodes) obj;
+      if (!Arrays.equals(nodes, other.nodes))
+        return false;
+      if (slotBegin != other.slotBegin)
+        return false;
+      if (slotEndExclusive != other.slotEndExclusive)
+        return false;
+      return true;
+    }
   }
 }

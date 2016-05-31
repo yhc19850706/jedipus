@@ -14,4 +14,7 @@
 	<Match>
 		<Bug pattern="BC_UNCONFIRMED_CAST_OF_RETURN_VALUE" />
 	</Match>
+	<Match>
+		<Bug pattern="SE_BAD_FIELD" />
+	</Match>
 </FindBugsFilter>

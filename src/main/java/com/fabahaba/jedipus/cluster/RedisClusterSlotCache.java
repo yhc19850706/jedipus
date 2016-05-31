@@ -1,34 +1,44 @@
 package com.fabahaba.jedipus.cluster;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.StampedLock;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
-import com.fabahaba.jedipus.client.HostPort;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
-import com.fabahaba.jedipus.cmds.RESP;
+import com.fabahaba.jedipus.cmds.ClusterCmds;
+import com.fabahaba.jedipus.cmds.ClusterCmds.ClusterSlotVotes;
+import com.fabahaba.jedipus.cmds.ClusterCmds.SlotNodes;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
+import com.fabahaba.jedipus.exceptions.RedisClusterPartitionedException;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
-import com.fabahaba.jedipus.exceptions.RedisException;
+import com.fabahaba.jedipus.exceptions.RedisRetryableUnhandledException;
 import com.fabahaba.jedipus.pool.ClientPool;
+import com.fabahaba.jedipus.pool.RedisClientPool;
 
 class RedisClusterSlotCache implements AutoCloseable {
 
   private final ReadMode defaultReadMode;
 
-  private final Map<HostPort, Node> discoveryNodes;
+  private volatile Supplier<Collection<Node>> discoveryNodeSupplier;
+  private final PartitionedStrategy partitionedStrategy;
   private final Function<Node, Node> hostPortMapper;
 
   protected final Map<Node, ClientPool<RedisClient>> masterPools;
@@ -52,7 +62,8 @@ class RedisClusterSlotCache implements AutoCloseable {
 
   RedisClusterSlotCache(final ReadMode defaultReadMode, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
-      final Map<HostPort, Node> discoveryNodes, final Function<Node, Node> hostPortMapper,
+      final Supplier<Collection<Node>> discoveryNodes,
+      final PartitionedStrategy partitionedStrategy, final Function<Node, Node> hostPortMapper,
       final Map<Node, ClientPool<RedisClient>> masterPools,
       final ClientPool<RedisClient>[] masterSlots,
       final Map<Node, ClientPool<RedisClient>> slavePools,
@@ -66,7 +77,8 @@ class RedisClusterSlotCache implements AutoCloseable {
     this.refreshStamp = System.currentTimeMillis();
 
     this.defaultReadMode = defaultReadMode;
-    this.discoveryNodes = discoveryNodes;
+    this.discoveryNodeSupplier = discoveryNodes;
+    this.partitionedStrategy = partitionedStrategy;
     this.hostPortMapper = hostPortMapper;
 
     this.masterPools = masterPools;
@@ -106,7 +118,8 @@ class RedisClusterSlotCache implements AutoCloseable {
   @SuppressWarnings("unchecked")
   static RedisClusterSlotCache create(final ReadMode defaultReadMode, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
-      final Collection<Node> discoveryNodes, final Function<Node, Node> hostPortMapper,
+      final Supplier<Collection<Node>> discoveryNodes,
+      final PartitionedStrategy partitionedStrategy, final Function<Node, Node> hostPortMapper,
       final Function<Node, ClientPool<RedisClient>> masterPoolFactory,
       final Function<Node, ClientPool<RedisClient>> slavePoolFactory,
       final Function<Node, RedisClient> nodeUnknownFactory,
@@ -124,16 +137,15 @@ class RedisClusterSlotCache implements AutoCloseable {
         ? new LoadBalancedPools[0] : new LoadBalancedPools[CRC16.NUM_SLOTS];
 
     return create(defaultReadMode, optimisticReads, durationBetweenCacheRefresh,
-        maxAwaitCacheRefresh, discoveryNodes, hostPortMapper, masterPoolFactory, slavePoolFactory,
-        nodeUnknownFactory, lbFactory, masterPools, masterSlots, slavePools, slaveSlots,
-        clusterNodeRetryDelay);
+        maxAwaitCacheRefresh, discoveryNodes, partitionedStrategy, hostPortMapper,
+        masterPoolFactory, slavePoolFactory, nodeUnknownFactory, lbFactory, masterPools,
+        masterSlots, slavePools, slaveSlots, clusterNodeRetryDelay);
   }
 
-  @SuppressWarnings("unchecked")
   private static RedisClusterSlotCache create(final ReadMode defaultReadMode,
       final boolean optimisticReads, final Duration durationBetweenCacheRefresh,
-      final Duration maxAwaitCacheRefresh, final Collection<Node> discoveryNodes,
-      final Function<Node, Node> hostPortMapper,
+      final Duration maxAwaitCacheRefresh, final Supplier<Collection<Node>> discoveryNodesSupplier,
+      final PartitionedStrategy partitionedStrategy, final Function<Node, Node> hostPortMapper,
       final Function<Node, ClientPool<RedisClient>> masterPoolFactory,
       final Function<Node, ClientPool<RedisClient>> slavePoolFactory,
       final Function<Node, RedisClient> nodeUnknownFactory,
@@ -144,129 +156,219 @@ class RedisClusterSlotCache implements AutoCloseable {
       final LoadBalancedPools<RedisClient, ReadMode>[] slaveSlots,
       final ElementRetryDelay<Node> clusterNodeRetryDelay) {
 
-    final Map<HostPort, Node> allDiscoveryNodes = new ConcurrentHashMap<>(discoveryNodes.size());
-    discoveryNodes.forEach(node -> allDiscoveryNodes.put(node.getHostPort(), node));
+    final Collection<Node> discoveryNodes = discoveryNodesSupplier.get();
 
-    for (final Node discoveryHostPort : discoveryNodes) {
-
-      try (final RedisClient client = nodeUnknownFactory.apply(discoveryHostPort)) {
-
-        for (final Object slotInfoObj : client.clusterSlots()) {
-
-          final Object[] slotInfo = (Object[]) slotInfoObj;
-
-          final int slotBegin = RESP.longToInt(slotInfo[0]);
-          final int slotEnd = RESP.longToInt(slotInfo[1]) + 1;
-
-          switch (defaultReadMode) {
-            case MIXED_SLAVES:
-            case MIXED:
-            case MASTER:
-              final Node masterNode = Node.create(hostPortMapper, (Object[]) slotInfo[2]);
-              allDiscoveryNodes.compute(masterNode.getHostPort(), (hostPort, known) -> {
-                if (known == null) {
-                  return masterNode;
-                }
-                known.updateId(masterNode.getId());
-                return known;
-              });
-
-              final ClientPool<RedisClient> masterPool = masterPoolFactory.apply(masterNode);
-              masterPools.put(masterNode, masterPool);
-
-              Arrays.fill(masterSlots, slotBegin, slotEnd, masterPool);
-              break;
-            case SLAVES:
-            default:
-              break;
-          }
-
-          final int slotInfoSize = slotInfo.length;
-          if (slotInfoSize < 4) {
-            continue;
-          }
-
-          final ClientPool<RedisClient>[] slotSlavePools =
-              defaultReadMode == ReadMode.MASTER ? null : new ClientPool[slotInfoSize - 3];
-
-          for (int i = 3, poolIndex = 0; i < slotInfoSize; i++) {
-
-            final Node slaveNode = Node.create(hostPortMapper, (Object[]) slotInfo[i]);
-            allDiscoveryNodes.compute(slaveNode.getHostPort(), (hostPort, known) -> {
-              if (known == null) {
-                return slaveNode;
-              }
-              known.updateId(slaveNode.getId());
-              return known;
-            });
-
-            switch (defaultReadMode) {
-              case SLAVES:
-              case MIXED:
-              case MIXED_SLAVES:
-                final ClientPool<RedisClient> slavePool = slavePoolFactory.apply(slaveNode);
-                slavePools.put(slaveNode, slavePool);
-                slotSlavePools[poolIndex++] = slavePool;
-                break;
-              case MASTER:
-              default:
-                break;
-            }
-          }
-
-          if (defaultReadMode != ReadMode.MASTER) {
-
-            final LoadBalancedPools<RedisClient, ReadMode> lbPools =
-                lbFactory.apply(slotSlavePools);
-
-            Arrays.fill(slaveSlots, slotBegin, slotEnd, lbPools);
+    switch (partitionedStrategy) {
+      case FIRST:
+        for (final Node discoveryNode : discoveryNodes) {
+          try (final RedisClient client = nodeUnknownFactory.apply(discoveryNode)) {
+            initSlotCache(client.sendCmd(ClusterCmds.CLUSTER, ClusterCmds.CLUSTER_SLOTS),
+                defaultReadMode, hostPortMapper, masterPoolFactory, slavePoolFactory, lbFactory,
+                masterPools, masterSlots, slavePools, slaveSlots);
+            break;
+          } catch (final RedisConnectionException | RedisRetryableUnhandledException e) {
+            // Try the next discovery node...
           }
         }
+        break;
+      case THROW:
+        List<ClusterSlotVotes> slotNodesVotes =
+            getSlotNodesVotes(discoveryNodes, nodeUnknownFactory, masterPools, slavePools);
 
-        if (optimisticReads) {
-          return new OptimisticRedisClusterSlotCache(defaultReadMode, durationBetweenCacheRefresh,
-              maxAwaitCacheRefresh, allDiscoveryNodes, hostPortMapper, masterPools, masterSlots,
-              slavePools, slaveSlots, masterPoolFactory, slavePoolFactory, nodeUnknownFactory,
-              lbFactory, clusterNodeRetryDelay);
+        if (slotNodesVotes.size() > 1) {
+          throw new RedisClusterPartitionedException(slotNodesVotes);
         }
 
-        return new RedisClusterSlotCache(defaultReadMode, optimisticReads,
-            durationBetweenCacheRefresh, maxAwaitCacheRefresh, allDiscoveryNodes, hostPortMapper,
-            masterPools, masterSlots, slavePools, slaveSlots, masterPoolFactory, slavePoolFactory,
-            nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
-      } catch (final RedisException e) {
-        // try next discoveryNode...
-      }
+        if (!slotNodesVotes.isEmpty()) {
+          initSlotCache(slotNodesVotes.get(0), defaultReadMode, hostPortMapper, masterPoolFactory,
+              slavePoolFactory, lbFactory, masterPools, masterSlots, slavePools, slaveSlots);
+        }
+
+        break;
+      case MAJORITY:
+        slotNodesVotes =
+            getSlotNodesVotes(discoveryNodes, nodeUnknownFactory, masterPools, slavePools);
+
+        if (slotNodesVotes.size() > 1
+            && slotNodesVotes.get(0).getNodeVotes().size() <= slotNodesVotes.size() / 2) {
+          throw new RedisClusterPartitionedException(slotNodesVotes);
+        }
+
+        if (!slotNodesVotes.isEmpty()) {
+          initSlotCache(slotNodesVotes.get(0), defaultReadMode, hostPortMapper, masterPoolFactory,
+              slavePoolFactory, lbFactory, masterPools, masterSlots, slavePools, slaveSlots);
+        }
+
+        break;
+      case TOP:
+        slotNodesVotes =
+            getSlotNodesVotes(discoveryNodes, nodeUnknownFactory, masterPools, slavePools);
+
+        if (!slotNodesVotes.isEmpty()) {
+          initSlotCache(slotNodesVotes.get(0), defaultReadMode, hostPortMapper, masterPoolFactory,
+              slavePoolFactory, lbFactory, masterPools, masterSlots, slavePools, slaveSlots);
+        }
+        break;
+      default:
+        break;
     }
 
     if (optimisticReads) {
       return new OptimisticRedisClusterSlotCache(defaultReadMode, durationBetweenCacheRefresh,
-          maxAwaitCacheRefresh, allDiscoveryNodes, hostPortMapper, masterPools, masterSlots,
-          slavePools, slaveSlots, masterPoolFactory, slavePoolFactory, nodeUnknownFactory,
-          lbFactory, clusterNodeRetryDelay);
+          maxAwaitCacheRefresh, discoveryNodesSupplier, partitionedStrategy, hostPortMapper,
+          masterPools, masterSlots, slavePools, slaveSlots, masterPoolFactory, slavePoolFactory,
+          nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
     }
 
     return new RedisClusterSlotCache(defaultReadMode, optimisticReads, durationBetweenCacheRefresh,
-        maxAwaitCacheRefresh, allDiscoveryNodes, hostPortMapper, masterPools, masterSlots,
-        slavePools, slaveSlots, masterPoolFactory, slavePoolFactory, nodeUnknownFactory, lbFactory,
-        clusterNodeRetryDelay);
+        maxAwaitCacheRefresh, discoveryNodesSupplier, partitionedStrategy, hostPortMapper,
+        masterPools, masterSlots, slavePools, slaveSlots, masterPoolFactory, slavePoolFactory,
+        nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
   }
 
-  void discoverClusterSlots() {
+  private static void initSlotCache(final ClusterSlotVotes clusterSlots,
+      final ReadMode defaultReadMode, final Function<Node, Node> hostPortMapper,
+      final Function<Node, ClientPool<RedisClient>> masterPoolFactory,
+      final Function<Node, ClientPool<RedisClient>> slavePoolFactory,
+      final Function<ClientPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> lbFactory,
+      final Map<Node, ClientPool<RedisClient>> masterPools,
+      final ClientPool<RedisClient>[] masterSlots,
+      final Map<Node, ClientPool<RedisClient>> slavePools,
+      final LoadBalancedPools<RedisClient, ReadMode>[] slaveSlots) {
 
-    for (final Node discoveryNode : getDiscoveryNodes()) {
+    for (final SlotNodes slotNodes : clusterSlots.getClusterSlots()) {
 
-      try (final RedisClient client = nodeUnknownFactory.apply(discoveryNode)) {
+      switch (defaultReadMode) {
+        case MIXED_SLAVES:
+        case MIXED:
+        case MASTER:
+          final Node masterNode = hostPortMapper.apply(slotNodes.getNodes()[0]);
 
-        discoverClusterSlots(client);
-        return;
-      } catch (final RedisConnectionException e) {
-        // try next discovery node...
+          final ClientPool<RedisClient> masterPool = masterPoolFactory.apply(masterNode);
+          masterPools.put(masterNode, masterPool);
+
+          Arrays.fill(masterSlots, slotNodes.getSlotBegin(), slotNodes.getSlotEndExclusive(),
+              masterPool);
+          break;
+        case SLAVES:
+        default:
+          break;
       }
+
+      final int slotInfoSize = slotNodes.getNodes().length;
+      if (slotInfoSize < 2 || defaultReadMode == ReadMode.MASTER) {
+        continue;
+      }
+
+      @SuppressWarnings("unchecked")
+      final ClientPool<RedisClient>[] slotSlavePools = new ClientPool[slotInfoSize - 1];
+
+      for (int i = 1, poolIndex = 0; i < slotInfoSize; i++) {
+
+        final Node slaveNode = hostPortMapper.apply(slotNodes.getNodes()[i]);
+
+        switch (defaultReadMode) {
+          case SLAVES:
+          case MIXED:
+          case MIXED_SLAVES:
+            final ClientPool<RedisClient> slavePool = slavePoolFactory.apply(slaveNode);
+            slavePools.put(slaveNode, slavePool);
+            slotSlavePools[poolIndex++] = slavePool;
+            break;
+          case MASTER:
+          default:
+            break;
+        }
+      }
+
+      final LoadBalancedPools<RedisClient, ReadMode> lbPools = lbFactory.apply(slotSlavePools);
+      Arrays.fill(slaveSlots, slotNodes.getSlotBegin(), slotNodes.getSlotEndExclusive(), lbPools);
     }
   }
 
-  @SuppressWarnings("unchecked")
+  private static List<ClusterSlotVotes> getSlotNodesVotes(final Collection<Node> nodes,
+      final Function<Node, RedisClient> nodeUnknownFactory,
+      final Map<Node, ClientPool<RedisClient>> masterPools,
+      final Map<Node, ClientPool<RedisClient>> slavePools) {
+
+    final ConcurrentHashMap<ClusterSlotVotes, ClusterSlotVotes> clusterSlots =
+        new ConcurrentHashMap<>(2);
+
+    final Set<Node> discoveryNodes =
+        Collections.newSetFromMap(new ConcurrentHashMap<>(nodes.size()));
+    discoveryNodes.addAll(nodes);
+
+    final List<ForkJoinTask<?>> voteFutures =
+        new ArrayList<>(masterPools.size() + slavePools.size());
+
+    final ForkJoinPool forkJoinPool = ForkJoinPool.commonPool();
+
+    for (final Entry<Node, ClientPool<RedisClient>> pool : masterPools.entrySet()) {
+      voteFutures.add(forkJoinPool.submit(() -> getSlotNodesVotes(clusterSlots, pool)));
+      discoveryNodes.remove(pool.getKey());
+    }
+
+    for (final Entry<Node, ClientPool<RedisClient>> pool : slavePools.entrySet()) {
+      voteFutures.add(forkJoinPool.submit(() -> getSlotNodesVotes(clusterSlots, pool)));
+      discoveryNodes.remove(pool.getKey());
+    }
+
+    discoveryNodes.parallelStream().forEach(node -> {
+      try (final RedisClient client = nodeUnknownFactory.apply(node)) {
+        final ClusterSlotVotes slotNodes =
+            client.sendCmd(ClusterCmds.CLUSTER, ClusterCmds.CLUSTER_SLOTS);
+
+        final ClusterSlotVotes existingValue = clusterSlots.putIfAbsent(slotNodes, slotNodes);
+        if (existingValue == null) {
+          slotNodes.addVote(node, () -> Collections.newSetFromMap(new ConcurrentHashMap<>()));
+        } else {
+          existingValue.addVote(node, () -> Collections.newSetFromMap(new ConcurrentHashMap<>()));
+        }
+      } catch (final RedisConnectionException | RedisRetryableUnhandledException e) {
+        //
+      }
+    });
+
+    for (final ForkJoinTask<?> voteFuture : voteFutures) {
+      voteFuture.join();
+    }
+
+    final List<ClusterSlotVotes> sortedClusterNodes = new ArrayList<>(clusterSlots.size());
+    clusterSlots.values().stream().sorted().forEach(sortedClusterNodes::add);
+
+    return sortedClusterNodes;
+  }
+
+  private static void getSlotNodesVotes(
+      final ConcurrentHashMap<ClusterSlotVotes, ClusterSlotVotes> clusterSlots,
+      final Entry<Node, ClientPool<RedisClient>> pool) {
+    try {
+      // TODO create borrowIfPresent to prevent blocking on exhausted pool.
+      final RedisClient client = RedisClientPool.borrowClient(pool.getValue());
+      try {
+        final ClusterSlotVotes slotNodes =
+            client.sendCmd(ClusterCmds.CLUSTER, ClusterCmds.CLUSTER_SLOTS);
+
+        final ClusterSlotVotes existingValue = clusterSlots.putIfAbsent(slotNodes, slotNodes);
+        if (existingValue == null) {
+          slotNodes.addVote(pool.getKey(),
+              () -> Collections.newSetFromMap(new ConcurrentHashMap<>()));
+        } else {
+          existingValue.addVote(pool.getKey(),
+              () -> Collections.newSetFromMap(new ConcurrentHashMap<>()));
+        }
+      } finally {
+        RedisClientPool.returnClient(pool.getValue(), client);
+      }
+    } catch (final RedisConnectionException | RedisRetryableUnhandledException e) {
+      //
+    }
+  }
+
+  void discoverClusterSlots() {
+    discoverClusterSlots((RedisClient) null);
+  }
+
   void discoverClusterSlots(final RedisClient client) {
 
     long dedupeDiscovery;
@@ -274,132 +376,115 @@ class RedisClusterSlotCache implements AutoCloseable {
 
     try {
       if (maxAwaitCacheRefreshNanos == 0) {
-
         dedupeDiscovery = refreshStamp;
         writeStamp = lock.writeLock();
       } else {
         dedupeDiscovery = refreshStamp;
         writeStamp = lock.tryWriteLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
+        if (writeStamp == 0) {
+          // allow dirty retry
+          return;
+        }
       }
     } catch (final InterruptedException ie) {
-      // allow dirty retry.
-      return;
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(ie);
     }
 
     try {
-
       if (dedupeDiscovery != refreshStamp) {
         return;
       }
 
-      // otherwise allow dirty reads
-      if (!optimisticReads && maxAwaitCacheRefreshNanos == 0) {
-        Arrays.fill(masterSlots, null);
-        Arrays.fill(slaveSlots, null);
-      }
-
-      final Set<Node> staleMasterPools = new HashSet<>(masterPools.keySet());
-      final Set<Node> staleSlavePools = new HashSet<>(slavePools.keySet());
-
-      final long delayMillis =
-          (refreshStamp + millisBetweenSlotCacheRefresh) - System.currentTimeMillis();
-
-      if (delayMillis > 0) {
-        try {
-          Thread.sleep(delayMillis);
-        } catch (final InterruptedException ie) {
-          Thread.currentThread().interrupt();
-          throw new IllegalStateException(ie);
-        }
-      }
-
-      for (final Object slotInfoObj : client.clusterSlots()) {
-
-        final Object[] slotInfo = (Object[]) slotInfoObj;
-
-        final int slotBegin = RESP.longToInt(slotInfo[0]);
-        final int slotEnd = RESP.longToInt(slotInfo[1]) + 1;
-
-        switch (defaultReadMode) {
-          case MIXED_SLAVES:
-          case MIXED:
-          case MASTER:
-            final Node masterNode = Node.create(hostPortMapper, (Object[]) slotInfo[2]);
-            discoveryNodes.compute(masterNode.getHostPort(), (hostPort, known) -> {
-              if (known == null) {
-                return masterNode;
-              }
-              known.updateId(masterNode.getId());
-              return known;
-            });
-
-            final ClientPool<RedisClient> masterPool = masterPoolFactory.apply(masterNode);
-            masterPools.put(masterNode, masterPool);
-            staleMasterPools.remove(masterNode);
-
-            Arrays.fill(masterSlots, slotBegin, slotEnd, masterPool);
-            break;
-          case SLAVES:
-          default:
-            break;
-        }
-
-        final int slotInfoSize = slotInfo.length;
-        if (slotInfoSize < 4) {
-          continue;
-        }
-
-        final ClientPool<RedisClient>[] slotSlavePools =
-            defaultReadMode == ReadMode.MASTER ? null : new ClientPool[slotInfoSize - 3];
-
-        for (int i = 3, poolIndex = 0; i < slotInfoSize; i++) {
-
-          final Node slaveNode = Node.create(hostPortMapper, (Object[]) slotInfo[i]);
-          discoveryNodes.compute(slaveNode.getHostPort(), (hostPort, known) -> {
-            if (known == null) {
-              return slaveNode;
+      switch (partitionedStrategy) {
+        case FIRST:
+          if (client != null) {
+            try {
+              cacheClusterSlots(client.sendCmd(ClusterCmds.CLUSTER, ClusterCmds.CLUSTER_SLOTS));
+              return;
+            } catch (final RedisConnectionException | RedisRetryableUnhandledException e) {
+              // try all other known nodes...
             }
-            known.updateId(slaveNode.getId());
-            return known;
-          });
-
-          switch (defaultReadMode) {
-            case SLAVES:
-            case MIXED:
-            case MIXED_SLAVES:
-              staleSlavePools.remove(slaveNode);
-              slotSlavePools[poolIndex++] = slavePools.computeIfAbsent(slaveNode, slavePoolFactory);
-              break;
-            case MASTER:
-            default:
-              break;
           }
-        }
 
-        if (defaultReadMode != ReadMode.MASTER) {
+          final Set<Node> discoveryNodes = new HashSet<>(discoveryNodeSupplier.get());
 
-          final LoadBalancedPools<RedisClient, ReadMode> lbPools = lbFactory.apply(slotSlavePools);
-          Arrays.fill(slaveSlots, slotBegin, slotEnd, lbPools);
-        }
+          for (final Entry<Node, ClientPool<RedisClient>> masterPool : masterPools.entrySet()) {
+            try {
+              final RedisClient master = RedisClientPool.borrowClient(masterPool.getValue());
+              try {
+                cacheClusterSlots(master.sendCmd(ClusterCmds.CLUSTER, ClusterCmds.CLUSTER_SLOTS));
+                return;
+              } finally {
+                RedisClientPool.returnClient(masterPool.getValue(), master);
+              }
+            } catch (final RedisConnectionException | RedisRetryableUnhandledException e) {
+              discoveryNodes.remove(masterPool.getKey());
+            }
+          }
+
+          for (final Entry<Node, ClientPool<RedisClient>> slavePool : slavePools.entrySet()) {
+            try {
+              final RedisClient slave = RedisClientPool.borrowClient(slavePool.getValue());
+              try {
+                cacheClusterSlots(slave.sendCmd(ClusterCmds.CLUSTER, ClusterCmds.CLUSTER_SLOTS));
+                return;
+              } finally {
+                RedisClientPool.returnClient(slavePool.getValue(), slave);
+              }
+            } catch (final RedisConnectionException | RedisRetryableUnhandledException e) {
+              discoveryNodes.remove(slavePool.getKey());
+            }
+          }
+
+          for (final Node discoveryNode : discoveryNodes) {
+            try (final RedisClient discoveryNodeClient = nodeUnknownFactory.apply(discoveryNode)) {
+              cacheClusterSlots(
+                  discoveryNodeClient.sendCmd(ClusterCmds.CLUSTER, ClusterCmds.CLUSTER_SLOTS));
+              return;
+            } catch (final RedisConnectionException | RedisRetryableUnhandledException e) {
+              // try next discovery node...
+            }
+          }
+          return;
+        case THROW:
+          List<ClusterSlotVotes> slotNodesVotes = getSlotNodesVotes(discoveryNodeSupplier.get(),
+              nodeUnknownFactory, masterPools, slavePools);
+
+          if (slotNodesVotes.size() > 1) {
+            throw new RedisClusterPartitionedException(slotNodesVotes);
+          }
+
+          if (!slotNodesVotes.isEmpty()) {
+            cacheClusterSlots(slotNodesVotes.get(0));
+          }
+
+          return;
+        case MAJORITY:
+          slotNodesVotes = getSlotNodesVotes(discoveryNodeSupplier.get(), nodeUnknownFactory,
+              masterPools, slavePools);
+
+          if (slotNodesVotes.size() > 1
+              && slotNodesVotes.get(0).getNodeVotes().size() <= slotNodesVotes.size() / 2) {
+            throw new RedisClusterPartitionedException(slotNodesVotes);
+          }
+
+          if (!slotNodesVotes.isEmpty()) {
+            cacheClusterSlots(slotNodesVotes.get(0));
+          }
+
+          return;
+        case TOP:
+          slotNodesVotes = getSlotNodesVotes(discoveryNodeSupplier.get(), nodeUnknownFactory,
+              masterPools, slavePools);
+
+          if (!slotNodesVotes.isEmpty()) {
+            cacheClusterSlots(slotNodesVotes.get(0));
+          }
+          return;
+        default:
+          return;
       }
-
-      staleMasterPools.stream().peek(clusterNodeRetryDelay::clear).map(masterPools::remove)
-          .filter(Objects::nonNull).forEach(pool -> {
-            try {
-              pool.close();
-            } catch (final RuntimeException e) {
-              // closing anyways...
-            }
-          });
-
-      staleSlavePools.stream().peek(clusterNodeRetryDelay::clear).map(slavePools::remove)
-          .filter(Objects::nonNull).forEach(pool -> {
-            try {
-              pool.close();
-            } catch (final RuntimeException e) {
-              // closing anyways...
-            }
-          });
     } finally {
       try {
         refreshStamp = System.currentTimeMillis();
@@ -407,6 +492,97 @@ class RedisClusterSlotCache implements AutoCloseable {
         lock.unlockWrite(writeStamp);
       }
     }
+  }
+
+  private void cacheClusterSlots(final ClusterSlotVotes clusterSlots) {
+
+    // otherwise allow dirty reads
+    if (!optimisticReads && maxAwaitCacheRefreshNanos == 0) {
+      Arrays.fill(masterSlots, null);
+      Arrays.fill(slaveSlots, null);
+    }
+
+    final Set<Node> staleMasterPools = new HashSet<>(masterPools.keySet());
+    final Set<Node> staleSlavePools = new HashSet<>(slavePools.keySet());
+
+    final long delayMillis =
+        (refreshStamp + millisBetweenSlotCacheRefresh) - System.currentTimeMillis();
+
+    if (delayMillis > 0) {
+      try {
+        Thread.sleep(delayMillis);
+      } catch (final InterruptedException ie) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException(ie);
+      }
+    }
+
+    for (final SlotNodes slotNodes : clusterSlots.getClusterSlots()) {
+
+      switch (defaultReadMode) {
+        case MIXED_SLAVES:
+        case MIXED:
+        case MASTER:
+          final Node masterNode = hostPortMapper.apply(slotNodes.getNodes()[0]);
+
+          final ClientPool<RedisClient> masterPool = masterPoolFactory.apply(masterNode);
+          masterPools.put(masterNode, masterPool);
+          staleMasterPools.remove(masterNode);
+
+          Arrays.fill(masterSlots, slotNodes.getSlotBegin(), slotNodes.getSlotEndExclusive(),
+              masterPool);
+          break;
+        case SLAVES:
+        default:
+          break;
+      }
+
+      final int slotInfoLength = slotNodes.getNodes().length;
+      if (slotInfoLength < 2 || defaultReadMode == ReadMode.MASTER) {
+        continue;
+      }
+
+      @SuppressWarnings("unchecked")
+      final ClientPool<RedisClient>[] slotSlavePools = new ClientPool[slotInfoLength - 1];
+
+      for (int i = 1, poolIndex = 0; i < slotInfoLength; i++) {
+
+        final Node slaveNode = hostPortMapper.apply(slotNodes.getNodes()[i]);
+
+        switch (defaultReadMode) {
+          case SLAVES:
+          case MIXED:
+          case MIXED_SLAVES:
+            staleSlavePools.remove(slaveNode);
+            slotSlavePools[poolIndex++] = slavePools.computeIfAbsent(slaveNode, slavePoolFactory);
+            break;
+          case MASTER:
+          default:
+            break;
+        }
+      }
+
+      final LoadBalancedPools<RedisClient, ReadMode> lbPools = lbFactory.apply(slotSlavePools);
+      Arrays.fill(slaveSlots, slotNodes.getSlotBegin(), slotNodes.getSlotEndExclusive(), lbPools);
+    }
+
+    staleMasterPools.stream().peek(clusterNodeRetryDelay::clear).map(masterPools::remove)
+        .filter(Objects::nonNull).forEach(pool -> {
+          try {
+            pool.close();
+          } catch (final RuntimeException e) {
+            // closing anyways...
+          }
+        });
+
+    staleSlavePools.stream().peek(clusterNodeRetryDelay::clear).map(slavePools::remove)
+        .filter(Objects::nonNull).forEach(pool -> {
+          try {
+            pool.close();
+          } catch (final RuntimeException e) {
+            // closing anyways...
+          }
+        });
   }
 
   ClientPool<RedisClient> getAskPool(final Node askNode) {
@@ -421,8 +597,8 @@ class RedisClusterSlotCache implements AutoCloseable {
         readStamp = maxAwaitCacheRefreshNanos == 0 ? lock.readLock()
             : lock.tryReadLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
       } catch (final InterruptedException ie) {
-        // allow dirty read.
-        readStamp = 0;
+        Thread.currentThread().interrupt();
+        throw new RuntimeException(ie);
       }
 
       try {
@@ -487,8 +663,8 @@ class RedisClusterSlotCache implements AutoCloseable {
       readStamp = maxAwaitCacheRefreshNanos == 0 ? lock.readLock()
           : lock.tryReadLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
     } catch (final InterruptedException ie) {
-      // allow dirty read.
-      readStamp = 0;
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(ie);
     }
 
     try {
@@ -566,8 +742,8 @@ class RedisClusterSlotCache implements AutoCloseable {
       readStamp = maxAwaitCacheRefreshNanos == 0 ? lock.readLock()
           : lock.tryReadLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
     } catch (final InterruptedException ie) {
-      // allow dirty read.
-      readStamp = 0;
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(ie);
     }
 
     try {
@@ -590,8 +766,8 @@ class RedisClusterSlotCache implements AutoCloseable {
       readStamp = maxAwaitCacheRefreshNanos == 0 ? lock.readLock()
           : lock.tryReadLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
     } catch (final InterruptedException ie) {
-      // allow dirty read.
-      readStamp = 0;
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(ie);
     }
 
     try {
@@ -622,8 +798,8 @@ class RedisClusterSlotCache implements AutoCloseable {
       readStamp = maxAwaitCacheRefreshNanos == 0 ? lock.readLock()
           : lock.tryReadLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
     } catch (final InterruptedException ie) {
-      // allow dirty read.
-      readStamp = 0;
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(ie);
     }
 
     try {
@@ -651,8 +827,8 @@ class RedisClusterSlotCache implements AutoCloseable {
       readStamp = maxAwaitCacheRefreshNanos == 0 ? lock.readLock()
           : lock.tryReadLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
     } catch (final InterruptedException ie) {
-      // allow dirty read.
-      readStamp = 0;
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(ie);
     }
 
     try {
@@ -678,8 +854,8 @@ class RedisClusterSlotCache implements AutoCloseable {
       readStamp = maxAwaitCacheRefreshNanos == 0 ? lock.readLock()
           : lock.tryReadLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
     } catch (final InterruptedException ie) {
-      // allow dirty read.
-      readStamp = 0;
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(ie);
     }
 
     try {
@@ -708,8 +884,8 @@ class RedisClusterSlotCache implements AutoCloseable {
       readStamp = maxAwaitCacheRefreshNanos == 0 ? lock.readLock()
           : lock.tryReadLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
     } catch (final InterruptedException ie) {
-      // allow dirty read.
-      readStamp = 0;
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(ie);
     }
 
     try {
@@ -725,25 +901,21 @@ class RedisClusterSlotCache implements AutoCloseable {
     }
   }
 
-  Collection<Node> getDiscoveryNodes() {
-
-    return discoveryNodes.values();
-  }
-
   @Override
   public void close() {
 
-    long writeStamp;
+    InterruptedException ie = null;
+    long writeStamp = 0;
     try {
       writeStamp = lock.tryWriteLock(Math.min(1_000_000_000, maxAwaitCacheRefreshNanos),
           TimeUnit.NANOSECONDS);
-    } catch (final InterruptedException e1) {
+    } catch (final InterruptedException e) {
       // allow dirty write.
-      writeStamp = 0;
+      ie = e;
     }
 
     try {
-      discoveryNodes.clear();
+      discoveryNodeSupplier = () -> Collections.emptySet();
 
       masterPools.forEach((node, pool) -> {
         try {
@@ -776,13 +948,17 @@ class RedisClusterSlotCache implements AutoCloseable {
       if (writeStamp > 0) {
         lock.unlockWrite(writeStamp);
       }
+      if (ie != null) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException(ie);
+      }
     }
   }
 
   @Override
   public String toString() {
     return new StringBuilder("RedisClusterSlotCache [defaultReadMode=").append(defaultReadMode)
-        .append(", discoveryNodes=").append(discoveryNodes).append(", optimisticReads=")
+        .append(", discoveryNodes=").append(discoveryNodeSupplier).append(", optimisticReads=")
         .append(optimisticReads).append(", maxAwaitCacheRefreshNanos=")
         .append(maxAwaitCacheRefreshNanos).append(", millisBetweenSlotCacheRefresh=")
         .append(millisBetweenSlotCacheRefresh).append(", refreshStamp=").append(refreshStamp)

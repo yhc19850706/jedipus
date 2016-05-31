@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.client.RedisPipeline;
@@ -25,10 +26,15 @@ public interface RedisClusterExecutor extends PrimClusterExecutor, AutoCloseable
 
   public static Builder startBuilding(final Node... discoveryNodes) {
 
-    return new Jedipus.Builder(Arrays.asList(discoveryNodes));
+    return startBuilding(Arrays.asList(discoveryNodes));
   }
 
   public static Builder startBuilding(final Collection<Node> discoveryNodes) {
+
+    return startBuilding(() -> discoveryNodes);
+  }
+
+  public static Builder startBuilding(final Supplier<Collection<Node>> discoveryNodes) {
 
     return new Jedipus.Builder(discoveryNodes);
   }

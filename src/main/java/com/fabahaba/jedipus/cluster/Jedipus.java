@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 
 import com.fabahaba.jedipus.client.RedisClient;
@@ -22,8 +23,8 @@ import com.fabahaba.jedipus.exceptions.RedisRetryableUnhandledException;
 import com.fabahaba.jedipus.exceptions.SlotRedirectException;
 import com.fabahaba.jedipus.pool.ClientPool;
 import com.fabahaba.jedipus.pool.EvictionStrategy;
-import com.fabahaba.jedipus.pool.RedisClientPool;
 import com.fabahaba.jedipus.pool.EvictionStrategy.DefaultEvictionStrategy;
+import com.fabahaba.jedipus.pool.RedisClientPool;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
 public final class Jedipus implements RedisClusterExecutor {
@@ -117,9 +118,10 @@ public final class Jedipus implements RedisClusterExecutor {
   private final boolean retryUnhandledRetryableExceptions;
   private final RedisClusterConnHandler connHandler;
 
-  private Jedipus(final ReadMode defaultReadMode, final Collection<Node> discoveryNodes,
-      final Function<Node, Node> hostPortMapper, final int maxRedirections, final int maxRetries,
-      final int tryRandomAfter, final ElementRetryDelay<Node> clusterNodeRetryDelay,
+  private Jedipus(final ReadMode defaultReadMode, final Supplier<Collection<Node>> discoveryNodes,
+      final PartitionedStrategy partitionedStrategy, final Function<Node, Node> hostPortMapper,
+      final int maxRedirections, final int maxRetries, final int tryRandomAfter,
+      final ElementRetryDelay<Node> clusterNodeRetryDelay,
       final boolean retryUnhandledRetryableExceptions, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
       final Function<Node, ClientPool<RedisClient>> masterPoolFactory,
@@ -128,8 +130,9 @@ public final class Jedipus implements RedisClusterExecutor {
       final Function<ClientPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> lbFactory) {
 
     this.connHandler = new RedisClusterConnHandler(defaultReadMode, optimisticReads,
-        durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes, hostPortMapper,
-        masterPoolFactory, slavePoolFactory, nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
+        durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes, partitionedStrategy,
+        hostPortMapper, masterPoolFactory, slavePoolFactory, nodeUnknownFactory, lbFactory,
+        clusterNodeRetryDelay);
 
     this.maxRedirections = maxRedirections;
     this.maxRetries = maxRetries;
@@ -198,9 +201,9 @@ public final class Jedipus implements RedisClusterExecutor {
       }
 
       if (client == null) {
-        connHandler.renewSlotCache(readMode);
+        connHandler.renewSlotCache();
       } else {
-        connHandler.renewSlotCache(readMode, client);
+        connHandler.renewSlotCache(client);
       }
 
       previousRedirectEx = moveEx;
@@ -264,9 +267,9 @@ public final class Jedipus implements RedisClusterExecutor {
         }
 
         if (client == null) {
-          connHandler.renewSlotCache(readMode);
+          connHandler.renewSlotCache();
         } else {
-          connHandler.renewSlotCache(readMode, client);
+          connHandler.renewSlotCache(client);
         }
 
         previousRedirectEx = moveEx;
@@ -331,9 +334,9 @@ public final class Jedipus implements RedisClusterExecutor {
       }
 
       if (client == null) {
-        connHandler.renewSlotCache(readMode);
+        connHandler.renewSlotCache();
       } else {
-        connHandler.renewSlotCache(readMode, client);
+        connHandler.renewSlotCache(client);
       }
 
       previousRedirectEx = moveEx;
@@ -397,9 +400,9 @@ public final class Jedipus implements RedisClusterExecutor {
         }
 
         if (client == null) {
-          connHandler.renewSlotCache(readMode);
+          connHandler.renewSlotCache();
         } else {
-          connHandler.renewSlotCache(readMode, client);
+          connHandler.renewSlotCache(client);
         }
 
         previousRedirectEx = moveEx;
@@ -430,7 +433,7 @@ public final class Jedipus implements RedisClusterExecutor {
       ClientPool<RedisClient> pool = connHandler.getPoolIfPresent(node);
       if (pool == null) {
 
-        connHandler.renewSlotCache(getDefaultReadMode());
+        connHandler.renewSlotCache();
         pool = connHandler.getPoolIfPresent(node);
         if (pool == null) {
           return null;
@@ -562,7 +565,7 @@ public final class Jedipus implements RedisClusterExecutor {
   @Override
   public void refreshSlotCache() {
 
-    connHandler.renewSlotCache(getDefaultReadMode());
+    connHandler.renewSlotCache();
   }
 
   @Override
@@ -583,7 +586,8 @@ public final class Jedipus implements RedisClusterExecutor {
   public static final class Builder {
 
     private ReadMode defaultReadMode = ReadMode.MASTER;
-    private Collection<Node> discoveryNodes;
+    private Supplier<Collection<Node>> discoveryNodes;
+    private PartitionedStrategy partitionedStrategy = PartitionedStrategy.FIRST;
     private Function<Node, Node> hostPortMapper = Node.DEFAULT_HOSTPORT_MAPPER;
     private int maxRedirections = DEFAULT_MAX_REDIRECTIONS;
     private int maxRetries = DEFAULT_MAX_RETRIES;
@@ -604,17 +608,17 @@ public final class Jedipus implements RedisClusterExecutor {
     // pools are available.
     private Duration maxAwaitCacheRefresh = DEFAULT_MAX_AWAIT_CACHE_REFRESH;
 
-    Builder(final Collection<Node> discoveryNodes) {
+    Builder(final Supplier<Collection<Node>> discoveryNodes) {
 
       this.discoveryNodes = discoveryNodes;
     }
 
     public RedisClusterExecutor create() {
 
-      return new Jedipus(defaultReadMode, discoveryNodes, hostPortMapper, maxRedirections,
-          maxRetries, tryRandomAfter, clusterNodeRetryDelay, retryUnhandledRetryableExceptions,
-          optimisticReads, durationBetweenCacheRefresh, maxAwaitCacheRefresh, masterPoolFactory,
-          slavePoolFactory, nodeUnknownFactory,
+      return new Jedipus(defaultReadMode, discoveryNodes, partitionedStrategy, hostPortMapper,
+          maxRedirections, maxRetries, tryRandomAfter, clusterNodeRetryDelay,
+          retryUnhandledRetryableExceptions, optimisticReads, durationBetweenCacheRefresh,
+          maxAwaitCacheRefresh, masterPoolFactory, slavePoolFactory, nodeUnknownFactory,
           slavePools -> lbFactory.apply(defaultReadMode, slavePools));
     }
 
@@ -627,12 +631,26 @@ public final class Jedipus implements RedisClusterExecutor {
       return this;
     }
 
-    public Collection<Node> getDiscoveryNodes() {
+    public Supplier<Collection<Node>> getDiscoveryNodeSupplier() {
       return discoveryNodes;
     }
 
     public Builder withDiscoveryNodes(final Collection<Node> discoveryNodes) {
+      this.discoveryNodes = () -> discoveryNodes;
+      return this;
+    }
+
+    public Builder withDiscoveryNodeSupplier(final Supplier<Collection<Node>> discoveryNodes) {
       this.discoveryNodes = discoveryNodes;
+      return this;
+    }
+
+    public PartitionedStrategy getPartitionedStrategy() {
+      return partitionedStrategy;
+    }
+
+    public Builder withPartitionedStrategy(final PartitionedStrategy partitionedStrategy) {
+      this.partitionedStrategy = partitionedStrategy;
       return this;
     }
 

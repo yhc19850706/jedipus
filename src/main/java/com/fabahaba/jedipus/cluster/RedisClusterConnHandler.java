@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
@@ -21,7 +22,8 @@ class RedisClusterConnHandler implements AutoCloseable {
 
   RedisClusterConnHandler(final ReadMode defaultReadMode, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
-      final Collection<Node> discoveryNodes, final Function<Node, Node> hostPortMapper,
+      final Supplier<Collection<Node>> discoveryNodes,
+      final PartitionedStrategy partitionedStrategy, final Function<Node, Node> hostPortMapper,
       final Function<Node, ClientPool<RedisClient>> masterPoolFactory,
       final Function<Node, ClientPool<RedisClient>> slavePoolFactory,
       final Function<Node, RedisClient> nodeUnknownFactory,
@@ -29,27 +31,24 @@ class RedisClusterConnHandler implements AutoCloseable {
       final ElementRetryDelay<Node> clusterNodeRetryDelay) {
 
     this.slotPoolCache = RedisClusterSlotCache.create(defaultReadMode, optimisticReads,
-        durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes, hostPortMapper,
-        masterPoolFactory, slavePoolFactory, nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
+        durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes, partitionedStrategy,
+        hostPortMapper, masterPoolFactory, slavePoolFactory, nodeUnknownFactory, lbFactory,
+        clusterNodeRetryDelay);
   }
 
   ReadMode getDefaultReadMode() {
-
     return slotPoolCache.getDefaultReadMode();
   }
 
   ElementRetryDelay<Node> getClusterNodeRetryDelay() {
-
     return slotPoolCache.getClusterNodeRetryDelay();
   }
 
   RedisClient createUnknownNode(final Node unknown) {
-
     return slotPoolCache.getNodeUnknownFactory().apply(unknown);
   }
 
   ClientPool<RedisClient> getRandomPool(final ReadMode readMode) {
-
     return getPool(readMode, -1);
   }
 
@@ -95,81 +94,49 @@ class RedisClusterConnHandler implements AutoCloseable {
   }
 
   ClientPool<RedisClient> getSlotPool(final ReadMode readMode, final int slot) {
-
     final ClientPool<RedisClient> pool = slotPoolCache.getSlotPool(readMode, slot);
 
     return pool == null ? getPool(readMode, slot) : pool;
   }
 
   ClientPool<RedisClient> getAskPool(final Node askNode) {
-
     return slotPoolCache.getAskPool(askNode);
   }
 
   Map<Node, ClientPool<RedisClient>> getMasterPools() {
-
     return slotPoolCache.getMasterPools();
   }
 
   Map<Node, ClientPool<RedisClient>> getSlavePools() {
-
     return slotPoolCache.getSlavePools();
   }
 
   Map<Node, ClientPool<RedisClient>> getAllPools() {
-
     return slotPoolCache.getAllPools();
   }
 
   ClientPool<RedisClient> getMasterPoolIfPresent(final Node node) {
-
     return slotPoolCache.getMasterPoolIfPresent(node);
   }
 
   ClientPool<RedisClient> getSlavePoolIfPresent(final Node node) {
-
     return slotPoolCache.getSlavePoolIfPresent(node);
   }
 
   ClientPool<RedisClient> getPoolIfPresent(final Node node) {
-
     return slotPoolCache.getPoolIfPresent(node);
   }
 
-  void renewSlotCache(final ReadMode readMode) {
-
-    for (final ClientPool<RedisClient> pool : slotPoolCache.getPools(readMode).values()) {
-
-      RedisClient client = null;
-      try {
-        client = RedisClientPool.borrowClient(pool);
-
-        slotPoolCache.discoverClusterSlots(client);
-        return;
-      } catch (final RedisConnectionException e) {
-        // try next pool...
-      } finally {
-        RedisClientPool.returnClient(pool, client);
-      }
-    }
-
+  void renewSlotCache() {
     slotPoolCache.discoverClusterSlots();
   }
 
-  void renewSlotCache(final ReadMode readMode, final RedisClient client) {
-
-    try {
-
-      slotPoolCache.discoverClusterSlots(client);
-    } catch (final RedisConnectionException e) {
-
-      renewSlotCache(readMode);
-    }
+  void renewSlotCache(final RedisClient client) {
+    slotPoolCache.discoverClusterSlots(client);
   }
 
   @Override
   public void close() {
-
     slotPoolCache.close();
   }
 
