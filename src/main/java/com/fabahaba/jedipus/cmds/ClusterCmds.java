@@ -384,13 +384,16 @@ public interface ClusterCmds extends DirectCmds {
       if (getClass() != obj.getClass())
         return false;
       final SlotNodes other = (SlotNodes) obj;
-      if (!Arrays.equals(nodes, other.nodes))
-        return false;
       if (slotBegin != other.slotBegin)
         return false;
       if (slotEndExclusive != other.slotEndExclusive)
         return false;
-      return true;
+      if (nodes.length == 0)
+        return other.nodes.length == 0;
+      if (other.nodes.length == 0)
+        return false;
+
+      return nodes[0].equals(other.nodes[0]);
     }
   }
 }
