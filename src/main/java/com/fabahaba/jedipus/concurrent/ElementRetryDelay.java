@@ -66,6 +66,11 @@ public interface ElementRetryDelay<E> {
    */
   void clear(final E element);
 
+  /**
+   * 
+   * @param element The element to retrieve the number of consecutive failures for.
+   * @return The number of consecutive failures for this element.
+   */
   long getNumFailures(final E element);
 
   /**

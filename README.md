@@ -15,14 +15,15 @@
   * Reuse known slot integers for direct O(1) primitive array access to a corresponding `RedisClient` pool.
 * Zero dependencies and PGP signed releases.  [Bintray](https://bintray.com/jamespedwards42/libs/jedipus/_latestVersion) verifies signatures automatically.  See [verifying your Jedipus jar](scripts/gpgVerifyJedipus.sh).
 * [SSL support](https://github.com/jamespedwards42/jedipus/blob/master/src/integ/java/com/fabahaba/jedipus/client/SSLClientTest.java#L45).
-* Optional user supplied [`Node`](src/main/java/com/fabahaba/jedipus/cluster/Node.java) -> `ClientPool<RedisClient>` factories.
-* Optional user supplied [`LoadBalancedPools`](src/main/java/com/fabahaba/jedipus/concurrent/LoadBalancedPools.java) factories.  By default, a [round robin strategy](src/main/java/com/fabahaba/jedipus/cluster/RoundRobinPools.java) is used.
+* Optional user supplied [`Node`](src/main/java/com/fabahaba/jedipus/cluster/Node.java#L8) -> `ClientPool<RedisClient>` factories.
+* Optional user supplied [`LoadBalancedPools`](src/main/java/com/fabahaba/jedipus/concurrent/LoadBalancedPools.java#L5) factories.  By default, a [round robin strategy](src/main/java/com/fabahaba/jedipus/cluster/RoundRobinPools.java) is used.
 * [Client side HostPort mapping](https://gist.github.com/jamespedwards42/5037cf03768280ab1d81a88e7929c608) to internally-networked clusters.
-* Configurable `RedisConnectionException` [retry delays](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java) per cluster node.  By default, an [exponential back-off delay](src/main/java/com/fabahaba/jedipus/concurrent/SemaphoredRetryDelay.java) is used.
+* Configurable `RedisConnectionException` [retry delays](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java#L9) per cluster node.  By default, an [exponential back-off delay](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java#L143) is used.
 * Execute directly against known or random nodes.
-* [Lua script utilities](src/main/java/com/fabahaba/jedipus/lua/LuaScript.java).
+* [Lua script utilities](src/main/java/com/fabahaba/jedipus/lua/LuaScript.java#L25).
 * Frequent point releases for new features, utilities and bug fixes.
 * [Pub/Sub support](https://gist.github.com/jamespedwards42/5d2d77da970854fb40af707cc44dc3cd).
+* [Cluster partition handling](src/main/java/com/fabahaba/jedipus/cluster/PartitionedStrategy.java#L3) on slot cache discovery.
 
 ######Read Modes
 >Read modes control how pools to master and slave nodes are managed.
