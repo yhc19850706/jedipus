@@ -20,7 +20,7 @@
 * [Client side HostPort mapping](https://gist.github.com/jamespedwards42/5037cf03768280ab1d81a88e7929c608) to internally-networked clusters.
 * Configurable `RedisConnectionException` [retry delays](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java) per cluster node.  By default, an [exponential back-off delay](src/main/java/com/fabahaba/jedipus/concurrent/SemaphoredRetryDelay.java) is used.
 * Execute directly against known or random nodes.
-* Utilities to manage and execute Lua scripts, see this [RedisLock Gist](https://gist.github.com/jamespedwards42/46bc6fcd6e2c81315d2d63a4e80b527f).
+* [Lua script utilities](src/main/java/com/fabahaba/jedipus/lua/LuaScript.java).
 * Frequent point releases for new features, utilities and bug fixes.
 * [Pub/Sub support](https://gist.github.com/jamespedwards42/5d2d77da970854fb40af707cc44dc3cd).
 
