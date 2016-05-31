@@ -22,8 +22,8 @@ import java.util.function.Supplier;
 
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
-import com.fabahaba.jedipus.cmds.ClusterCmds.ClusterSlotVotes;
-import com.fabahaba.jedipus.cmds.ClusterCmds.SlotNodes;
+import com.fabahaba.jedipus.cluster.data.ClusterSlotVotes;
+import com.fabahaba.jedipus.cluster.data.SlotNodes;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 import com.fabahaba.jedipus.exceptions.RedisClusterPartitionedException;

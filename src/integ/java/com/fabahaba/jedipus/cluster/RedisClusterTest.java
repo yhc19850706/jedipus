@@ -55,7 +55,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
 
   protected final Logger log = Logger.getLogger(getClass().getSimpleName());
 
-  private static final int MAX_WAIT_CLUSTER_READY = 2000;
+  private static final int MAX_WAIT_CLUSTER_READY = 1000;
 
   private static final String ANNOUNCE_IP = Optional
       .ofNullable(System.getProperty("jedipus.redis.cluster.announceip")).orElse("127.0.0.1");
@@ -192,7 +192,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
 
         while (client.clusterSlaves(master.getId()).length != NUM_SLAVES_EACH) {
           try {
-            Thread.sleep(7);
+            Thread.sleep(10);
           } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
@@ -215,8 +215,8 @@ public class RedisClusterTest extends BaseRedisClientTest {
 
   private static boolean waitForClusterReady(final RedisClient client, final long timeout) {
 
-    for (int slept = 0, sleep = 7; !client.clusterInfo().startsWith("cluster_state:ok"); slept +=
-        sleep) {
+    for (int slept = 0, sleep = 10; !client.clusterInfo().getState()
+        .equalsIgnoreCase(RESP.OK); slept += sleep) {
 
       if (slept > timeout) {
         return false;

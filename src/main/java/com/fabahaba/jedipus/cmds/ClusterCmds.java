@@ -1,13 +1,12 @@
 package com.fabahaba.jedipus.cmds;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Supplier;
 
 import com.fabahaba.jedipus.client.HostPort;
 import com.fabahaba.jedipus.cluster.Node;
+import com.fabahaba.jedipus.cluster.data.ClusterInfo;
+import com.fabahaba.jedipus.cluster.data.ClusterSlotVotes;
 
 public interface ClusterCmds extends DirectCmds {
 
@@ -67,9 +66,9 @@ public interface ClusterCmds extends DirectCmds {
     return sendCmd(CLUSTER, DELSLOTS, slotsToBytes(slots));
   }
 
-  default String clusterInfo() {
+  default ClusterInfo clusterInfo() {
 
-    return sendCmd(CLUSTER, INFO);
+    return sendCmd(CLUSTER, CLUSTER_INFO);
   }
 
   default Object[] clusterGetKeysInSlot(final int slot, final int count) {
@@ -117,7 +116,7 @@ public interface ClusterCmds extends DirectCmds {
 
   default long clusterCountKeysInSlot(final int slot) {
 
-    return sendCmd(CLUSTER, COUNTKEYSINSLOT, RESP.toBytes(slot)).longValue();
+    return sendCmd(CLUSTER, COUNTKEYSINSLOT.prim(), RESP.toBytes(slot));
   }
 
   default String clusterSaveConfig() {
@@ -172,8 +171,8 @@ public interface ClusterCmds extends DirectCmds {
   static final Cmd<String> READONLY = Cmd.createStringReply("READONLY");
   static final Cmd<String> READWRITE = Cmd.createStringReply("READWRITE");
   static final Cmd<Long> KEYSLOT = Cmd.createCast("KEYSLOT");
-  static final Cmd<Object[]> SLOTS = Cmd.createCast("SLOTS");
   static final Cmd<Object[]> GETKEYSINSLOT = Cmd.createInPlaceStringArrayReply("GETKEYSINSLOT");
+  static final Cmd<ClusterInfo> CLUSTER_INFO = Cmd.create("INFO", ClusterInfo::create);
   static final Cmd<Long> COUNTKEYSINSLOT = Cmd.createCast("COUNTKEYSINSLOT");
 
   static final Cmd<String> SETSLOT = Cmd.createStringReply("SETSLOT");
@@ -185,8 +184,8 @@ public interface ClusterCmds extends DirectCmds {
   static final Cmd<String> FORGET = Cmd.createStringReply("FORGET");
   static final Cmd<String> NODES = Cmd.createStringReply("NODES");
   static final Cmd<Object[]> SLAVES = Cmd.createCast("SLAVES");
+  public static Cmd<ClusterSlotVotes> CLUSTER_SLOTS = Cmd.create("SLOTS", ClusterSlotVotes::create);
   static final Cmd<String> MEET = Cmd.createStringReply("MEET");
-  static final Cmd<String> INFO = Cmd.createStringReply("INFO");
   static final Cmd<String> SAVECONFIG = Cmd.createStringReply("SAVECONFIG");
   static final Cmd<String> ADDSLOTS = Cmd.createStringReply("ADDSLOTS");
   static final Cmd<String> DELSLOTS = Cmd.createStringReply("DELSLOTS");
@@ -202,7 +201,7 @@ public interface ClusterCmds extends DirectCmds {
 
   public static String getId(final HostPort hostPort, final String clusterNodes) {
 
-    final String[] lines = clusterNodes.split("\\r?\\n");
+    final String[] lines = clusterNodes.split(RESP.CRLF_REGEX);
 
     for (final String nodeInfo : lines) {
 
@@ -226,13 +225,12 @@ public interface ClusterCmds extends DirectCmds {
         }
       }
     }
-
     return null;
   }
 
   public static Map<HostPort, Node> getClusterNodes(final String clusterNodes) {
 
-    final String[] lines = clusterNodes.split("\\r?\\n");
+    final String[] lines = clusterNodes.split(RESP.CRLF_REGEX);
     final Map<HostPort, Node> nodes = new HashMap<>(lines.length);
 
     for (final String nodeInfo : lines) {
@@ -257,143 +255,5 @@ public interface ClusterCmds extends DirectCmds {
     }
 
     return nodes;
-  }
-
-  public static Cmd<ClusterSlotVotes> CLUSTER_SLOTS = Cmd.create("SLOTS", data -> {
-
-    final Object[] clusterSlotData = (Object[]) data;
-    final SlotNodes[] clusterSlots = new SlotNodes[clusterSlotData.length];
-
-    int clusterSlotsIndex = 0;
-    for (final Object slotInfoObj : clusterSlotData) {
-
-      final Object[] slotInfo = (Object[]) slotInfoObj;
-
-      final int slotBegin = RESP.longToInt(slotInfo[0]);
-      final int slotEndExclusive = RESP.longToInt(slotInfo[1]) + 1;
-      final Node[] nodes = new Node[slotInfo.length - 2];
-
-      for (int i = 2, nodesIndex = 0; i < slotInfo.length; i++, nodesIndex++) {
-        nodes[nodesIndex] = Node.create((Object[]) slotInfo[i]);
-      }
-
-      clusterSlots[clusterSlotsIndex++] = new SlotNodes(slotBegin, slotEndExclusive, nodes);
-    }
-
-    return new ClusterSlotVotes(clusterSlots);
-  });
-
-  public static final class ClusterSlotVotes implements Comparable<ClusterSlotVotes> {
-
-    private final SlotNodes[] clusterSlots;
-    private volatile Set<Node> nodeVotes = null;
-
-    public ClusterSlotVotes(final SlotNodes[] clusterNodes) {
-      this.clusterSlots = clusterNodes;
-    }
-
-    public SlotNodes[] getClusterSlots() {
-      return clusterSlots;
-    }
-
-    public Set<Node> getNodeVotes() {
-      return nodeVotes;
-    }
-
-    public ClusterSlotVotes addVote(final Node node, final Supplier<Set<Node>> setSupplier) {
-      if (nodeVotes == null) {
-        synchronized (clusterSlots) {
-          if (nodeVotes == null) {
-            nodeVotes = setSupplier.get();
-          }
-        }
-      }
-
-      nodeVotes.add(node);
-      return this;
-    }
-
-    @Override
-    public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + Arrays.hashCode(clusterSlots);
-      return result;
-    }
-
-    @Override
-    public boolean equals(final Object obj) {
-      if (this == obj)
-        return true;
-      if (obj == null)
-        return false;
-      if (getClass() != obj.getClass())
-        return false;
-      final ClusterSlotVotes other = (ClusterSlotVotes) obj;
-      if (!Arrays.equals(clusterSlots, other.clusterSlots))
-        return false;
-      return true;
-    }
-
-    @Override
-    public int compareTo(final ClusterSlotVotes other) {
-      return Integer.compare(other.nodeVotes.size(), nodeVotes.size());
-    }
-  }
-
-  public static final class SlotNodes {
-
-    private final int slotBegin;
-    private final int slotEndExclusive;
-    private final Node[] nodes;
-
-    private SlotNodes(final int slotBegin, final int slotEndExclusive, final Node[] nodes) {
-      this.slotBegin = slotBegin;
-      this.slotEndExclusive = slotEndExclusive;
-      this.nodes = nodes;
-    }
-
-    public int getSlotBegin() {
-      return slotBegin;
-    }
-
-    public int getSlotEndExclusive() {
-      return slotEndExclusive;
-    }
-
-    public Node[] getNodes() {
-      return nodes;
-    }
-
-    @Override
-    public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + Arrays.hashCode(nodes);
-      result = prime * result + slotBegin;
-      result = prime * result + slotEndExclusive;
-      return result;
-    }
-
-    @Override
-    public boolean equals(final Object obj) {
-      if (this == obj)
-        return true;
-      if (obj == null)
-        return false;
-      if (getClass() != obj.getClass())
-        return false;
-      final SlotNodes other = (SlotNodes) obj;
-      if (slotBegin != other.slotBegin)
-        return false;
-      if (slotEndExclusive != other.slotEndExclusive)
-        return false;
-      if (nodes.length == 0)
-        return other.nodes.length == 0;
-      if (other.nodes.length == 0)
-        return false;
-
-      return nodes[0].equals(other.nodes[0]);
-    }
   }
 }

@@ -2,7 +2,7 @@ package com.fabahaba.jedipus.exceptions;
 
 import java.util.List;
 
-import com.fabahaba.jedipus.cmds.ClusterCmds.ClusterSlotVotes;
+import com.fabahaba.jedipus.cluster.data.ClusterSlotVotes;
 
 @SuppressWarnings("serial")
 public class RedisClusterPartitionedException extends RedisUnhandledException {
