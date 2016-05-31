@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.StampedLock;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
@@ -160,7 +161,8 @@ class RedisClusterSlotCache implements AutoCloseable {
     switch (partitionedStrategy) {
       case FIRST:
         for (final Node discoveryNode : discoveryNodes) {
-          try (final RedisClient client = nodeUnknownFactory.apply(discoveryNode)) {
+          try (final RedisClient client =
+              nodeUnknownFactory.apply(hostPortMapper.apply(discoveryNode))) {
             initSlotCache(client.clusterSlots(), defaultReadMode, hostPortMapper, masterPoolFactory,
                 slavePoolFactory, lbFactory, masterPools, masterSlots, slavePools, slaveSlots);
             break;
@@ -170,8 +172,8 @@ class RedisClusterSlotCache implements AutoCloseable {
         }
         break;
       case THROW:
-        List<ClusterSlotVotes> slotNodesVotes =
-            getSlotNodesVotes(discoveryNodes, nodeUnknownFactory, masterPools, slavePools);
+        List<ClusterSlotVotes> slotNodesVotes = getSlotNodesVotes(discoveryNodes, hostPortMapper,
+            nodeUnknownFactory, masterPools, slavePools);
 
         if (slotNodesVotes.size() > 1) {
           throw new RedisClusterPartitionedException(slotNodesVotes);
@@ -184,8 +186,8 @@ class RedisClusterSlotCache implements AutoCloseable {
 
         break;
       case MAJORITY:
-        slotNodesVotes =
-            getSlotNodesVotes(discoveryNodes, nodeUnknownFactory, masterPools, slavePools);
+        slotNodesVotes = getSlotNodesVotes(discoveryNodes, hostPortMapper, nodeUnknownFactory,
+            masterPools, slavePools);
 
         if (slotNodesVotes.size() > 1
             && slotNodesVotes.get(0).getNodeVotes().size() <= slotNodesVotes.size() / 2) {
@@ -199,8 +201,8 @@ class RedisClusterSlotCache implements AutoCloseable {
 
         break;
       case TOP:
-        slotNodesVotes =
-            getSlotNodesVotes(discoveryNodes, nodeUnknownFactory, masterPools, slavePools);
+        slotNodesVotes = getSlotNodesVotes(discoveryNodes, hostPortMapper, nodeUnknownFactory,
+            masterPools, slavePools);
 
         if (!slotNodesVotes.isEmpty()) {
           initSlotCache(slotNodesVotes.get(0), defaultReadMode, hostPortMapper, masterPoolFactory,
@@ -285,6 +287,7 @@ class RedisClusterSlotCache implements AutoCloseable {
   }
 
   private static List<ClusterSlotVotes> getSlotNodesVotes(final Collection<Node> nodes,
+      final Function<Node, Node> hostPortMapper,
       final Function<Node, RedisClient> nodeUnknownFactory,
       final Map<Node, ClientPool<RedisClient>> masterPools,
       final Map<Node, ClientPool<RedisClient>> slavePools) {
@@ -294,7 +297,7 @@ class RedisClusterSlotCache implements AutoCloseable {
 
     final Set<Node> discoveryNodes =
         Collections.newSetFromMap(new ConcurrentHashMap<>(nodes.size()));
-    discoveryNodes.addAll(nodes);
+    nodes.stream().map(hostPortMapper::apply).forEach(discoveryNodes::add);
 
     final List<ForkJoinTask<?>> voteFutures =
         new ArrayList<>(masterPools.size() + slavePools.size());
@@ -313,7 +316,7 @@ class RedisClusterSlotCache implements AutoCloseable {
       discoveryNodes.remove(pool.getKey());
     }
 
-    discoveryNodes.parallelStream().forEach(node -> {
+    discoveryNodes.parallelStream().map(hostPortMapper::apply).forEach(node -> {
       try (final RedisClient client = nodeUnknownFactory.apply(node)) {
         getSlotNodesVotes(clusterSlots, client);
       } catch (final RedisConnectionException | RedisRetryableUnhandledException e) {
@@ -412,7 +415,9 @@ class RedisClusterSlotCache implements AutoCloseable {
             }
           }
 
-          final Set<Node> discoveryNodes = new HashSet<>(discoveryNodeSupplier.get());
+          final Set<Node> discoveryNodes = discoveryNodeSupplier.get().stream()
+              .map(hostPortMapper::apply).collect(Collectors.toSet());
+
           if (discoverFirstClusterSlots(masterPools, discoveryNodes)
               || discoverFirstClusterSlots(slavePools, discoveryNodes)) {
             return;
@@ -429,7 +434,7 @@ class RedisClusterSlotCache implements AutoCloseable {
           return;
         case THROW:
           List<ClusterSlotVotes> slotNodesVotes = getSlotNodesVotes(discoveryNodeSupplier.get(),
-              nodeUnknownFactory, masterPools, slavePools);
+              hostPortMapper, nodeUnknownFactory, masterPools, slavePools);
 
           if (slotNodesVotes.size() > 1) {
             throw new RedisClusterPartitionedException(slotNodesVotes);
@@ -441,8 +446,8 @@ class RedisClusterSlotCache implements AutoCloseable {
 
           return;
         case MAJORITY:
-          slotNodesVotes = getSlotNodesVotes(discoveryNodeSupplier.get(), nodeUnknownFactory,
-              masterPools, slavePools);
+          slotNodesVotes = getSlotNodesVotes(discoveryNodeSupplier.get(), hostPortMapper,
+              nodeUnknownFactory, masterPools, slavePools);
 
           if (slotNodesVotes.size() > 1
               && slotNodesVotes.get(0).getNodeVotes().size() <= slotNodesVotes.size() / 2) {
@@ -455,8 +460,8 @@ class RedisClusterSlotCache implements AutoCloseable {
 
           return;
         case TOP:
-          slotNodesVotes = getSlotNodesVotes(discoveryNodeSupplier.get(), nodeUnknownFactory,
-              masterPools, slavePools);
+          slotNodesVotes = getSlotNodesVotes(discoveryNodeSupplier.get(), hostPortMapper,
+              nodeUnknownFactory, masterPools, slavePools);
 
           if (!slotNodesVotes.isEmpty()) {
             cacheClusterSlots(slotNodesVotes.get(0));

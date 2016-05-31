@@ -227,9 +227,9 @@ final class FinalClientPool<C> implements ClientPool<C> {
 
   C pollOrCreate(final long timeout, final TimeUnit unit) {
 
-    final long timeoutNanos = TimeUnit.NANOSECONDS.convert(timeout, unit);
+    long timeoutNanos = TimeUnit.NANOSECONDS.convert(timeout, unit);
 
-    CREATE: for (final long deadline = System.nanoTime() + timeoutNanos;;) {
+    CREATE: for (;;) {
       assertOpen();
 
       PooledClient<C> pooledClient = pollOrCreatePooledClient();
@@ -252,8 +252,8 @@ final class FinalClientPool<C> implements ClientPool<C> {
             break;
           }
 
-          final long maxWait = deadline - System.nanoTime();
-          if (maxWait <= 0 || !newIdleClient.await(maxWait, TimeUnit.NANOSECONDS)) {
+          timeoutNanos = newIdleClient.awaitNanos(timeoutNanos);
+          if (timeoutNanos <= 0) {
             throw new NoSuchElementException("Pool exhausted, timed out waiting for object.");
           }
           assertOpen();

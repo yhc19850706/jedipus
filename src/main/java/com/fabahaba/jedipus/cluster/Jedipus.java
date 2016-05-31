@@ -142,19 +142,16 @@ public final class Jedipus implements RedisClusterExecutor {
 
   @Override
   public ReadMode getDefaultReadMode() {
-
     return connHandler.getDefaultReadMode();
   }
 
   @Override
   public int getMaxRedirections() {
-
     return maxRedirections;
   }
 
   @Override
   public int getMaxRetries() {
-
     return maxRetries;
   }
 
@@ -171,7 +168,6 @@ public final class Jedipus implements RedisClusterExecutor {
     ClientPool<RedisClient> pool = null;
     RedisClient client = null;
     try {
-
       pool = connHandler.getSlotPool(readMode, slot);
       client = RedisClientPool.borrowClient(pool);
       final long result = clientConsumer.applyAsLong(client);
@@ -184,7 +180,6 @@ public final class Jedipus implements RedisClusterExecutor {
       client = null;
       retries = connHandler.getClusterNodeRetryDelay().markFailure(failedNode, maxRetries, rcex, 0);
     } catch (final AskNodeException askEx) {
-
       if (maxRedirections == 0) {
         throw new MaxRedirectsExceededException(askEx);
       }
@@ -197,7 +192,6 @@ public final class Jedipus implements RedisClusterExecutor {
 
       previousRedirectEx = askEx;
     } catch (final SlotRedirectException moveEx) {
-
       if (++redirections > maxRedirections) {
         throw new MaxRedirectsExceededException(moveEx);
       }
@@ -210,7 +204,6 @@ public final class Jedipus implements RedisClusterExecutor {
 
       previousRedirectEx = moveEx;
     } catch (final RedisRetryableUnhandledException retryableEx) {
-
       if (!retryUnhandledRetryableExceptions) {
         throw retryableEx;
       }
@@ -256,7 +249,6 @@ public final class Jedipus implements RedisClusterExecutor {
             retries);
         continue;
       } catch (final AskNodeException askEx) {
-
         askEx.setPrevious(previousRedirectEx);
 
         try {
@@ -268,7 +260,6 @@ public final class Jedipus implements RedisClusterExecutor {
         previousRedirectEx = askEx;
         continue;
       } catch (final SlotRedirectException moveEx) {
-
         moveEx.setPrevious(previousRedirectEx);
 
         if (++redirections > maxRedirections) {
@@ -284,7 +275,6 @@ public final class Jedipus implements RedisClusterExecutor {
         previousRedirectEx = moveEx;
         continue;
       } catch (final RedisRetryableUnhandledException retryableEx) {
-
         if (!retryUnhandledRetryableExceptions) {
           throw retryableEx;
         }
@@ -316,7 +306,6 @@ public final class Jedipus implements RedisClusterExecutor {
     ClientPool<RedisClient> pool = null;
     RedisClient client = null;
     try {
-
       pool = connHandler.getSlotPool(readMode, slot);
       client = RedisClientPool.borrowClient(pool);
       final R result = clientConsumer.apply(client);
@@ -342,7 +331,6 @@ public final class Jedipus implements RedisClusterExecutor {
 
       previousRedirectEx = askEx;
     } catch (final SlotRedirectException moveEx) {
-
       if (++redirections > maxRedirections) {
         throw new MaxRedirectsExceededException(moveEx);
       }
@@ -355,7 +343,6 @@ public final class Jedipus implements RedisClusterExecutor {
 
       previousRedirectEx = moveEx;
     } catch (final RedisRetryableUnhandledException retryableEx) {
-
       if (!retryUnhandledRetryableExceptions) {
         throw retryableEx;
       }
@@ -401,7 +388,6 @@ public final class Jedipus implements RedisClusterExecutor {
             retries);
         continue;
       } catch (final AskNodeException askEx) {
-
         askEx.setPrevious(previousRedirectEx);
 
         try {
@@ -413,7 +399,6 @@ public final class Jedipus implements RedisClusterExecutor {
         previousRedirectEx = askEx;
         continue;
       } catch (final SlotRedirectException moveEx) {
-
         moveEx.setPrevious(previousRedirectEx);
 
         if (++redirections > maxRedirections) {
@@ -429,7 +414,6 @@ public final class Jedipus implements RedisClusterExecutor {
         previousRedirectEx = moveEx;
         continue;
       } catch (final RedisRetryableUnhandledException retryableEx) {
-
         if (!retryUnhandledRetryableExceptions) {
           throw retryableEx;
         }
@@ -479,7 +463,6 @@ public final class Jedipus implements RedisClusterExecutor {
         retries = connHandler.getClusterNodeRetryDelay().markFailure(failedNode, maxRetries, rce,
             retries);
       } catch (final RedisRetryableUnhandledException retryableEx) {
-
         if (!retryUnhandledRetryableExceptions) {
           throw retryableEx;
         }
@@ -501,18 +484,14 @@ public final class Jedipus implements RedisClusterExecutor {
       final int maxRetries) {
 
     for (long retries = 0;;) {
-
       try (final RedisClient client = connHandler.createUnknownNode(node)) {
-
         final R result = clientConsumer.apply(client);
         connHandler.getClusterNodeRetryDelay().markSuccess(node, retries);
         return result;
       } catch (final RedisConnectionException rce) {
-
         retries =
             connHandler.getClusterNodeRetryDelay().markFailure(node, maxRetries, rce, retries);
       } catch (final RedisRetryableUnhandledException retryableEx) {
-
         if (!retryUnhandledRetryableExceptions) {
           throw retryableEx;
         }

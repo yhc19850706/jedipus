@@ -10,7 +10,7 @@ public final class SlotNodes {
   private final int slotEndExclusive;
   private final Node[] nodes;
 
-  public SlotNodes(final int slotBegin, final int slotEndExclusive, final Node[] nodes) {
+  SlotNodes(final int slotBegin, final int slotEndExclusive, final Node[] nodes) {
     this.slotBegin = slotBegin;
     this.slotEndExclusive = slotEndExclusive;
     this.nodes = nodes;
