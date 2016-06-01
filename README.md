@@ -5,7 +5,7 @@
 ######Features
 * Executes `Consumer<RedisClient>` and `Function<RedisClient, R>` lambas.
 * Flexible generic or primitive return types to match the dynamic return type design of Redis.
-* Flexible command interface allows for [calling Modules](src/integ/java/com/fabahaba/jedipus/client/ModuleTest.java#L17) or renamed commands.
+* Flexible command interface allows for [calling Modules](src/integ/java/com/fabahaba/jedipus/client/ModuleTest.java#L17).
 * Performance focused:
   * Minimal enforced (de)serialization.  Write directly to the socket output stream buffer or socket output stream, and retrieve raw responses.
   * Fire-And-Forget support using [`CLIENT REPLY ON|OFF|SKIP`](http://redis.io/commands/client-reply).

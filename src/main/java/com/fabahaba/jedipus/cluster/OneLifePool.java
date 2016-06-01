@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.pool.ClientPool;
 
-class OneLifePool implements ClientPool<RedisClient> {
+final class OneLifePool implements ClientPool<RedisClient> {
 
   private volatile RedisClient client;
   private volatile int numActive;

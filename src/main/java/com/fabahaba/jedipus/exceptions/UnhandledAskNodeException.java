@@ -3,7 +3,7 @@ package com.fabahaba.jedipus.exceptions;
 import com.fabahaba.jedipus.cluster.Node;
 
 @SuppressWarnings("serial")
-public class UnhandledAskNodeException extends RedisRetryableUnhandledException {
+public class UnhandledAskNodeException extends RedisUnhandledException {
 
   private final AskNodeException askEx;
 

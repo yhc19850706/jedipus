@@ -44,7 +44,6 @@ import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.AskNodeException;
 import com.fabahaba.jedipus.exceptions.RedisClusterDownException;
-import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.exceptions.SlotMovedException;
 import com.fabahaba.jedipus.exceptions.UnhandledAskNodeException;
@@ -710,7 +709,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     try {
       rce.accept(client -> client.sendCmd(Cmds.PING));
       fail("All pools should have been closed.");
-    } catch (final RedisConnectionException jcex) {
+    } catch (final RedisUnhandledException jcex) {
       // expected
     }
   }

@@ -11,14 +11,14 @@ public final class ClusterInfo {
   private final int slotsFail;
   private final int knownKnownNodes;
   private final int size;
-  private final long currentEpoch;
-  private final long myEpoch;
+  private final String currentEpoch;
+  private final String myEpoch;
   private final long statsMessagesSent;
   private final long statsMessagesReceied;
 
   private ClusterInfo(final String state, final int slotsAssigned, final int slotsOk,
       final int slotsPFail, final int slotsFail, final int knownKnownNodes, final int size,
-      final long currentEpoch, final long myEpoch, final long statsMessagesSent,
+      final String currentEpoch, final String myEpoch, final long statsMessagesSent,
       final long statsMessagesReceied) {
     this.state = state;
     this.slotsAssigned = slotsAssigned;
@@ -44,8 +44,8 @@ public final class ClusterInfo {
     int slotsFail = 0;
     int knownNodes = 0;
     int size = 0;
-    long currentEpoch = 0;
-    long myEpoch = 0;
+    String currentEpoch = null;
+    String myEpoch = null;
     long statsMessagesSent = 0;
     long statsMessagesReceied = 0;
 
@@ -77,10 +77,10 @@ public final class ClusterInfo {
           size = Integer.parseInt(value);
           break;
         case "cluster_current_epoch":
-          currentEpoch = Long.parseLong(value);
+          currentEpoch = value;
           break;
         case "cluster_my_epoch":
-          myEpoch = Long.parseLong(value);
+          myEpoch = value;
           break;
         case "cluster_stats_messages_sent":
           statsMessagesSent = Long.parseLong(value);
@@ -125,11 +125,11 @@ public final class ClusterInfo {
     return size;
   }
 
-  public long getCurrentEpoch() {
+  public String getCurrentEpoch() {
     return currentEpoch;
   }
 
-  public long getMyEpoch() {
+  public String getMyEpoch() {
     return myEpoch;
   }
 

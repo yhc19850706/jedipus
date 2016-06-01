@@ -12,7 +12,7 @@ import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 import com.fabahaba.jedipus.pool.ClientPool;
 
-class OptimisticRedisClusterSlotCache extends RedisClusterSlotCache {
+final class OptimisticRedisClusterSlotCache extends RedisClusterSlotCache {
 
   OptimisticRedisClusterSlotCache(final ReadMode defaultReadMode,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,

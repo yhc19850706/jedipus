@@ -8,15 +8,12 @@ import java.util.function.Supplier;
 
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
-import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
-import com.fabahaba.jedipus.exceptions.RedisConnectionException;
-import com.fabahaba.jedipus.exceptions.RedisException;
+import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.pool.ClientPool;
-import com.fabahaba.jedipus.pool.RedisClientPool;
 
-class RedisClusterConnHandler implements AutoCloseable {
+final class RedisClusterConnHandler implements AutoCloseable {
 
   private final RedisClusterSlotCache slotPoolCache;
 
@@ -48,55 +45,16 @@ class RedisClusterConnHandler implements AutoCloseable {
     return slotPoolCache.getNodeUnknownFactory().apply(unknown);
   }
 
-  ClientPool<RedisClient> getRandomPool(final ReadMode readMode) {
-    return getPool(readMode, -1);
-  }
-
-  private ClientPool<RedisClient> getPool(final ReadMode readMode, final int slot) {
-
-    Collection<ClientPool<RedisClient>> pools = slotPoolCache.getPools(readMode).values();
-
-    if (pools.isEmpty()) {
-
-      slotPoolCache.discoverClusterSlots();
-
-      if (slot >= 0) {
-
-        final ClientPool<RedisClient> pool = slotPoolCache.getSlotPool(readMode, slot);
-        if (pool != null) {
-          return pool;
-        }
-      }
-
-      pools = slotPoolCache.getPools(readMode).values();
-    }
-
-    for (final ClientPool<RedisClient> pool : pools) {
-
-      RedisClient client = null;
-      try {
-        client = RedisClientPool.borrowClient(pool);
-
-        if (client == null) {
-          continue;
-        }
-
-        client.sendCmd(Cmds.PING.raw());
-        return pool;
-      } catch (final RedisException ex) {
-        // try next pool...
-      } finally {
-        RedisClientPool.returnClient(pool, client);
-      }
-    }
-
-    throw new RedisConnectionException(null, "No reachable node in cluster.");
-  }
-
   ClientPool<RedisClient> getSlotPool(final ReadMode readMode, final int slot) {
-    final ClientPool<RedisClient> pool = slotPoolCache.getSlotPool(readMode, slot);
-
-    return pool == null ? getPool(readMode, slot) : pool;
+    ClientPool<RedisClient> pool = slotPoolCache.getSlotPool(readMode, slot);
+    if (pool == null) {
+      slotPoolCache.discoverClusterSlots();
+      pool = slotPoolCache.getSlotPool(readMode, slot);
+      if (pool == null) {
+        throw new RedisUnhandledException(null, "No node is responsible for slot " + slot);
+      }
+    }
+    return pool;
   }
 
   ClientPool<RedisClient> getAskPool(final Node askNode) {
@@ -127,11 +85,11 @@ class RedisClusterConnHandler implements AutoCloseable {
     return slotPoolCache.getPoolIfPresent(node);
   }
 
-  void renewSlotCache() {
+  void refreshSlotCache() {
     slotPoolCache.discoverClusterSlots();
   }
 
-  void renewSlotCache(final RedisClient client) {
+  void refreshSlotCache(final RedisClient client) {
     slotPoolCache.discoverClusterSlots(client);
   }
 

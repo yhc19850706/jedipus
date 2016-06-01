@@ -2,7 +2,7 @@ package com.fabahaba.jedipus.cluster;
 
 import com.fabahaba.jedipus.client.HostPort;
 
-class ClusterNode implements Node {
+final class ClusterNode implements Node {
 
   private final HostPort hostPort;
   private String id;
