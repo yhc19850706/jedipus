@@ -1,6 +1,10 @@
 package com.fabahaba.jedipus.pool;
 
+import com.fabahaba.jedipus.cluster.Node;
+
 public interface PooledClientFactory<C> {
+
+  Node getNode();
 
   PooledClient<C> createClient();
 

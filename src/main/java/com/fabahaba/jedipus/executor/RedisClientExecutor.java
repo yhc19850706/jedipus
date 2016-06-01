@@ -9,6 +9,7 @@ import java.util.function.ToLongFunction;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
+import com.fabahaba.jedipus.pool.ClientPool;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
 public interface RedisClientExecutor extends AutoCloseable {
@@ -43,9 +44,15 @@ public interface RedisClientExecutor extends AutoCloseable {
 
   public static class Builder {
 
+    private static final ClientPool.Builder DEFAULT_POOL_BUILDER =
+        ClientPool.startBuilding().withMaxIdle(8).withMinIdle(2).withMaxTotal(8)
+            .withDurationBetweenEvictionRuns(Duration.ofSeconds(15)).withTestWhileIdle(true)
+            .withNumTestsPerEvictionRun(6).withBlockWhenExhausted(true);
+
     private RedisClientFactory.Builder clientFactory;
     private ElementRetryDelay<Node> retryDelay;
     private int maxRetries = Integer.MAX_VALUE;
+    private ClientPool.Builder poolFactory;
 
     private Builder() {}
 
@@ -60,6 +67,20 @@ public interface RedisClientExecutor extends AutoCloseable {
       }
 
       return new SingleRedisClientExecutor(nodeSupplier, clientFactory, retryDelay, maxRetries);
+    }
+
+    public RedisClientExecutor createPooled(final Supplier<Node> nodeSupplier) {
+
+      if (clientFactory == null) {
+        clientFactory = RedisClientFactory.startBuilding();
+      }
+
+      if (retryDelay == null) {
+        retryDelay = ElementRetryDelay.startBuilding().withMaxDelay(Duration.ofSeconds(3)).create();
+      }
+
+      return new RedisClientPoolExecutor(nodeSupplier, clientFactory,
+          poolFactory == null ? DEFAULT_POOL_BUILDER : poolFactory, retryDelay, maxRetries);
     }
 
     public RedisClientFactory.Builder getClientFactory() {
@@ -86,6 +107,15 @@ public interface RedisClientExecutor extends AutoCloseable {
 
     public Builder withMaxRetries(final int maxRetries) {
       this.maxRetries = maxRetries;
+      return this;
+    }
+
+    public ClientPool.Builder getPoolFactory() {
+      return poolFactory;
+    }
+
+    public Builder withPoolFactory(final ClientPool.Builder poolFactory) {
+      this.poolFactory = poolFactory;
       return this;
     }
   }

@@ -59,6 +59,11 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
     this.inputBufferSize = inputBufferSize;
   }
 
+  @Override
+  public Node getNode() {
+    return node;
+  }
+
   public static Builder startBuilding() {
 
     return new Builder();

@@ -8,10 +8,12 @@ import com.fabahaba.jedipus.pool.ClientPool;
 
 final class OneLifePool implements ClientPool<RedisClient> {
 
+  private final Node node;
   private volatile RedisClient client;
   private volatile int numActive;
 
   OneLifePool(final RedisClient client) {
+    this.node = client.getNode();
     this.client = client;
     this.numActive = 0;
   }
@@ -82,5 +84,10 @@ final class OneLifePool implements ClientPool<RedisClient> {
   @Override
   public boolean isClosed() {
     return client == null && numActive == 0;
+  }
+
+  @Override
+  public Node getNode() {
+    return node;
   }
 }

@@ -6,9 +6,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
+import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.pool.EvictionStrategy.DefaultEvictionStrategy;
 
 public interface ClientPool<C> extends AutoCloseable {
+
+  Node getNode();
 
   C borrowClient() throws NoSuchElementException;
 

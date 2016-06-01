@@ -84,7 +84,7 @@ public class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
   }
 
   @Override
-  public void markSuccess(final E element, final long retries) {
+  public void markSuccess(final E element) {
     if (!retrySemaphores.isEmpty()) {
       retrySemaphores.remove(element);
     }

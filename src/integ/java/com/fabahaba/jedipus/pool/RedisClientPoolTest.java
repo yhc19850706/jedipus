@@ -16,6 +16,7 @@ import com.fabahaba.jedipus.client.BaseRedisClientTest;
 import com.fabahaba.jedipus.client.MockRedisClient;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.client.RedisPipeline;
+import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.RedisException;
@@ -171,7 +172,12 @@ public class RedisClientPoolTest {
     @Override
     public PooledClient<RedisClient> createClient() {
 
-      return new DefaultPooledClient<>(new CrashingClient());
+      return new DefaultPooledClient<>(null, new CrashingClient());
+    }
+
+    @Override
+    public Node getNode() {
+      return null;
     }
   }
 

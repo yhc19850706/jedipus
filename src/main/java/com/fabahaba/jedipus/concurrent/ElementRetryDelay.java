@@ -33,7 +33,8 @@ public interface ElementRetryDelay<E> {
    * @param element The element for the current failed request.
    * @param maxRetries The maximum number of retries before the given exception is thrown.
    * @param cause The current failure cause.
-   * @param retry The current requests' retry count, starting at zero, against this element.
+   * @param retry The current requests' retry count, starting at zero, against this element. This is
+   *        used as a back up in case the delay has no record of this element.
    * @return The retry value that should be used in the next execution loop.
    */
   long markFailure(final E element, final long maxRetries, final RuntimeException cause,
@@ -47,17 +48,7 @@ public interface ElementRetryDelay<E> {
    * 
    * @param element The element for the current successful request.
    */
-  default void markSuccess(final E element) {
-    markSuccess(element, 0);
-  }
-
-  /**
-   * Called after a successful request immediately following a failed request.
-   * 
-   * @param element The element for the current successful request.
-   * @param retries The previous number of retries before this successful request.
-   */
-  void markSuccess(final E element, long retries);
+  void markSuccess(final E element);
 
   /**
    * Clear the failure/retry state for a given element.

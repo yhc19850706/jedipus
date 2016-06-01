@@ -13,6 +13,8 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.StampedLock;
 
+import com.fabahaba.jedipus.cluster.Node;
+
 final class FinalClientPool<C> implements ClientPool<C> {
 
   private final int maxIdle;
@@ -92,6 +94,11 @@ final class FinalClientPool<C> implements ClientPool<C> {
         }
       }, evictionDelayNanos, evictionDelayNanos, TimeUnit.NANOSECONDS);
     }
+  }
+
+  @Override
+  public Node getNode() {
+    return clientFactory.getNode();
   }
 
   public int getMaxIdle() {

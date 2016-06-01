@@ -34,7 +34,7 @@ public final class Jedipus implements RedisClusterExecutor {
   private static final ElementRetryDelay<Node> DEFAULT_RETRY_DELAY =
       ElementRetryDelay.startBuilding().create();
 
-  private static final int DEFAULT_REFRESH_SLOT_CACHE_AFTER = 1;
+  private static final int DEFAULT_REFRESH_SLOT_CACHE_EVERY = 3;
 
   private static final Duration DEFAULT_DURATION_BETWEEN_CACHE_REFRESH = Duration.ofMillis(20);
   // 0 blocks forever, timed out request with retry or throw a RedisConnectionException if no pools
@@ -114,13 +114,13 @@ public final class Jedipus implements RedisClusterExecutor {
 
   private final int maxRedirections;
   private final int maxRetries;
-  private final int refreshSlotCacheAfter;
+  private final int refreshSlotCacheEvery;
   private final boolean retryUnhandledRetryableExceptions;
   private final RedisClusterConnHandler connHandler;
 
   private Jedipus(final ReadMode defaultReadMode, final Supplier<Collection<Node>> discoveryNodes,
       final PartitionedStrategy partitionedStrategy, final Function<Node, Node> hostPortMapper,
-      final int maxRedirections, final int maxRetries, final int refreshSlotCacheAfter,
+      final int maxRedirections, final int maxRetries, final int refreshSlotCacheEvery,
       final ElementRetryDelay<Node> clusterNodeRetryDelay,
       final boolean retryUnhandledRetryableExceptions, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
@@ -136,7 +136,7 @@ public final class Jedipus implements RedisClusterExecutor {
 
     this.maxRedirections = maxRedirections;
     this.maxRetries = maxRetries;
-    this.refreshSlotCacheAfter = refreshSlotCacheAfter;
+    this.refreshSlotCacheEvery = refreshSlotCacheEvery;
     this.retryUnhandledRetryableExceptions = retryUnhandledRetryableExceptions;
   }
 
@@ -171,7 +171,7 @@ public final class Jedipus implements RedisClusterExecutor {
       pool = connHandler.getSlotPool(readMode, slot);
       client = RedisClientPool.borrowClient(pool);
       final long result = clientConsumer.applyAsLong(client);
-      connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode(), retries);
+      connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode());
       return result;
     } catch (final RedisConnectionException rcex) {
       RedisClientPool.returnClient(pool, client);
@@ -179,11 +179,15 @@ public final class Jedipus implements RedisClusterExecutor {
       final Node failedNode = client == null ? rcex.getNode() : client.getNode();
       client = null;
 
-      if (retries == refreshSlotCacheAfter) {
-        connHandler.refreshSlotCache();
+      if (failedNode != null && refreshSlotCacheEvery > 0) {
+        retries = connHandler.getClusterNodeRetryDelay().getNumFailures(failedNode);
+        if (retries > 0 && retries % refreshSlotCacheEvery == 0) {
+          connHandler.refreshSlotCache();
+        }
       }
 
-      retries = connHandler.getClusterNodeRetryDelay().markFailure(failedNode, maxRetries, rcex, 0);
+      retries =
+          connHandler.getClusterNodeRetryDelay().markFailure(failedNode, maxRetries, rcex, retries);
     } catch (final AskNodeException askEx) {
       if (maxRedirections == 0) {
         throw new MaxRedirectsExceededException(askEx);
@@ -218,7 +222,7 @@ public final class Jedipus implements RedisClusterExecutor {
       final Node failedNode = client == null ? retryableEx.getNode() : client.getNode();
       client = null;
       retries = connHandler.getClusterNodeRetryDelay().markFailure(failedNode, maxRetries,
-          retryableEx, 0);
+          retryableEx, retries);
     } finally {
       RedisClientPool.returnClient(pool, client);
       pool = null;
@@ -233,7 +237,7 @@ public final class Jedipus implements RedisClusterExecutor {
           client = RedisClientPool.borrowClient(pool);
 
           final long result = clientConsumer.applyAsLong(client);
-          connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode(), retries);
+          connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode());
           return result;
         }
 
@@ -242,7 +246,7 @@ public final class Jedipus implements RedisClusterExecutor {
         client = RedisClientPool.borrowClient(pool);
         client.asking();
         final long result = clientConsumer.applyAsLong(client);
-        connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode(), 0);
+        connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode());
         return result;
       } catch (final RedisConnectionException rce) {
         RedisClientPool.returnClient(pool, client);
@@ -250,8 +254,10 @@ public final class Jedipus implements RedisClusterExecutor {
         final Node failedNode = client == null ? rce.getNode() : client.getNode();
         client = null;
 
-        if (retries == refreshSlotCacheAfter) {
-          connHandler.refreshSlotCache();
+        if (failedNode != null && refreshSlotCacheEvery > 0) {
+          if (retries > 0 && retries % refreshSlotCacheEvery == 0) {
+            connHandler.refreshSlotCache();
+          }
         }
 
         retries = connHandler.getClusterNodeRetryDelay().markFailure(failedNode, maxRetries, rce,
@@ -318,7 +324,7 @@ public final class Jedipus implements RedisClusterExecutor {
       pool = connHandler.getSlotPool(readMode, slot);
       client = RedisClientPool.borrowClient(pool);
       final R result = clientConsumer.apply(client);
-      connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode(), retries);
+      connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode());
       return result;
     } catch (final RedisConnectionException rcex) {
       RedisClientPool.returnClient(pool, client);
@@ -326,11 +332,15 @@ public final class Jedipus implements RedisClusterExecutor {
       final Node failedNode = client == null ? rcex.getNode() : client.getNode();
       client = null;
 
-      if (retries == refreshSlotCacheAfter) {
-        connHandler.refreshSlotCache();
+      if (failedNode != null && refreshSlotCacheEvery > 0) {
+        retries = connHandler.getClusterNodeRetryDelay().getNumFailures(failedNode);
+        if (retries > 0 && retries % refreshSlotCacheEvery == 0) {
+          connHandler.refreshSlotCache();
+        }
       }
 
-      retries = connHandler.getClusterNodeRetryDelay().markFailure(failedNode, maxRetries, rcex, 0);
+      retries =
+          connHandler.getClusterNodeRetryDelay().markFailure(failedNode, maxRetries, rcex, retries);
     } catch (final AskNodeException askEx) {
 
       if (maxRedirections == 0) {
@@ -366,7 +376,7 @@ public final class Jedipus implements RedisClusterExecutor {
       final Node failedNode = client == null ? retryableEx.getNode() : client.getNode();
       client = null;
       retries = connHandler.getClusterNodeRetryDelay().markFailure(failedNode, maxRetries,
-          retryableEx, 0);
+          retryableEx, retries);
     } finally {
       RedisClientPool.returnClient(pool, client);
       pool = null;
@@ -381,7 +391,7 @@ public final class Jedipus implements RedisClusterExecutor {
           client = RedisClientPool.borrowClient(pool);
 
           final R result = clientConsumer.apply(client);
-          connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode(), retries);
+          connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode());
           return result;
         }
 
@@ -390,7 +400,7 @@ public final class Jedipus implements RedisClusterExecutor {
         client = RedisClientPool.borrowClient(pool);
         client.asking();
         final R result = clientConsumer.apply(client);
-        connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode(), 0);
+        connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode());
         return result;
       } catch (final RedisConnectionException rce) {
         RedisClientPool.returnClient(pool, client);
@@ -398,8 +408,10 @@ public final class Jedipus implements RedisClusterExecutor {
         final Node failedNode = client == null ? rce.getNode() : client.getNode();
         client = null;
 
-        if (retries == refreshSlotCacheAfter) {
-          connHandler.refreshSlotCache();
+        if (failedNode != null && refreshSlotCacheEvery > 0) {
+          if (retries > 0 && retries % refreshSlotCacheEvery == 0) {
+            connHandler.refreshSlotCache();
+          }
         }
 
         retries = connHandler.getClusterNodeRetryDelay().markFailure(failedNode, maxRetries, rce,
@@ -471,7 +483,7 @@ public final class Jedipus implements RedisClusterExecutor {
         client = RedisClientPool.borrowClient(pool);
 
         final R result = clientConsumer.apply(client);
-        connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode(), retries);
+        connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode());
         return result;
       } catch (final RedisConnectionException rce) {
         RedisClientPool.returnClient(pool, client);
@@ -504,7 +516,7 @@ public final class Jedipus implements RedisClusterExecutor {
     for (long retries = 0;;) {
       try (final RedisClient client = connHandler.createUnknownNode(node)) {
         final R result = clientConsumer.apply(client);
-        connHandler.getClusterNodeRetryDelay().markSuccess(node, retries);
+        connHandler.getClusterNodeRetryDelay().markSuccess(node);
         return result;
       } catch (final RedisConnectionException rce) {
         retries =
@@ -570,7 +582,7 @@ public final class Jedipus implements RedisClusterExecutor {
         client = RedisClientPool.borrowClient(pool);
 
         final R result = clientConsumer.apply(client);
-        connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode(), retries);
+        connHandler.getClusterNodeRetryDelay().markSuccess(client.getNode());
         return result;
       } catch (final RedisConnectionException rce) {
         RedisClientPool.returnClient(pool, client);
@@ -610,8 +622,8 @@ public final class Jedipus implements RedisClusterExecutor {
   @Override
   public String toString() {
     return new StringBuilder("Jedipus [maxRedirections=").append(maxRedirections)
-        .append(", maxRetries=").append(maxRetries).append(", refreshSlotCacheAfter=")
-        .append(refreshSlotCacheAfter).append(", retryUnhandledRetryableExceptions=")
+        .append(", maxRetries=").append(maxRetries).append(", refreshSlotCacheEvery=")
+        .append(refreshSlotCacheEvery).append(", retryUnhandledRetryableExceptions=")
         .append(retryUnhandledRetryableExceptions).append(", connHandler=").append(connHandler)
         .append("]").toString();
   }
@@ -625,7 +637,7 @@ public final class Jedipus implements RedisClusterExecutor {
     private int maxRedirections = DEFAULT_MAX_REDIRECTIONS;
     private int maxRetries = DEFAULT_MAX_RETRIES;
     private ElementRetryDelay<Node> clusterNodeRetryDelay = DEFAULT_RETRY_DELAY;
-    private int refreshSlotCacheAfter = DEFAULT_REFRESH_SLOT_CACHE_AFTER;
+    private int refreshSlotCacheEvery = DEFAULT_REFRESH_SLOT_CACHE_EVERY;
     private boolean retryUnhandledRetryableExceptions = false;
     private Function<Node, ClientPool<RedisClient>> masterPoolFactory = DEFAULT_MASTER_POOL_FACTORY;
     private Function<Node, ClientPool<RedisClient>> slavePoolFactory = DEFAULT_SLAVE_POOL_FACTORY;
@@ -649,7 +661,7 @@ public final class Jedipus implements RedisClusterExecutor {
     public RedisClusterExecutor create() {
 
       return new Jedipus(defaultReadMode, discoveryNodes, partitionedStrategy, hostPortMapper,
-          maxRedirections, maxRetries, refreshSlotCacheAfter, clusterNodeRetryDelay,
+          maxRedirections, maxRetries, refreshSlotCacheEvery, clusterNodeRetryDelay,
           retryUnhandledRetryableExceptions, optimisticReads, durationBetweenCacheRefresh,
           maxAwaitCacheRefresh, masterPoolFactory, slavePoolFactory, nodeUnknownFactory,
           slavePools -> lbFactory.apply(defaultReadMode, slavePools));
@@ -714,12 +726,12 @@ public final class Jedipus implements RedisClusterExecutor {
       return this;
     }
 
-    public int getRefreshSlotCacheAfter() {
-      return refreshSlotCacheAfter;
+    public int getRefreshSlotCacheEvery() {
+      return refreshSlotCacheEvery;
     }
 
-    public Builder withRefreshSlotCacheAfter(final int refreshSlotCacheAfter) {
-      this.refreshSlotCacheAfter = refreshSlotCacheAfter;
+    public Builder withRefreshSlotCacheEvery(final int refreshSlotCacheEvery) {
+      this.refreshSlotCacheEvery = refreshSlotCacheEvery;
       return this;
     }
 
@@ -813,7 +825,7 @@ public final class Jedipus implements RedisClusterExecutor {
       return new StringBuilder("Builder [defaultReadMode=").append(defaultReadMode)
           .append(", discoveryNodes=").append(discoveryNodes).append(", maxRedirections=")
           .append(maxRedirections).append(", maxRetries=").append(maxRetries)
-          .append(", refreshSlotCacheAfter=").append(refreshSlotCacheAfter)
+          .append(", refreshSlotCacheEvery=").append(refreshSlotCacheEvery)
           .append(", retryUnhandledRetryableExceptions=").append(retryUnhandledRetryableExceptions)
           .append(", optimisticReads=").append(optimisticReads)
           .append(", durationBetweenCacheRefresh=").append(durationBetweenCacheRefresh)

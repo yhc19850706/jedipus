@@ -310,12 +310,6 @@ class RedisClusterSlotCache implements AutoCloseable {
       discoveryNodes.remove(pool.getKey());
     }
 
-    for (final Entry<Node, ClientPool<RedisClient>> pool : slavePools.entrySet()) {
-      voteFutures.add(
-          forkJoinPool.submit(() -> getSlotNodesVotes(clusterSlots, pool, nodeUnknownFactory)));
-      discoveryNodes.remove(pool.getKey());
-    }
-
     discoveryNodes.parallelStream().map(hostPortMapper::apply).forEach(node -> {
       try (final RedisClient client = nodeUnknownFactory.apply(node)) {
         getSlotNodesVotes(clusterSlots, client);
