@@ -23,7 +23,7 @@
 * [Lua script utilities](src/main/java/com/fabahaba/jedipus/lua/LuaScript.java#L25).
 * Frequent point releases for new features, utilities and bug fixes.
 * [Pub/Sub support](https://gist.github.com/jamespedwards42/5d2d77da970854fb40af707cc44dc3cd).
-* [Cluster partition handling](src/main/java/com/fabahaba/jedipus/cluster/PartitionedStrategy.java#L3) on slot cache discovery.
+* [Cluster partition handling](src/main/java/com/fabahaba/jedipus/cluster/PartitionedStrategyConfig.java#L5) on slot cache discovery.
 
 ######Read Modes
 >Read modes control how pools to master and slave nodes are managed.
