@@ -36,6 +36,8 @@ public final class ClusterSlotVotes implements Comparable<ClusterSlotVotes> {
       clusterSlots[clusterSlotsIndex++] = new SlotNodes(slotBegin, slotEndExclusive, nodes);
     }
 
+    Arrays.sort(clusterSlots);
+
     return new ClusterSlotVotes(clusterSlots);
   }
 
@@ -77,13 +79,17 @@ public final class ClusterSlotVotes implements Comparable<ClusterSlotVotes> {
     if (getClass() != obj.getClass())
       return false;
     final ClusterSlotVotes other = (ClusterSlotVotes) obj;
-    if (!Arrays.equals(clusterSlots, other.clusterSlots))
-      return false;
-    return true;
+    return Arrays.equals(clusterSlots, other.clusterSlots);
   }
 
   @Override
   public int compareTo(final ClusterSlotVotes other) {
     return Integer.compare(other.nodeVotes.size(), nodeVotes.size());
+  }
+
+  @Override
+  public String toString() {
+    return new StringBuilder("ClusterSlotVotes [clusterSlots=")
+        .append(Arrays.toString(clusterSlots)).append("]").toString();
   }
 }

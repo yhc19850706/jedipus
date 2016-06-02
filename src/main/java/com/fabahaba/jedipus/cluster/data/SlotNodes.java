@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 import com.fabahaba.jedipus.cluster.Node;
 
-public final class SlotNodes {
+public final class SlotNodes implements Comparable<SlotNodes> {
 
   private final int slotBegin;
   private final int slotEndExclusive;
@@ -24,8 +24,16 @@ public final class SlotNodes {
     return slotEndExclusive;
   }
 
-  public Node[] getNodes() {
-    return nodes;
+  public Node getMaster() {
+    return nodes.length == 0 ? null : nodes[0];
+  }
+
+  public Node getNode(final int index) {
+    return nodes[index];
+  }
+
+  public int getNumNodesServingSlots() {
+    return nodes.length;
   }
 
   @Override
@@ -57,5 +65,17 @@ public final class SlotNodes {
       return false;
 
     return nodes[0].equals(other.nodes[0]);
+  }
+
+  @Override
+  public int compareTo(final SlotNodes other) {
+    return Integer.compare(slotBegin, other.slotBegin);
+  }
+
+  @Override
+  public String toString() {
+    return new StringBuilder("SlotNodes [slotBegin=").append(slotBegin)
+        .append(", slotEndExclusive=").append(slotEndExclusive).append(", nodes=")
+        .append(Arrays.toString(nodes)).append("]").toString();
   }
 }

@@ -237,7 +237,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     return (slot + MAX_SLOT_RANGE) % CRC16.NUM_SLOTS;
   }
 
-  @Test(timeout = 3000)
+  @Test
   public void testMovedExceptionParameters() {
 
     final byte[] key = RESP.toBytes("42");
@@ -266,7 +266,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  @Test(timeout = 3000)
+  @Test
   public void testThrowAskException() {
 
     final byte[] key = RESP.toBytes("test");
@@ -294,11 +294,10 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  @Test(timeout = 3000)
+  @Test
   public void testDiscoverNodesAutomatically() {
 
     try (final RedisClient client = RedisClientFactory.startBuilding().create(masters[0])) {
-
       setUpSlaves(client.getClusterNodeMap());
     }
 
@@ -316,11 +315,10 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  @Test(timeout = 3000)
+  @Test
   public void testReadonly() {
 
     try (final RedisClient client = RedisClientFactory.startBuilding().create(masters[0])) {
-
       setUpSlaves(client.getClusterNodeMap());
     }
 
@@ -342,7 +340,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  @Test(timeout = 3000)
+  @Test
   public void testMigrate() {
 
     final String keyString = "MIGRATE";
@@ -569,7 +567,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  @Test(timeout = 3000)
+  @Test
   public void testClusterForgetNode() throws InterruptedException {
 
     try (final RedisClusterExecutor rce =
@@ -588,7 +586,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  @Test(timeout = 3000)
+  @Test
   public void testClusterFlushSlots() {
 
     final byte[] key = RESP.toBytes("42");
@@ -616,7 +614,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  @Test(timeout = 3000)
+  @Test
   public void testClusterKeySlot() {
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
@@ -630,7 +628,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  @Test(timeout = 3000)
+  @Test
   public void testClusterCountKeysInSlot() {
 
     final int slot = CRC16.getSlot("foo{bar}");
@@ -645,7 +643,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  @Test(timeout = 3000)
+  @Test
   public void testStableSlotWhenMigratingNodeOrImportingNodeIsNotSpecified() {
 
     final String keyString = "42";
@@ -692,7 +690,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  @Test(timeout = 3000)
+  @Test
   public void testCloseable() {
 
     final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
@@ -714,7 +712,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  @Test(timeout = 3000)
+  @Test
   public void testRedisClusterClientTimeout() {
 
     final RedisClientFactory.Builder poolFactoryBuilder =
@@ -734,7 +732,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  @Test(timeout = 3000)
+  @Test
   public void testRedisClusterRunsWithMultithreaded()
       throws InterruptedException, ExecutionException {
 
@@ -780,7 +778,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
   static final Cmd<Object> CLIENT = Cmd.createCast("CLIENT");
   static final Cmd<String> CLIENT_KILL = Cmd.createStringReply("KILL");
 
-  @Test(timeout = 3000)
+  @Test
   public void testReturnConnectionOnRedisConnectionException() {
 
     final String keyString = "42";
@@ -832,7 +830,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  @Test(timeout = 3000)
+  @Test
   public void testLocalhostNodeNotAddedWhen127Present() {
 
     try (final RedisClusterExecutor rce =
@@ -848,7 +846,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  @Test(timeout = 3000)
+  @Test
   public void testInvalidStartNodeNotAdded() {
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor

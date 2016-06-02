@@ -9,7 +9,7 @@ public final class ClusterInfo {
   private final int slotsOk;
   private final int slotsPFail;
   private final int slotsFail;
-  private final int knownKnownNodes;
+  private final int knownNodes;
   private final int size;
   private final String currentEpoch;
   private final String myEpoch;
@@ -17,7 +17,7 @@ public final class ClusterInfo {
   private final long statsMessagesReceied;
 
   private ClusterInfo(final String state, final int slotsAssigned, final int slotsOk,
-      final int slotsPFail, final int slotsFail, final int knownKnownNodes, final int size,
+      final int slotsPFail, final int slotsFail, final int knownNodes, final int size,
       final String currentEpoch, final String myEpoch, final long statsMessagesSent,
       final long statsMessagesReceied) {
     this.state = state;
@@ -25,7 +25,7 @@ public final class ClusterInfo {
     this.slotsOk = slotsOk;
     this.slotsPFail = slotsPFail;
     this.slotsFail = slotsFail;
-    this.knownKnownNodes = knownKnownNodes;
+    this.knownNodes = knownNodes;
     this.size = size;
     this.currentEpoch = currentEpoch;
     this.myEpoch = myEpoch;
@@ -117,8 +117,8 @@ public final class ClusterInfo {
     return slotsFail;
   }
 
-  public int getKnownKnownNodes() {
-    return knownKnownNodes;
+  public int getKnownNodes() {
+    return knownNodes;
   }
 
   public int getSize() {
@@ -145,8 +145,8 @@ public final class ClusterInfo {
   public String toString() {
     return new StringBuilder("ClusterInfo [state=").append(state).append(", slotsAssigned=")
         .append(slotsAssigned).append(", slotsOk=").append(slotsOk).append(", slotsPFail=")
-        .append(slotsPFail).append(", slotsFail=").append(slotsFail).append(", knownKnownNodes=")
-        .append(knownKnownNodes).append(", size=").append(size).append(", currentEpoch=")
+        .append(slotsPFail).append(", slotsFail=").append(slotsFail).append(", knownNodes=")
+        .append(knownNodes).append(", size=").append(size).append(", currentEpoch=")
         .append(currentEpoch).append(", myEpoch=").append(myEpoch).append(", statsMessagesSent=")
         .append(statsMessagesSent).append(", statsMessagesReceied=").append(statsMessagesReceied)
         .append("]").toString();
