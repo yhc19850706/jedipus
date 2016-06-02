@@ -10,7 +10,7 @@ import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
-class SingleRedisClientExecutor implements RedisClientExecutor {
+final class SingleRedisClientExecutor implements RedisClientExecutor {
 
   private final Supplier<Node> nodeSupplier;
   private final RedisClientFactory.Builder clientFactory;

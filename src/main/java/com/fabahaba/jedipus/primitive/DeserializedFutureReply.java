@@ -2,7 +2,7 @@ package com.fabahaba.jedipus.primitive;
 
 import java.util.function.Function;
 
-class DeserializedFutureReply<T> extends DirectFutureReply<T> {
+final class DeserializedFutureReply<T> extends DirectFutureReply<T> {
 
   private final Function<Object, T> deserializer;
   private T deserialized = null;

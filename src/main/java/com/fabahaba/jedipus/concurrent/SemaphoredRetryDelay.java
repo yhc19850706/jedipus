@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 import java.util.function.LongFunction;
 
-public class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
+final class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
 
   private final Map<E, RetrySemaphore> retrySemaphores;
   private final LongFunction<Duration> delayFunction;

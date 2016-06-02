@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 
 import com.fabahaba.jedipus.executor.RedisClientExecutor;
 
-class MappedSubscriber extends SingleSubscriber {
+final class MappedSubscriber extends SingleSubscriber {
 
   private final Map<String, MsgConsumer> msgConsumers;
 

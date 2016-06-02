@@ -4,7 +4,7 @@ import java.util.Queue;
 
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
-class Prim2DArrayExecFutureReply extends StatefulFutureReply<long[][]> {
+final class Prim2DArrayExecFutureReply extends StatefulFutureReply<long[][]> {
 
   private final Queue<StatefulFutureReply<?>> multiReplies;
   private long[][] reply;

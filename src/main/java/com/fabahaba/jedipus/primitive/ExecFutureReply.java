@@ -4,7 +4,7 @@ import java.util.Queue;
 
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
-class ExecFutureReply<R> extends StatefulFutureReply<Object[]> {
+final class ExecFutureReply<R> extends StatefulFutureReply<Object[]> {
 
   private final Queue<StatefulFutureReply<?>> multiReplies;
   private Object[] reply = null;

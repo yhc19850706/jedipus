@@ -9,7 +9,7 @@ import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.pool.PooledClient;
 import com.fabahaba.jedipus.pool.PooledClientState;
 
-class PooledRedisClient extends PrimRedisClient implements PooledClient<RedisClient> {
+final class PooledRedisClient extends PrimRedisClient implements PooledClient<RedisClient> {
 
   private PooledClientState state = PooledClientState.IDLE;
   private final long createTime = System.currentTimeMillis();

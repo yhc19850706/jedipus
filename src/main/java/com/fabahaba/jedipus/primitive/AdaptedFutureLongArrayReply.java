@@ -2,10 +2,10 @@ package com.fabahaba.jedipus.primitive;
 
 import java.util.function.Function;
 
-class AdaptedFutureLongArrayReply extends StatefulFutureReply<long[]> {
+final class AdaptedFutureLongArrayReply extends StatefulFutureReply<long[]> {
 
   private final Function<long[], long[]> adapter;
-  protected long[] reply;
+  private long[] reply;
   private long[] adapted;
 
   AdaptedFutureLongArrayReply(final Function<long[], long[]> adapter) {

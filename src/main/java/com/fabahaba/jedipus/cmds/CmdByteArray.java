@@ -187,7 +187,7 @@ public class CmdByteArray<R> {
     }
   }
 
-  private static class ArrayListBuilder<R> extends Builder<R> {
+  private static final class ArrayListBuilder<R> extends Builder<R> {
 
     private final List<byte[]> cmdArgs;
 
@@ -246,7 +246,7 @@ public class CmdByteArray<R> {
     }
   }
 
-  private static class ArrayBuilder<R> extends Builder<R> {
+  private static final class ArrayBuilder<R> extends Builder<R> {
 
     private final byte[][] cmdArgs;
     private int index;

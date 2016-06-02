@@ -6,7 +6,7 @@ import java.io.InputStream;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 
-final class RedisInputStream extends InputStream {
+public final class RedisInputStream extends InputStream {
 
   private final Node node;
   private final InputStream in;

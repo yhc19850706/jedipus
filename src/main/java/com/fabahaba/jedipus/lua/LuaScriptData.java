@@ -3,7 +3,7 @@ package com.fabahaba.jedipus.lua;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-class LuaScriptData implements LuaScript {
+final class LuaScriptData implements LuaScript {
 
   private final String luaScript;
   private final String sha1Hex;
