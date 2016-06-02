@@ -18,16 +18,24 @@ public final class PartitionedStrategyConfig {
     }
 
     public PartitionedStrategyConfig create(final int maxVotes) {
-      return new PartitionedStrategyConfig(this, maxVotes);
+      return new PartitionedStrategyConfig(this, maxVotes, .5);
+    }
+
+    public PartitionedStrategyConfig create(final int maxVotes,
+        final double minMajorityPercentExclusive) {
+      return new PartitionedStrategyConfig(this, maxVotes, minMajorityPercentExclusive);
     }
   }
 
   private final Strategy strategy;
   private final int maxVotes;
+  private final double minMajorityPercentExclusive;
 
-  PartitionedStrategyConfig(final Strategy partitionedStrategy, final int maxVotes) {
+  PartitionedStrategyConfig(final Strategy partitionedStrategy, final int maxVotes,
+      final double minMajorityPercentExclusive) {
     this.strategy = partitionedStrategy;
     this.maxVotes = maxVotes;
+    this.minMajorityPercentExclusive = minMajorityPercentExclusive;
   }
 
   public Strategy getStrategy() {
@@ -38,9 +46,15 @@ public final class PartitionedStrategyConfig {
     return maxVotes;
   }
 
+  public double getMinMajorityPercentExclusive() {
+    return minMajorityPercentExclusive;
+  }
+
   @Override
   public String toString() {
     return new StringBuilder("PartitionedStrategyConfig [strategy=").append(strategy)
-        .append(", maxVotes=").append(maxVotes).append("]").toString();
+        .append(", maxVotes=").append(maxVotes).append(", maxVotes=").append(maxVotes)
+        .append(", minMajorityPercentExclusive=").append(minMajorityPercentExclusive).append("]")
+        .toString();
   }
 }
