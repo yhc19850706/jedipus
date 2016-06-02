@@ -245,7 +245,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final int invalidSlot = rotateSlotNode(slot);
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       final int moveToPort = rce.apply(invalidSlot, invalid -> {
 
@@ -274,7 +274,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       final Node importing = rce.apply(importingNodeSlot, RedisClient::getNode);
 
@@ -301,9 +301,9 @@ public class RedisClusterTest extends BaseRedisClientTest {
       setUpSlaves(client.getClusterNodeMap());
     }
 
-    try (final RedisClusterExecutor rce =
-        RedisClusterExecutor.startBuilding(discoveryNodes).withReadMode(ReadMode.MIXED)
-            .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+    try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
+        .withReadMode(ReadMode.MIXED)
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       final int[] numNodes = new int[1];
       rce.acceptAllMasters(master -> numNodes[0]++);
@@ -325,9 +325,9 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final byte[] key = RESP.toBytes("ro");
     final int slot = CRC16.getSlot(key);
 
-    try (final RedisClusterExecutor rce =
-        RedisClusterExecutor.startBuilding(discoveryNodes).withReadMode(ReadMode.SLAVES)
-            .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+    try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
+        .withReadMode(ReadMode.SLAVES)
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       rce.accept(slot, client -> {
         try {
@@ -349,7 +349,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       final Node exporting = rce.apply(slot, RedisClient::getNode);
       final Node importing = rce.apply(importingNodeSlot, client -> {
@@ -437,7 +437,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategy.TOP).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       final Node exporting = rce.apply(slot, RedisClient::getNode);
       final Node importing = rce.applyUnknown(newNode, client -> {
@@ -513,7 +513,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       final String exporting = rce.apply(slot, RedisClient::getNodeId);
       final String importing = rce.apply(importingNodeSlot, client -> {
@@ -559,7 +559,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       final String importing = rce.apply(importingNodeSlot, RedisClient::getNodeId);
       rce.accept(slot, exporting -> exporting.clusterSetSlotMigrating(slot, importing));
@@ -570,9 +570,9 @@ public class RedisClusterTest extends BaseRedisClientTest {
   @Test
   public void testClusterForgetNode() throws InterruptedException {
 
-    try (final RedisClusterExecutor rce =
-        RedisClusterExecutor.startBuilding(discoveryNodes).withReadMode(ReadMode.MIXED)
-            .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+    try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
+        .withReadMode(ReadMode.MIXED)
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       try (final RedisClient client = RedisClientFactory.startBuilding().create(slaves[0])) {
 
@@ -592,9 +592,9 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final byte[] key = RESP.toBytes("42");
     final int slot = CRC16.getSlot(key);
 
-    try (final RedisClusterExecutor rce =
-        RedisClusterExecutor.startBuilding(discoveryNodes).withReadMode(ReadMode.MIXED)
-            .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+    try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
+        .withReadMode(ReadMode.MIXED)
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       final Node node = rce.apply(ReadMode.MASTER, slot, client -> {
         client.clusterFlushSlots();
@@ -618,7 +618,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
   public void testClusterKeySlot() {
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       rce.accept(client -> {
         assertEquals(client.clusterKeySlot("foo{bar}zap}"), CRC16.getSlot("foo{bar}zap"));
@@ -634,7 +634,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final int slot = CRC16.getSlot("foo{bar}");
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       rce.accept(slot, client -> {
         IntStream.range(0, 5).forEach(index -> client.sendCmd(Cmds.SET, "foo{bar}" + index, "v"));
@@ -652,7 +652,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       final String exporting = rce.apply(slot, client -> {
         client.skip().sendCmd(Cmds.SET, keyString, "107.6");
@@ -682,9 +682,9 @@ public class RedisClusterTest extends BaseRedisClientTest {
         .withMaxTotal(0).withBorrowTimeout(Duration.ofMillis(20)).withBlockWhenExhausted(true)
         .create(RedisClientFactory.startBuilding().createPooled(node));
 
-    try (final RedisClusterExecutor rce =
-        RedisClusterExecutor.startBuilding(discoveryNodes).withMasterPoolFactory(poolFactory)
-            .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+    try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
+        .withMasterPoolFactory(poolFactory)
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       rce.accept(client -> client.sendCmd(Cmds.SET, "42", "107.6"));
     }
@@ -694,7 +694,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
   public void testCloseable() {
 
     final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create();
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create();
     try {
       rce.acceptAll(client -> assertEquals("PONG", client.sendCmd(Cmds.PING)),
           ForkJoinPool.commonPool()).forEach(CompletableFuture::join);
@@ -721,9 +721,9 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final Function<Node, ClientPool<RedisClient>> poolFactory =
         node -> ClientPool.startBuilding().create(poolFactoryBuilder.createPooled(node));
 
-    try (final RedisClusterExecutor rce =
-        RedisClusterExecutor.startBuilding(discoveryNodes).withMasterPoolFactory(poolFactory)
-            .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+    try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
+        .withMasterPoolFactory(poolFactory)
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       rce.accept(client -> {
         assertEquals(1234, poolFactoryBuilder.getConnTimeout());
@@ -748,9 +748,9 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final byte[] key = RESP.toBytes(keyString);
     final int slot = CRC16.getSlot(key);
 
-    try (final RedisClusterExecutor rce =
-        RedisClusterExecutor.startBuilding(discoveryNodes).withMasterPoolFactory(poolFactory)
-            .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+    try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
+        .withMasterPoolFactory(poolFactory)
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       final int numSets = 200;
       final List<Future<String>> futures = new ArrayList<>(numSets);
@@ -788,9 +788,9 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final Function<Node, ClientPool<RedisClient>> poolFactory = node -> ClientPool.startBuilding()
         .withMaxTotal(1).create(RedisClientFactory.startBuilding().createPooled(node));
 
-    try (final RedisClusterExecutor rce =
-        RedisClusterExecutor.startBuilding(discoveryNodes).withMasterPoolFactory(poolFactory)
-            .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+    try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
+        .withMasterPoolFactory(poolFactory)
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       rce.accept(slot, client -> {
 
@@ -822,7 +822,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       final String importing = rce.apply(importingNodeSlot, RedisClient::getNodeId);
       rce.accept(slot, client -> client.clusterSetSlotMigrating(slot, importing));
@@ -833,9 +833,9 @@ public class RedisClusterTest extends BaseRedisClientTest {
   @Test
   public void testLocalhostNodeNotAddedWhen127Present() {
 
-    try (final RedisClusterExecutor rce =
-        RedisClusterExecutor.startBuilding(Node.create("localhost", STARTING_PORT))
-            .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+    try (final RedisClusterExecutor rce = RedisClusterExecutor
+        .startBuilding(Node.create("localhost", STARTING_PORT))
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       final int[] count = new int[1];
       rce.acceptAll(client -> {
@@ -852,7 +852,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     try (final RedisClusterExecutor rce = RedisClusterExecutor
         .startBuilding(Node.create("not-a-real-host", STARTING_PORT),
             Node.create("127.0.0.1", STARTING_PORT))
-        .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       final int[] count = new int[1];
       rce.acceptAll(client -> {
@@ -869,9 +869,9 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final String key = "42";
     final int slot = CRC16.getSlot(key);
 
-    try (final RedisClusterExecutor rce =
-        RedisClusterExecutor.startBuilding(Node.create("localhost", STARTING_PORT))
-            .withPartitionedStrategy(PartitionedStrategy.MAJORITY).create()) {
+    try (final RedisClusterExecutor rce = RedisClusterExecutor
+        .startBuilding(Node.create("localhost", STARTING_PORT))
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
 
       final String[] bitfieldOverflowExample = new String[] {key, Cmds.BITFIELD_INCRBY.name(), "u2",
           "100", "1", Cmds.BITFIELD_OVERFLOW.name(), Cmds.BITFIELD_SAT.name(),

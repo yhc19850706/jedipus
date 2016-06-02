@@ -17,7 +17,8 @@ final class OptimisticRedisClusterSlotCache extends RedisClusterSlotCache {
   OptimisticRedisClusterSlotCache(final ReadMode defaultReadMode,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
       final Supplier<Collection<Node>> discoveryNodes,
-      final PartitionedStrategy partitionedStrategy, final Function<Node, Node> hostPortMapper,
+      final PartitionedStrategyConfig partitionedStrategyConfig,
+      final Function<Node, Node> hostPortMapper,
       final Map<Node, ClientPool<RedisClient>> masterPools,
       final ClientPool<RedisClient>[] masterSlots,
       final Map<Node, ClientPool<RedisClient>> slavePools,
@@ -29,7 +30,7 @@ final class OptimisticRedisClusterSlotCache extends RedisClusterSlotCache {
       final ElementRetryDelay<Node> clusterNodeRetryDelay) {
 
     super(defaultReadMode, true, durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes,
-        partitionedStrategy, hostPortMapper, masterPools, masterSlots, slavePools, slaveSlots,
+        partitionedStrategyConfig, hostPortMapper, masterPools, masterSlots, slavePools, slaveSlots,
         masterPoolFactory, slavePoolFactory, nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
   }
 

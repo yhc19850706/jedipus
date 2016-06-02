@@ -20,7 +20,8 @@ final class RedisClusterConnHandler implements AutoCloseable {
   RedisClusterConnHandler(final ReadMode defaultReadMode, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
       final Supplier<Collection<Node>> discoveryNodes,
-      final PartitionedStrategy partitionedStrategy, final Function<Node, Node> hostPortMapper,
+      final PartitionedStrategyConfig partitionedStrategyConfig,
+      final Function<Node, Node> hostPortMapper,
       final Function<Node, ClientPool<RedisClient>> masterPoolFactory,
       final Function<Node, ClientPool<RedisClient>> slavePoolFactory,
       final Function<Node, RedisClient> nodeUnknownFactory,
@@ -28,9 +29,9 @@ final class RedisClusterConnHandler implements AutoCloseable {
       final ElementRetryDelay<Node> clusterNodeRetryDelay) {
 
     this.slotPoolCache = RedisClusterSlotCache.create(defaultReadMode, optimisticReads,
-        durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes, partitionedStrategy,
-        hostPortMapper, masterPoolFactory, slavePoolFactory, nodeUnknownFactory, lbFactory,
-        clusterNodeRetryDelay);
+        durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes,
+        partitionedStrategyConfig, hostPortMapper, masterPoolFactory, slavePoolFactory,
+        nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
   }
 
   ReadMode getDefaultReadMode() {
