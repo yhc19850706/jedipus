@@ -1,20 +1,17 @@
 package com.fabahaba.jedipus.cluster;
 
-public class PartitionedStrategyConfig {
+public final class PartitionedStrategyConfig {
 
   public static enum Strategy {
-    // Concurrently retrieves CLUSTER SLOTS replies from all known nodes and throws a
+    // Concurrently crawls CLUSTER SLOTS replies from all masters and throws a
     // RedisClusterPartitionedException if there are any differing views.
     THROW,
-    // Concurrently retrieves CLUSTER SLOTS replies from all known nodes and throws a
+    // Concurrently crawls CLUSTER SLOTS replies from all masters and throws a
     // RedisClusterPartitionedException if there is no majority view.
     MAJORITY,
-    // Concurrently retrieves CLUSTER SLOTS replies from all known nodes and uses the most common
-    // view
-    // of the cluster. Ties will result in a random choice.
-    TOP,
-    // Uses the first successful CLUSTER SLOTS reply.
-    FIRST;
+    // Concurrently crawls CLUSTER SLOTS replies from all masters and uses the most common
+    // view of the cluster. Ties will result in a random choice.
+    TOP;
 
     public PartitionedStrategyConfig create() {
       return create(Integer.MAX_VALUE);
