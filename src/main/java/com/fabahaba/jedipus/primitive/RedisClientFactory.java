@@ -1,9 +1,9 @@
 package com.fabahaba.jedipus.primitive;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.Socket;
 import java.util.Arrays;
-import java.util.function.Function;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
@@ -13,6 +13,7 @@ import javax.net.ssl.SSLSocketFactory;
 import com.fabahaba.jedipus.client.BaseConnectedSocketFactory;
 import com.fabahaba.jedipus.client.ConnectedSSLSocketFactory;
 import com.fabahaba.jedipus.client.ConnectedSocketFactory;
+import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.client.RedisClient.ReplyMode;
 import com.fabahaba.jedipus.cluster.Node;
@@ -22,10 +23,12 @@ import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.pool.PooledClient;
 import com.fabahaba.jedipus.pool.PooledClientFactory;
 
-public class RedisClientFactory implements PooledClientFactory<RedisClient> {
+public class RedisClientFactory implements PooledClientFactory<RedisClient>, Serializable {
+
+  private static final long serialVersionUID = 9117451563269092836L;
 
   private final Node node;
-  private final Function<Node, Node> hostPortMapper;
+  private final NodeMapper nodeMapper;
   private final int connTimeoutMillis;
   private final ConnectedSocketFactory<? extends Socket> socketFactory;
   private final int soTimeoutMillis;
@@ -39,14 +42,14 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
   private final int outputBufferSize;
   private final int inputBufferSize;
 
-  protected RedisClientFactory(final Node node, final Function<Node, Node> hostPortMapper,
+  protected RedisClientFactory(final Node node, final NodeMapper nodeMapper,
       final int connTimeoutMillis, final ConnectedSocketFactory<? extends Socket> socketFactory,
       final int soTimeoutMillis, final String pass, final String clientName,
       final boolean initReadOnly, final ReplyMode replyMode, final int db,
       final int outputBufferSize, final int inputBufferSize) {
 
     this.node = node;
-    this.hostPortMapper = hostPortMapper;
+    this.nodeMapper = nodeMapper;
     this.connTimeoutMillis = connTimeoutMillis;
     this.socketFactory = socketFactory;
     this.soTimeoutMillis = soTimeoutMillis;
@@ -104,8 +107,8 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
     try {
       final Socket socket = socketFactory.create(node.getHost(), node.getPort(), connTimeoutMillis);
 
-      final PooledRedisClient client = new PooledRedisClient(node, replyMode, hostPortMapper,
-          socket, soTimeoutMillis, outputBufferSize, inputBufferSize);
+      final PooledRedisClient client = new PooledRedisClient(node, replyMode, nodeMapper, socket,
+          soTimeoutMillis, outputBufferSize, inputBufferSize);
 
       initClient(client);
 
@@ -117,13 +120,11 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
 
   @Override
   public void destroyClient(final PooledClient<RedisClient> pooledClient) {
-
     pooledClient.getClient().close();
   }
 
   @Override
   public boolean validateClient(final PooledClient<RedisClient> pooledClient) {
-
     try {
       pooledClient.getClient().sendCmd(Cmds.PING.raw());
       return true;
@@ -147,11 +148,13 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
         .append(", sslSocketFactory=").append(socketFactory).append("]").toString();
   }
 
-  public static class Builder {
+  public static class Builder implements Serializable {
+
+    private static final long serialVersionUID = -6061038712623816568L;
 
     private String host;
     private int port;
-    private Function<Node, Node> hostPortMapper = Node.DEFAULT_HOSTPORT_MAPPER;
+    private NodeMapper nodeMapper = Node.DEFAULT_NODE_MAPPER;
     private int connTimeoutMillis = 2000;
     private int soTimeoutMillis = 2000;
 
@@ -173,23 +176,19 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
     private Builder() {}
 
     public PooledClientFactory<RedisClient> createPooled() {
-
       return createPooled(host, port);
     }
 
     public PooledClientFactory<RedisClient> createPooled(final String host, final int port) {
-
       return createPooled(Node.create(host, port));
     }
 
     public PooledClientFactory<RedisClient> createPooled(final String host, final int port,
         final boolean initReadOnly) {
-
       return createPooled(Node.create(host, port), initReadOnly);
     }
 
     public PooledClientFactory<RedisClient> createPooled(final Node node) {
-
       return createPooled(node, initReadOnly);
     }
 
@@ -198,13 +197,12 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
 
       initConnectedSocketFactory();
 
-      return new RedisClientFactory(node, hostPortMapper, connTimeoutMillis, connectedSocketFactory,
+      return new RedisClientFactory(node, nodeMapper, connTimeoutMillis, connectedSocketFactory,
           soTimeoutMillis, pass, clientName, initReadOnly, replyMode, db, outputBufferSize,
           inputBufferSize);
     }
 
     public RedisClient create(final Node node) {
-
       return create(node, initReadOnly);
     }
 
@@ -233,7 +231,7 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
         final Socket socket =
             connectedSocketFactory.create(node.getHost(), node.getPort(), connTimeoutMillis);
 
-        final PrimRedisClient client = new PrimRedisClient(node, replyMode, hostPortMapper, socket,
+        final PrimRedisClient client = new PrimRedisClient(node, replyMode, nodeMapper, socket,
             soTimeoutMillis, outputBufferSize, inputBufferSize);
 
         if (pass != null) {
@@ -287,12 +285,12 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient> {
       return this;
     }
 
-    public Function<Node, Node> getHostPortMapper() {
-      return hostPortMapper;
+    public NodeMapper getNodeMapper() {
+      return nodeMapper;
     }
 
-    public Builder withHostPortMapper(final Function<Node, Node> hostPortMapper) {
-      this.hostPortMapper = hostPortMapper;
+    public Builder withNodeMapper(final NodeMapper nodeMapper) {
+      this.nodeMapper = nodeMapper;
       return this;
     }
 

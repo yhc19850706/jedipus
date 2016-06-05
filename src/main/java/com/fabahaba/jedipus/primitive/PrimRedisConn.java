@@ -4,6 +4,7 @@ import java.net.Socket;
 import java.util.function.Function;
 import java.util.function.LongUnaryOperator;
 
+import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.client.RedisClient.ReplyMode;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.RESP;
@@ -15,11 +16,11 @@ final class PrimRedisConn extends RedisConn {
   private boolean watching;
   private ReplyMode replyMode;
 
-  PrimRedisConn(final Node node, final ReplyMode replyMode,
-      final Function<Node, Node> hostPortMapper, final Socket socket, final int soTimeoutMillis,
-      final int outputBufferSize, final int inputBufferSize) {
+  PrimRedisConn(final Node node, final ReplyMode replyMode, final NodeMapper nodeMapper,
+      final Socket socket, final int soTimeoutMillis, final int outputBufferSize,
+      final int inputBufferSize) {
 
-    super(node, hostPortMapper, socket, soTimeoutMillis, outputBufferSize, inputBufferSize);
+    super(node, nodeMapper, socket, soTimeoutMillis, outputBufferSize, inputBufferSize);
 
     this.replyMode = replyMode;
   }

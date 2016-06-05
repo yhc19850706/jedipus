@@ -1,9 +1,9 @@
 package com.fabahaba.jedipus.pool;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
 import com.fabahaba.jedipus.cluster.Node;
@@ -45,7 +45,9 @@ public interface ClientPool<C> extends AutoCloseable {
   public static final Duration DEFAULT_SOFT_MIN_EVICTABLE_IDLE_DURATION = Duration.ofSeconds(30);
   public static final int MAX_IDLE = Runtime.getRuntime().availableProcessors();
 
-  static class Builder {
+  static class Builder implements Serializable {
+
+    private static final long serialVersionUID = 244281637319519560L;
 
     private boolean lifo = true;
     private boolean fair = false;
@@ -60,7 +62,6 @@ public interface ClientPool<C> extends AutoCloseable {
     // methods.
     private Duration durationBetweenEvictionRuns = null;
     private int numTestsPerEvictionRun = -1;
-    private ExecutorService evictionExecutor = ForkJoinPool.commonPool();
     private boolean testOnCreate = false;
     private boolean testOnBorrow = false;
     private boolean testOnReturn = false;
@@ -72,8 +73,13 @@ public interface ClientPool<C> extends AutoCloseable {
     private Builder() {}
 
     public <C> ClientPool<C> create(final PooledClientFactory<C> clientFactory) {
+      return create(null, clientFactory);
+    }
 
-      return new FinalClientPool<>(clientFactory, this,
+    public <C> ClientPool<C> create(final ExecutorService evictionExecutor,
+        final PooledClientFactory<C> clientFactory) {
+
+      return new FinalClientPool<>(evictionExecutor, clientFactory, this,
           durationBetweenEvictionRuns == null ? null
               : new DefaultEvictionStrategy<>(softMinEvictableIdleDuration,
                   minEvictableIdleDuration, minIdle));
@@ -81,8 +87,12 @@ public interface ClientPool<C> extends AutoCloseable {
 
     public <C> ClientPool<C> create(final PooledClientFactory<C> clientFactory,
         final EvictionStrategy<C> evictionStrategy) {
+      return create(null, clientFactory, evictionStrategy);
+    }
 
-      return new FinalClientPool<>(clientFactory, this, evictionStrategy);
+    public <C> ClientPool<C> create(final ExecutorService evictionExecutor,
+        final PooledClientFactory<C> clientFactory, final EvictionStrategy<C> evictionStrategy) {
+      return new FinalClientPool<>(evictionExecutor, clientFactory, this, evictionStrategy);
     }
 
     public boolean isLifo() {
@@ -181,15 +191,6 @@ public interface ClientPool<C> extends AutoCloseable {
 
     public Builder withDurationBetweenEvictionRuns(final Duration durationBetweenEvictionRuns) {
       this.durationBetweenEvictionRuns = durationBetweenEvictionRuns;
-      return this;
-    }
-
-    public ExecutorService getEvictionExecutor() {
-      return evictionExecutor;
-    }
-
-    public Builder withEvictionExecutor(final ExecutorService evictionExecutor) {
-      this.evictionExecutor = evictionExecutor;
       return this;
     }
 

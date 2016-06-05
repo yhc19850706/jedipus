@@ -13,6 +13,8 @@ import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 
 public class ConnectedSSLSocketFactory extends BaseConnectedSocketFactory {
 
+  private static final long serialVersionUID = -8622996635179196411L;
+
   private final SSLParameters sslParameters;
   private final HostnameVerifier hostnameVerifier;
 

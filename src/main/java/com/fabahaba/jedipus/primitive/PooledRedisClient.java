@@ -2,8 +2,8 @@ package com.fabahaba.jedipus.primitive;
 
 import java.net.Socket;
 import java.util.Deque;
-import java.util.function.Function;
 
+import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.pool.PooledClient;
@@ -17,11 +17,11 @@ final class PooledRedisClient extends PrimRedisClient implements PooledClient<Re
   private volatile long lastUseTime = createTime;
   private volatile long lastReturnTime = createTime;
 
-  PooledRedisClient(final Node node, final ReplyMode replyMode,
-      final Function<Node, Node> hostPortMapper, final Socket socket, final int soTimeoutMillis,
-      final int outputBufferSize, final int inputBufferSize) {
+  PooledRedisClient(final Node node, final ReplyMode replyMode, final NodeMapper nodeMapper,
+      final Socket socket, final int soTimeoutMillis, final int outputBufferSize,
+      final int inputBufferSize) {
 
-    super(node, replyMode, hostPortMapper, socket, soTimeoutMillis, outputBufferSize,
+    super(node, replyMode, nodeMapper, socket, soTimeoutMillis, outputBufferSize,
         inputBufferSize);
   }
 

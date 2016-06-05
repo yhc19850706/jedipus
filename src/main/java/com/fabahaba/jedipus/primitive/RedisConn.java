@@ -5,8 +5,8 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.Collection;
-import java.util.function.Function;
 
+import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
@@ -14,18 +14,17 @@ import com.fabahaba.jedipus.pubsub.RedisSubscriber;
 
 abstract class RedisConn implements AutoCloseable {
 
-  private final Function<Node, Node> hostPortMapper;
+  private final NodeMapper nodeMapper;
   private final Socket socket;
   private final RedisOutputStream outputStream;
   private final RedisInputStream inputStream;
   private final int soTimeoutMillis;
   private boolean broken = false;
 
-  protected RedisConn(final Node node, final Function<Node, Node> hostPortMapper,
-      final Socket socket, final int soTimeoutMillis, final int outputBufferSize,
-      final int inputBufferSize) {
+  protected RedisConn(final Node node, final NodeMapper nodeMapper, final Socket socket,
+      final int soTimeoutMillis, final int outputBufferSize, final int inputBufferSize) {
 
-    this.hostPortMapper = hostPortMapper;
+    this.nodeMapper = nodeMapper;
     this.soTimeoutMillis = soTimeoutMillis;
     this.socket = socket;
 
@@ -221,7 +220,7 @@ abstract class RedisConn implements AutoCloseable {
   @SuppressWarnings("unchecked")
   protected <R> R getReply() {
     try {
-      return (R) RESProtocol.read(getNode(), hostPortMapper, inputStream);
+      return (R) RESProtocol.read(getNode(), nodeMapper, inputStream);
     } catch (final RedisConnectionException rce) {
       broken = true;
       throw rce;
@@ -231,7 +230,7 @@ abstract class RedisConn implements AutoCloseable {
   protected boolean consumePubSub(final int soTimeoutMillis, final RedisSubscriber subscriber) {
     setSoTimeout(soTimeoutMillis);
     try {
-      RESProtocol.consumePubSub(subscriber, getNode(), hostPortMapper, inputStream);
+      RESProtocol.consumePubSub(subscriber, getNode(), nodeMapper, inputStream);
       return true;
     } catch (final RedisConnectionException rce) {
       if (rce.getCause() != null && rce.getCause() instanceof SocketTimeoutException) {
@@ -246,7 +245,7 @@ abstract class RedisConn implements AutoCloseable {
 
   protected long[] getLongArray() {
     try {
-      return RESProtocol.readLongArray(getNode(), hostPortMapper, inputStream);
+      return RESProtocol.readLongArray(getNode(), nodeMapper, inputStream);
     } catch (final RedisConnectionException rce) {
       broken = true;
       throw rce;
@@ -255,7 +254,7 @@ abstract class RedisConn implements AutoCloseable {
 
   protected long[][] getLong2DArray() {
     try {
-      return RESProtocol.readLong2DArray(getNode(), hostPortMapper, inputStream);
+      return RESProtocol.readLong2DArray(getNode(), nodeMapper, inputStream);
     } catch (final RedisConnectionException rce) {
       broken = true;
       throw rce;
@@ -264,7 +263,7 @@ abstract class RedisConn implements AutoCloseable {
 
   protected long getLong() {
     try {
-      return RESProtocol.readLong(getNode(), hostPortMapper, inputStream);
+      return RESProtocol.readLong(getNode(), nodeMapper, inputStream);
     } catch (final RedisConnectionException rce) {
       broken = true;
       throw rce;

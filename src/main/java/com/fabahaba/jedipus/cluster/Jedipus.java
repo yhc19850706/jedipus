@@ -1,5 +1,6 @@
 package com.fabahaba.jedipus.cluster;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -13,6 +14,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 
+import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
@@ -122,9 +124,9 @@ public final class Jedipus implements RedisClusterExecutor {
   private final RedisClusterConnHandler connHandler;
 
   private Jedipus(final ReadMode defaultReadMode, final Supplier<Collection<Node>> discoveryNodes,
-      final PartitionedStrategyConfig partitionedStrategyConfig,
-      final Function<Node, Node> hostPortMapper, final int maxRedirections, final int maxRetries,
-      final int refreshSlotCacheEvery, final ElementRetryDelay<Node> clusterNodeRetryDelay,
+      final PartitionedStrategyConfig partitionedStrategyConfig, final NodeMapper nodeMapper,
+      final int maxRedirections, final int maxRetries, final int refreshSlotCacheEvery,
+      final ElementRetryDelay<Node> clusterNodeRetryDelay,
       final boolean retryUnhandledRetryableExceptions, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
       final Function<Node, ClientPool<RedisClient>> masterPoolFactory,
@@ -134,7 +136,7 @@ public final class Jedipus implements RedisClusterExecutor {
 
     this.connHandler = new RedisClusterConnHandler(defaultReadMode, optimisticReads,
         durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes,
-        partitionedStrategyConfig, hostPortMapper, masterPoolFactory, slavePoolFactory,
+        partitionedStrategyConfig, nodeMapper, masterPoolFactory, slavePoolFactory,
         nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
 
     this.maxRedirections = maxRedirections;
@@ -631,12 +633,14 @@ public final class Jedipus implements RedisClusterExecutor {
         .append("]").toString();
   }
 
-  public static final class Builder {
+  public static final class Builder implements Serializable {
+
+    private static final long serialVersionUID = -182901200777846711L;
 
     private ReadMode defaultReadMode = ReadMode.MASTER;
     private Supplier<Collection<Node>> discoveryNodes;
     private PartitionedStrategyConfig partitionedStrategyConfig = DEFAULT_PARTITIONED_STRATEGY;
-    private Function<Node, Node> hostPortMapper = Node.DEFAULT_HOSTPORT_MAPPER;
+    private NodeMapper nodeMapper = Node.DEFAULT_NODE_MAPPER;
     private int maxRedirections = DEFAULT_MAX_REDIRECTIONS;
     private int maxRetries = DEFAULT_MAX_RETRIES;
     private ElementRetryDelay<Node> clusterNodeRetryDelay = DEFAULT_RETRY_DELAY;
@@ -657,13 +661,11 @@ public final class Jedipus implements RedisClusterExecutor {
     private Duration maxAwaitCacheRefresh = DEFAULT_MAX_AWAIT_CACHE_REFRESH;
 
     Builder(final Supplier<Collection<Node>> discoveryNodes) {
-
       this.discoveryNodes = discoveryNodes;
     }
 
     public RedisClusterExecutor create() {
-
-      return new Jedipus(defaultReadMode, discoveryNodes, partitionedStrategyConfig, hostPortMapper,
+      return new Jedipus(defaultReadMode, discoveryNodes, partitionedStrategyConfig, nodeMapper,
           maxRedirections, maxRetries, refreshSlotCacheEvery, clusterNodeRetryDelay,
           retryUnhandledRetryableExceptions, optimisticReads, durationBetweenCacheRefresh,
           maxAwaitCacheRefresh, masterPoolFactory, slavePoolFactory, nodeUnknownFactory,
@@ -703,12 +705,12 @@ public final class Jedipus implements RedisClusterExecutor {
       return this;
     }
 
-    public Function<Node, Node> getHostPortMapper() {
-      return hostPortMapper;
+    public NodeMapper getNodeMapper() {
+      return nodeMapper;
     }
 
-    public Builder withHostPortMapper(final Function<Node, Node> hostPortMapper) {
-      this.hostPortMapper = hostPortMapper;
+    public Builder withNodeMapper(final NodeMapper nodeMapper) {
+      this.nodeMapper = nodeMapper;
       return this;
     }
 

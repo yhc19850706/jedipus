@@ -4,6 +4,8 @@ import com.fabahaba.jedipus.client.HostPort;
 
 final class ClusterNode implements Node {
 
+  private static final long serialVersionUID = 6456783588509458890L;
+
   private final HostPort hostPort;
   private String id;
 

@@ -42,7 +42,6 @@ project.ext.set('numSlavesEach', '1')
 
 model {
    components {
-
       main(JvmLibrarySpec) {
          sources {
             java {

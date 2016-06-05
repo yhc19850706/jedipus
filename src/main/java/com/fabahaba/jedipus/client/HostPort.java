@@ -1,6 +1,8 @@
 package com.fabahaba.jedipus.client;
 
-public interface HostPort {
+import java.io.Serializable;
+
+public interface HostPort extends Serializable {
 
   public static HostPort create(final String hostPort) {
 

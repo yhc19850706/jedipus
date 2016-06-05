@@ -6,6 +6,7 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -46,7 +47,8 @@ final class FinalClientPool<C> implements ClientPool<C> {
 
   private volatile boolean closed = false;
 
-  FinalClientPool(final PooledClientFactory<C> clientFactory, final Builder poolBuilder,
+  FinalClientPool(final ExecutorService evictionExecutor,
+      final PooledClientFactory<C> clientFactory, final Builder poolBuilder,
       final EvictionStrategy<C> evictionStrategy) {
 
     this.lifo = poolBuilder.isLifo();
@@ -78,10 +80,12 @@ final class FinalClientPool<C> implements ClientPool<C> {
     this.evictionConfig = new EvictionConfig(poolBuilder.getMinEvictableIdleDuration(),
         poolBuilder.getSoftMinEvictableIdleDuration(), Math.min(poolBuilder.getMinIdle(), maxIdle));
     this.evictionPolicy = evictionStrategy;
-    this.evictionExecutor = poolBuilder.getEvictionExecutor();
     if (poolBuilder.getDurationBetweenEvictionRuns() == null) {
       this.evictionRunExecutor = null;
+      this.evictionExecutor = null;
     } else {
+      this.evictionExecutor =
+          evictionExecutor == null ? ForkJoinPool.commonPool() : evictionExecutor;
       this.evictionRunExecutor = new ScheduledThreadPoolExecutor(1);
 
       final long evictionDelayNanos = poolBuilder.getDurationBetweenEvictionRuns().toNanos();

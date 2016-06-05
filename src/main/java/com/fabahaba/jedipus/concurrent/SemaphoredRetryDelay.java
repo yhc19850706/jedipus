@@ -1,5 +1,6 @@
 package com.fabahaba.jedipus.concurrent;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -8,14 +9,15 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 import java.util.function.LongFunction;
 
-final class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
+final class SemaphoredRetryDelay<E> implements ElementRetryDelay<E>, Serializable {
+
+  private static final long serialVersionUID = 3049702722917839982L;
 
   private final Map<E, RetrySemaphore> retrySemaphores;
   private final LongFunction<Duration> delayFunction;
   private final Function<E, RetrySemaphore> retrySemaphoreFactory;
 
   SemaphoredRetryDelay(final int numConurrentRetries, final LongFunction<Duration> delayFunction) {
-
     this.retrySemaphores = new ConcurrentHashMap<>();
     this.retrySemaphoreFactory = e -> new RetrySemaphore(numConurrentRetries);
     this.delayFunction = delayFunction;
@@ -107,7 +109,9 @@ final class SemaphoredRetryDelay<E> implements ElementRetryDelay<E> {
     return retrySemaphore.failureAdder.sum();
   }
 
-  private static class RetrySemaphore {
+  private static class RetrySemaphore implements Serializable {
+
+    private static final long serialVersionUID = 9011659754883428661L;
 
     private final LongAdder failureAdder;
     private final Semaphore semaphore;

@@ -1,5 +1,6 @@
 package com.fabahaba.jedipus.executor;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -42,7 +43,9 @@ public interface RedisClientExecutor extends AutoCloseable {
     return new Builder();
   }
 
-  public static class Builder {
+  public static class Builder implements Serializable {
+
+    private static final long serialVersionUID = -5539186165488469038L;
 
     private static final ClientPool.Builder DEFAULT_POOL_BUILDER =
         ClientPool.startBuilding().withMaxIdle(8).withMinIdle(2).withMaxTotal(8)

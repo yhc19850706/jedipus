@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
@@ -20,8 +21,7 @@ final class RedisClusterConnHandler implements AutoCloseable {
   RedisClusterConnHandler(final ReadMode defaultReadMode, final boolean optimisticReads,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
       final Supplier<Collection<Node>> discoveryNodes,
-      final PartitionedStrategyConfig partitionedStrategyConfig,
-      final Function<Node, Node> hostPortMapper,
+      final PartitionedStrategyConfig partitionedStrategyConfig, final NodeMapper nodeMapper,
       final Function<Node, ClientPool<RedisClient>> masterPoolFactory,
       final Function<Node, ClientPool<RedisClient>> slavePoolFactory,
       final Function<Node, RedisClient> nodeUnknownFactory,
@@ -30,7 +30,7 @@ final class RedisClusterConnHandler implements AutoCloseable {
 
     this.slotPoolCache = RedisClusterSlotCache.create(defaultReadMode, optimisticReads,
         durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes,
-        partitionedStrategyConfig, hostPortMapper, masterPoolFactory, slavePoolFactory,
+        partitionedStrategyConfig, nodeMapper, masterPoolFactory, slavePoolFactory,
         nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
   }
 

@@ -2,6 +2,8 @@ package com.fabahaba.jedipus.client;
 
 final class FinalHashHostPort implements HostPort {
 
+  private static final long serialVersionUID = -7106619181597241954L;
+
   private final String host;
   private final int port;
 

@@ -1,10 +1,11 @@
 package com.fabahaba.jedipus.client;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.Socket;
 import java.net.SocketException;
 
-public interface ConnectedSocketFactory<S extends Socket> {
+public interface ConnectedSocketFactory<S extends Socket> extends Serializable {
 
   S create(final String host, final int port, final int connTimeoutMillis) throws IOException;
 

@@ -1,8 +1,8 @@
 package com.fabahaba.jedipus.primitive;
 
 import java.net.Socket;
-import java.util.function.Function;
 
+import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.client.RedisPipeline;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.Cmd;
@@ -11,11 +11,11 @@ class PrimRedisClient extends BaseRedisClient {
 
   private PrimPipeline pipeline;
 
-  PrimRedisClient(final Node node, final ReplyMode replyMode,
-      final Function<Node, Node> hostPortMapper, final Socket socket, final int soTimeoutMillis,
-      final int outputBufferSize, final int inputBufferSize) {
+  PrimRedisClient(final Node node, final ReplyMode replyMode, final NodeMapper nodeMapper,
+      final Socket socket, final int soTimeoutMillis, final int outputBufferSize,
+      final int inputBufferSize) {
 
-    super(new PrimRedisConn(node, replyMode, hostPortMapper, socket, soTimeoutMillis,
+    super(new PrimRedisConn(node, replyMode, nodeMapper, socket, soTimeoutMillis,
         outputBufferSize, inputBufferSize));
   }
 

@@ -1,12 +1,15 @@
 package com.fabahaba.jedipus.concurrent;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.LongFunction;
 
-public class StaticDelayFunction implements LongFunction<Duration> {
+public class StaticDelayFunction implements LongFunction<Duration>, Serializable {
+
+  private static final long serialVersionUID = 383583396503221129L;
 
   private final Duration[] delays;
   private final Duration maxDelay;

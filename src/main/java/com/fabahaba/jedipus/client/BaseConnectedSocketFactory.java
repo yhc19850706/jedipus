@@ -8,17 +8,17 @@ import javax.net.SocketFactory;
 
 public class BaseConnectedSocketFactory implements ConnectedSocketFactory<Socket> {
 
+  private static final long serialVersionUID = -8720044585962105507L;
+
   protected final SocketFactory socketFactory;
   protected final int soTimeoutMillis;
 
   public BaseConnectedSocketFactory(final int soTimeoutMillis) {
-
     this.socketFactory = null;
     this.soTimeoutMillis = soTimeoutMillis;
   }
 
   public BaseConnectedSocketFactory(final SocketFactory socketFactory, final int soTimeoutMillis) {
-
     this.socketFactory = socketFactory;
     this.soTimeoutMillis = soTimeoutMillis;
   }
@@ -28,9 +28,7 @@ public class BaseConnectedSocketFactory implements ConnectedSocketFactory<Socket
       throws IOException {
 
     final Socket socket = socketFactory == null ? new Socket() : socketFactory.createSocket();
-
     initSocket(socket).connect(new InetSocketAddress(host, port), connTimeoutMillis);
-
     return socket;
   }
 

@@ -1,5 +1,6 @@
 package com.fabahaba.jedipus.pubsub;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -90,12 +91,12 @@ public interface RedisSubscriber extends Runnable {
 
   void close();
 
-  public static class Builder {
+  public static class Builder implements Serializable {
+
+    private static final long serialVersionUID = 7465574872719472102L;
 
     private int soTimeoutMillis = 0; // silently block forever.
     private Consumer<RedisSubscriber> onSocketTimeout = subscriber -> subscriber.ping();
-    private MsgConsumer defaultConsumer = (ch, payload) -> {
-    };
     private Function<String, Collection<MsgConsumer>> consumerCollectionFactory =
         ch -> new HashSet<>();
     private Consumer<String> pongConsumer = pong -> {
@@ -103,9 +104,9 @@ public interface RedisSubscriber extends Runnable {
 
     private Builder() {}
 
-    public RedisSubscriber createSingleSubscriber(final RedisClientExecutor clientExecutor) {
-
-      return new SingleSubscriber(clientExecutor, soTimeoutMillis, onSocketTimeout, defaultConsumer,
+    public RedisSubscriber createSingleSubscriber(final RedisClientExecutor clientExecutor,
+        final MsgConsumer msgConsumer) {
+      return new SingleSubscriber(clientExecutor, soTimeoutMillis, onSocketTimeout, msgConsumer,
           pongConsumer);
     }
 
@@ -114,8 +115,18 @@ public interface RedisSubscriber extends Runnable {
     }
 
     public RedisSubscriber create(final RedisClientExecutor clientExecutor,
-        final Map<String, MsgConsumer> msgConsumers) {
+        final MsgConsumer defaultConsumer) {
+      return create(clientExecutor, new HashMap<>(), defaultConsumer);
+    }
 
+    public RedisSubscriber create(final RedisClientExecutor clientExecutor,
+        final Map<String, MsgConsumer> msgConsumers) {
+      return create(clientExecutor, msgConsumers, (ch, payload) -> {
+      });
+    }
+
+    public RedisSubscriber create(final RedisClientExecutor clientExecutor,
+        final Map<String, MsgConsumer> msgConsumers, final MsgConsumer defaultConsumer) {
       return new MappedSubscriber(clientExecutor, soTimeoutMillis, onSocketTimeout, defaultConsumer,
           msgConsumers, pongConsumer);
     }
@@ -125,8 +136,19 @@ public interface RedisSubscriber extends Runnable {
     }
 
     public RedisSubscriber createMulti(final RedisClientExecutor clientExecutor,
-        final Map<String, Collection<MsgConsumer>> msgConsumers) {
+        final MsgConsumer defaultConsumer) {
+      return createMulti(clientExecutor, new HashMap<>(), defaultConsumer);
+    }
 
+    public RedisSubscriber createMulti(final RedisClientExecutor clientExecutor,
+        final Map<String, Collection<MsgConsumer>> msgConsumers) {
+      return createMulti(clientExecutor, msgConsumers, (ch, payload) -> {
+      });
+    }
+
+    public RedisSubscriber createMulti(final RedisClientExecutor clientExecutor,
+        final Map<String, Collection<MsgConsumer>> msgConsumers,
+        final MsgConsumer defaultConsumer) {
       return new MultiMappedSubscriber(clientExecutor, soTimeoutMillis, onSocketTimeout,
           defaultConsumer, msgConsumers, consumerCollectionFactory, pongConsumer);
     }
@@ -146,15 +168,6 @@ public interface RedisSubscriber extends Runnable {
 
     public Builder withOnSocketTimeout(final Consumer<RedisSubscriber> onSocketTimeout) {
       this.onSocketTimeout = onSocketTimeout;
-      return this;
-    }
-
-    public MsgConsumer getDefaultConsumer() {
-      return defaultConsumer;
-    }
-
-    public Builder withDefaultConsumer(final MsgConsumer defaultConsumer) {
-      this.defaultConsumer = defaultConsumer;
       return this;
     }
 

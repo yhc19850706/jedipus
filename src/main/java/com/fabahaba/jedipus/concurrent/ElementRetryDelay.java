@@ -1,5 +1,6 @@
 package com.fabahaba.jedipus.concurrent;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.function.Function;
 import java.util.function.LongFunction;
@@ -129,7 +130,9 @@ public interface ElementRetryDelay<E> {
     return new Builder();
   }
 
-  public static final class Builder {
+  public static final class Builder implements Serializable {
+
+    private static final long serialVersionUID = -1206437227491510129L;
 
     private int baseDelayMillis = 10;
     private LongFunction<Duration> delayFunction;

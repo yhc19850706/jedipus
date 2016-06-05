@@ -1,6 +1,10 @@
 package com.fabahaba.jedipus.cluster;
 
-public final class PartitionedStrategyConfig {
+import java.io.Serializable;
+
+public final class PartitionedStrategyConfig implements Serializable {
+
+  private static final long serialVersionUID = 2286122000787145571L;
 
   public static enum Strategy {
     // Concurrently crawls CLUSTER SLOTS replies from all masters and throws a

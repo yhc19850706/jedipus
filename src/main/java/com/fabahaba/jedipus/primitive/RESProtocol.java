@@ -2,8 +2,8 @@ package com.fabahaba.jedipus.primitive;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.function.Function;
 
+import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.AskNodeException;
@@ -151,15 +151,15 @@ final class RESProtocol {
     }
   }
 
-  private static RuntimeException processError(final Node node,
-      final Function<Node, Node> hostPortMapper, final RedisInputStream is) {
+  private static RuntimeException processError(final Node node, final NodeMapper nodeMapper,
+      final RedisInputStream is) {
 
     final String message = is.readLine();
 
     if (message.startsWith(MOVED_RESPONSE)) {
 
       final String[] movedInfo = parseTargetHostAndSlot(message, 6);
-      final Node targetNode = hostPortMapper.apply(Node.create(movedInfo[1], movedInfo[2]));
+      final Node targetNode = nodeMapper.apply(Node.create(movedInfo[1], movedInfo[2]));
 
       return new SlotMovedException(node, message, targetNode, Integer.parseInt(movedInfo[0]));
     }
@@ -167,7 +167,7 @@ final class RESProtocol {
     if (message.startsWith(ASK_RESPONSE)) {
 
       final String[] askInfo = parseTargetHostAndSlot(message, 4);
-      final Node targetNode = hostPortMapper.apply(Node.create(askInfo[1], askInfo[2]));
+      final Node targetNode = nodeMapper.apply(Node.create(askInfo[1], askInfo[2]));
 
       return new AskNodeException(node, message, targetNode, Integer.parseInt(askInfo[0]));
     }
@@ -199,8 +199,7 @@ final class RESProtocol {
     return reply;
   }
 
-  static Object read(final Node node, final Function<Node, Node> hostPortMapper,
-      final RedisInputStream is) {
+  static Object read(final Node node, final NodeMapper nodeMapper, final RedisInputStream is) {
 
     final byte bite = is.readByte();
 
@@ -210,11 +209,11 @@ final class RESProtocol {
       case DOLLAR_BYTE:
         return readBulkReply(node, is);
       case ASTERISK_BYTE:
-        return readMultiBulkReply(node, hostPortMapper, is);
+        return readMultiBulkReply(node, nodeMapper, is);
       case COLON_BYTE:
         return is.readLongCRLF();
       case MINUS_BYTE:
-        throw processError(node, hostPortMapper, is);
+        throw processError(node, nodeMapper, is);
       default:
         final String msg = String.format(
             "Unknown reply where data type expected. Recieved '%s'. Supported types are '+', '-', ':', '$' and '*'.",
@@ -223,8 +222,7 @@ final class RESProtocol {
     }
   }
 
-  static long readLong(final Node node, final Function<Node, Node> hostPortMapper,
-      final RedisInputStream is) {
+  static long readLong(final Node node, final NodeMapper nodeMapper, final RedisInputStream is) {
 
     final byte bite = is.readByte();
 
@@ -232,7 +230,7 @@ final class RESProtocol {
       case COLON_BYTE:
         return is.readLongCRLF();
       case MINUS_BYTE:
-        throw processError(node, hostPortMapper, is);
+        throw processError(node, nodeMapper, is);
       case PLUS_BYTE:
         is.drain();
         throw new RedisUnhandledException(null,
@@ -276,8 +274,8 @@ final class RESProtocol {
     return read;
   }
 
-  private static Object[] readMultiBulkReply(final Node node,
-      final Function<Node, Node> hostPortMapper, final RedisInputStream is) {
+  private static Object[] readMultiBulkReply(final Node node, final NodeMapper nodeMapper,
+      final RedisInputStream is) {
 
     final int num = is.readIntCRLF();
     if (num == -1) {
@@ -286,13 +284,13 @@ final class RESProtocol {
 
     final Object[] reply = new Object[num];
     for (int i = 0; i < num; i++) {
-      reply[i] = read(node, hostPortMapper, is);
+      reply[i] = read(node, nodeMapper, is);
     }
     return reply;
   }
 
   static void consumePubSub(final RedisSubscriber subscriber, final Node node,
-      final Function<Node, Node> hostPortMapper, final RedisInputStream is) {
+      final NodeMapper nodeMapper, final RedisInputStream is) {
 
     final byte bite = is.readByte();
 
@@ -300,28 +298,28 @@ final class RESProtocol {
       case ASTERISK_BYTE:
 
         is.readIntCRLF();
-        final String msgType = RESP.toString(read(node, hostPortMapper, is));
+        final String msgType = RESP.toString(read(node, nodeMapper, is));
 
         switch (msgType) {
           case "message":
-            String channel = RESP.toString(read(node, hostPortMapper, is));
-            subscriber.onMsg(channel, (byte[]) read(node, hostPortMapper, is));
+            String channel = RESP.toString(read(node, nodeMapper, is));
+            subscriber.onMsg(channel, (byte[]) read(node, nodeMapper, is));
             return;
           case "pmessage":
-            final String pattern = RESP.toString(read(node, hostPortMapper, is));
-            channel = RESP.toString(read(node, hostPortMapper, is));
-            subscriber.onPMsg(pattern, channel, (byte[]) read(node, hostPortMapper, is));
+            final String pattern = RESP.toString(read(node, nodeMapper, is));
+            channel = RESP.toString(read(node, nodeMapper, is));
+            subscriber.onPMsg(pattern, channel, (byte[]) read(node, nodeMapper, is));
             return;
           case "subscribe":
-            channel = RESP.toString(read(node, hostPortMapper, is));
-            subscriber.onSubscribed(channel, readLong(node, hostPortMapper, is));
+            channel = RESP.toString(read(node, nodeMapper, is));
+            subscriber.onSubscribed(channel, readLong(node, nodeMapper, is));
             return;
           case "unsubscribe":
-            channel = RESP.toString(read(node, hostPortMapper, is));
-            subscriber.onUnsubscribed(channel, readLong(node, hostPortMapper, is));
+            channel = RESP.toString(read(node, nodeMapper, is));
+            subscriber.onUnsubscribed(channel, readLong(node, nodeMapper, is));
             return;
           case "pong":
-            subscriber.onPong(RESP.toString(read(node, hostPortMapper, is)));
+            subscriber.onPong(RESP.toString(read(node, nodeMapper, is)));
             return;
           default:
             is.drain();
@@ -329,7 +327,7 @@ final class RESProtocol {
             throw new RedisConnectionException(node, msg);
         }
       case MINUS_BYTE:
-        throw processError(node, hostPortMapper, is);
+        throw processError(node, nodeMapper, is);
       case PLUS_BYTE:
         is.drain();
         throw new RedisUnhandledException(null,
@@ -350,7 +348,7 @@ final class RESProtocol {
     }
   }
 
-  static long[] readLongArray(final Node node, final Function<Node, Node> hostPortMapper,
+  static long[] readLongArray(final Node node, final NodeMapper nodeMapper,
       final RedisInputStream is) {
 
     final byte bite = is.readByte();
@@ -364,11 +362,11 @@ final class RESProtocol {
 
         final long[] reply = new long[num];
         for (int i = 0; i < num; i++) {
-          reply[i] = readLong(node, hostPortMapper, is);
+          reply[i] = readLong(node, nodeMapper, is);
         }
         return reply;
       case MINUS_BYTE:
-        throw processError(node, hostPortMapper, is);
+        throw processError(node, nodeMapper, is);
       case COLON_BYTE:
         is.drain();
         throw new RedisUnhandledException(null,
@@ -389,7 +387,7 @@ final class RESProtocol {
     }
   }
 
-  static long[][] readLong2DArray(final Node node, final Function<Node, Node> hostPortMapper,
+  static long[][] readLong2DArray(final Node node, final NodeMapper nodeMapper,
       final RedisInputStream is) {
 
     final byte bite = is.readByte();
@@ -403,11 +401,11 @@ final class RESProtocol {
 
         final long[][] reply = new long[num][];
         for (int i = 0; i < num; i++) {
-          reply[i] = readLongArray(node, hostPortMapper, is);
+          reply[i] = readLongArray(node, nodeMapper, is);
         }
         return reply;
       case MINUS_BYTE:
-        throw processError(node, hostPortMapper, is);
+        throw processError(node, nodeMapper, is);
       case COLON_BYTE:
         is.drain();
         throw new RedisUnhandledException(null,

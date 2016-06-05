@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
@@ -17,8 +18,7 @@ final class OptimisticRedisClusterSlotCache extends RedisClusterSlotCache {
   OptimisticRedisClusterSlotCache(final ReadMode defaultReadMode,
       final Duration durationBetweenCacheRefresh, final Duration maxAwaitCacheRefresh,
       final Supplier<Collection<Node>> discoveryNodes,
-      final PartitionedStrategyConfig partitionedStrategyConfig,
-      final Function<Node, Node> hostPortMapper,
+      final PartitionedStrategyConfig partitionedStrategyConfig, final NodeMapper nodeMapper,
       final Map<Node, ClientPool<RedisClient>> masterPools,
       final ClientPool<RedisClient>[] masterSlots,
       final Map<Node, ClientPool<RedisClient>> slavePools,
@@ -30,7 +30,7 @@ final class OptimisticRedisClusterSlotCache extends RedisClusterSlotCache {
       final ElementRetryDelay<Node> clusterNodeRetryDelay) {
 
     super(defaultReadMode, true, durationBetweenCacheRefresh, maxAwaitCacheRefresh, discoveryNodes,
-        partitionedStrategyConfig, hostPortMapper, masterPools, masterSlots, slavePools, slaveSlots,
+        partitionedStrategyConfig, nodeMapper, masterPools, masterSlots, slavePools, slaveSlots,
         masterPoolFactory, slavePoolFactory, nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
   }
 
