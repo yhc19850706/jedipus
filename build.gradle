@@ -55,7 +55,7 @@ sourceSets {
 project.ext.set('redisServerPort', '9736')
 project.ext.set('redisServerPass', '42')
 project.ext.set('redisSSLServerPort', '6443')
-project.ext.set('redisJceksTruststore', 'stunnel/stunnel.jks')
+project.ext.set('redisJceksTruststore', 'stunnel/integ.jks')
 
 project.ext.set('clusterAnnounceIp', '127.0.0.1')
 project.ext.set('startingClusterPort', '7379')

@@ -30,12 +30,7 @@ public class SSLClientTest {
 
   public static final Path JCEKS_TRUSTSTORE =
       Paths.get(Optional.ofNullable(System.getProperty("jedipus.redis.ssl.truststore.jceks"))
-          .orElse("stunnel/stunnel.jks"));
-
-  static {
-    System.setProperty("javax.net.ssl.trustStore", JCEKS_TRUSTSTORE.toString());
-    System.setProperty("javax.net.ssl.trustStoreType", "jceks");
-  }
+          .orElse("stunnel/integ.jks"));
 
   public static final int REDIS_SSL_PORT = Optional
       .ofNullable(System.getProperty("jedipus.redis.ssl.port")).map(Integer::parseInt).orElse(6443);
@@ -47,9 +42,10 @@ public class SSLClientTest {
 
   @Test
   public void connectAndPing() {
+    System.setProperty("javax.net.ssl.trustStore", JCEKS_TRUSTSTORE.toString());
+    System.setProperty("javax.net.ssl.trustStoreType", "jceks");
 
     try (final RedisClient client = DEFAULT_SSL_CLIENT_FACTORY_BUILDER.create(DEFAULT_SSL_NODE)) {
-
       final String ssl = client.sendCmd(Cmds.PING, "SSL");
       assertEquals("SSL", ssl);
     }
@@ -57,7 +53,6 @@ public class SSLClientTest {
 
   @Test
   public void useNonDefaultSocketFactory() {
-
     final SSLSocketFactory sslSocketFactory = createTrustStoreSslSocketFactory();
 
     try (final RedisClient client =
@@ -70,7 +65,6 @@ public class SSLClientTest {
   }
 
   private static SSLSocketFactory createTrustStoreSslSocketFactory() {
-
     try {
       final KeyStore trustStore = KeyStore.getInstance("jceks");
 
