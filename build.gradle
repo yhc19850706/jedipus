@@ -92,10 +92,7 @@ task rmRedis(type:Exec) {
   commandLine './scripts/rmRedis.sh', project.name
 }
 
-test.dependsOn startRedis
-test.finalizedBy rmRedis
-
-task latestRedisModule(type:Exec) {
+task wgetRedisModule(type:Exec) {
   commandLine 'wget', '-O', 'redis/redismodule.h', 'https://raw.githubusercontent.com/antirez/redis/unstable/src/redismodule.h'
 }
 
@@ -104,7 +101,14 @@ task compileIntegModules(type:Exec) {
   commandLine 'docker', 'run', '--rm', '-v', "$dir/redis/:/tmp", 'jamespedwards42/alpine-gcc-make:latest', '/bin/sh', '-c', 'cd modules && make clean && make'
 }
 
-compileIntegModules.dependsOn latestRedisModule
+task makeClean(type:Exec) {
+  commandLine 'cd', 'redis/modules', '&&', 'make', 'clean'
+}
+
+compileIntegModules.dependsOn makeClean
+startRedis.dependsOn compileIntegModules
+test.dependsOn startRedis
+test.finalizedBy rmRedis
 
 task sourcesJar(type: Jar, dependsOn: classes) {
   from sourceSets.main.allSource

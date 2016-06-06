@@ -37,12 +37,10 @@ public final class Slots {
   }
 
   public String getSlotHashTag(final int slot) {
-
     return KNOWN_SLOT_HASHTAGS[slot];
   }
 
   public byte[] getSlotHashTagBytes(final int slot) {
-
     return KNOWN_SLOT_HASHTAG_BYTES[slot];
   }
 }

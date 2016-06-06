@@ -11,7 +11,7 @@ endif
 
 .SUFFIXES: .c .so .xo .o
 
-all: integ.so redis_lock.so
+all: integ.so 
 
 .c.xo:
 	$(CC) -I. $(CFLAGS) $(SHOBJ_CFLAGS) -fPIC -c $< -o $@
@@ -19,11 +19,6 @@ all: integ.so redis_lock.so
 integ.xo: ../redismodule.h
 
 integ.so: integ.xo
-	$(LD) -o $@ $< $(SHOBJ_LDFLAGS) $(LIBS) -lc
-
-redis_lock.xo: ../redismodule.h
-
-redis_lock.so: redis_lock.xo
 	$(LD) -o $@ $< $(SHOBJ_LDFLAGS) $(LIBS) -lc
 
 clean:

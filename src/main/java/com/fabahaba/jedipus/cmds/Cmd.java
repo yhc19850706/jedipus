@@ -30,61 +30,50 @@ public interface Cmd<R> extends Function<Object, R> {
   }
 
   public static <R> Cmd<R> create(final String name, final Function<Object, R> replyHandler) {
-
     return new HandledReplyCmd<>(name, replyHandler);
   }
 
   public static Cmd<String> createStringReply(final String name) {
-
     return new HandledReplyCmd<>(name, STRING_REPLY);
   }
 
   public static Cmd<String[]> createStringArrayReply(final String name) {
-
     return new HandledReplyCmd<>(name, STRING_ARRAY_REPLY);
   }
 
   public static Cmd<Object[]> createInPlaceStringArrayReply(final String name) {
-
     return new HandledReplyCmd<>(name, IN_PLACE_STRING_ARRAY_REPLY);
   }
 
   public static Cmd<Object> create(final String name) {
-
     return new RawCmd(name);
   }
 
   public static <R> Cmd<R> createCast(final String name) {
-
     return new DirectReplyCmd<>(name);
   }
 
   public Cmd<Object> raw();
 
   default PrimCmd prim() {
-
     return raw().prim();
   }
 
   default PrimArrayCmd primArray() {
-
     return raw().primArray();
   }
 
   default String name() {
-
     return raw().name();
   }
 
   default byte[] getCmdBytes() {
-
     return raw().getCmdBytes();
   }
 
   @Override
   @SuppressWarnings("unchecked")
   default R apply(final Object resp) {
-
     return (R) resp;
   }
 }

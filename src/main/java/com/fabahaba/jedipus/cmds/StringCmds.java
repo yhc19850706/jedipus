@@ -5,7 +5,7 @@ public interface StringCmds extends DirectCmds {
   // http://redis.io/commands#string
   static final Cmd<Long> APPEND = Cmd.createCast("APPEND");
   static final Cmd<Long> BITCOUNT = Cmd.createCast("BITCOUNT");
-  static final Cmd<long[]> BITFIELD = Cmd.createCast("BITFIELD");
+  static final Cmd<Long[]> BITFIELD = Cmd.createCast("BITFIELD");
   static final Cmd<Object> BITFIELD_GET = Cmd.createCast("GET");
   static final Cmd<Object> BITFIELD_SET = Cmd.createCast("SET");
   static final Cmd<Object> BITFIELD_INCRBY = Cmd.createCast("INCRBY");
