@@ -325,9 +325,9 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final byte[] key = RESP.toBytes("ro");
     final int slot = CRC16.getSlot(key);
 
-    try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withReadMode(ReadMode.SLAVES)
-        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
+    try (final RedisClusterExecutor rce =
+        RedisClusterExecutor.startBuilding(discoveryNodes).withReadMode(ReadMode.SLAVES)
+            .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create()) {
 
       rce.accept(slot, client -> {
         try {

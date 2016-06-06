@@ -25,7 +25,7 @@ branches:
     - /^jedipus-.*$/
 
 env:
-   - GRADLE_VERSION="2.14-rc-3"
+   - GRADLE_VERSION="2.14-rc-4"
 
 before_install:
    - "export COMMIT_MSG=\"$(git log --format=%B --no-merges -n 1)\""

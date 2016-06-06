@@ -98,7 +98,7 @@ task wgetRedisModule(type:Exec) {
 
 task compileIntegModules(type:Exec) {
   String dir = System.getProperty("user.dir");
-  commandLine 'docker', 'run', '--rm', '-v', "$dir/redis/:/tmp", 'jamespedwards42/alpine-gcc-make:latest', '/bin/sh', '-c', 'cd modules && make clean && make'
+  commandLine 'docker', 'run', '--rm', '-v', "$dir/redis/:/tmp", '-w', '/tmp/modules', 'jamespedwards42/alpine-gcc-make:latest', '/bin/sh', '-c', 'make'
 }
 
 task makeClean(type:Exec) {
