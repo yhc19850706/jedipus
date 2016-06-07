@@ -34,19 +34,16 @@ final class RESProtocol {
   private static final byte[] THREE_CMD = RedisOutputStream.createIntCRLF(ASTERISK_BYTE, 3);
 
   static void sendDirect(final RedisOutputStream os, final byte[] data) throws IOException {
-
     os.writeDirect(data, 0, data.length);
   }
 
   static void sendCmd(final RedisOutputStream os, final byte[] cmd) throws IOException {
-
     os.write(ONE_CMD);
     writeArg(os, cmd);
   }
 
   static void sendCmd(final RedisOutputStream os, final byte[] cmd, final byte[][] args)
       throws IOException {
-
     startWrite(os, args.length + 1);
     writeArg(os, cmd);
     writeArgs(os, args);
@@ -54,17 +51,14 @@ final class RESProtocol {
 
   static void sendCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
       final byte[][] args) throws IOException {
-
     startWrite(os, args.length + 2);
     writeArg(os, cmd);
     writeArg(os, subcmd);
-
     writeArgs(os, args);
   }
 
   static void sendCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
       final byte[] arg) throws IOException {
-
     os.write(THREE_CMD);
     writeArg(os, cmd);
     writeArg(os, subcmd);
@@ -73,7 +67,6 @@ final class RESProtocol {
 
   static void sendCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd)
       throws IOException {
-
     os.write(TWO_CMD);
     writeArg(os, cmd);
     writeArg(os, subcmd);
@@ -81,7 +74,6 @@ final class RESProtocol {
 
   static void sendCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
       final String[] args) throws IOException {
-
     startWrite(os, args.length + 2);
     writeArg(os, cmd);
     writeArg(os, subcmd);
@@ -90,7 +82,6 @@ final class RESProtocol {
 
   static void sendCmd(final RedisOutputStream os, final byte[] cmd, final byte[] subcmd,
       final Collection<String> args) throws IOException {
-
     startWrite(os, args.size() + 2);
     writeArg(os, cmd);
     writeArg(os, subcmd);
@@ -99,7 +90,6 @@ final class RESProtocol {
 
   static void sendCmd(final RedisOutputStream os, final byte[] cmd, final String[] args)
       throws IOException {
-
     startWrite(os, args.length + 1);
     writeArg(os, cmd);
     writeArgs(os, args);
@@ -107,20 +97,17 @@ final class RESProtocol {
 
   static void sendCmd(final RedisOutputStream os, final byte[] cmd, final Collection<String> args)
       throws IOException {
-
     startWrite(os, args.size() + 1);
     writeArg(os, cmd);
     writeArgs(os, args);
   }
 
   private static void startWrite(final RedisOutputStream os, final int numArgs) throws IOException {
-
     os.write(ASTERISK_BYTE);
     os.write(numArgs);
   }
 
   private static void writeArg(final RedisOutputStream os, final byte[] arg) throws IOException {
-
     os.write(DOLLAR_BYTE);
     os.write(arg.length);
     os.write(arg);
@@ -129,7 +116,6 @@ final class RESProtocol {
 
   private static void writeArgs(final RedisOutputStream os, final byte[][] args)
       throws IOException {
-
     for (final byte[] arg : args) {
       writeArg(os, arg);
     }
@@ -137,7 +123,6 @@ final class RESProtocol {
 
   private static void writeArgs(final RedisOutputStream os, final String[] args)
       throws IOException {
-
     for (final String arg : args) {
       writeArg(os, RESP.toBytes(arg));
     }
@@ -145,7 +130,6 @@ final class RESProtocol {
 
   private static void writeArgs(final RedisOutputStream os, final Collection<String> args)
       throws IOException {
-
     for (final String arg : args) {
       writeArg(os, RESP.toBytes(arg));
     }
@@ -157,7 +141,6 @@ final class RESProtocol {
     final String message = is.readLine();
 
     if (message.startsWith(MOVED_RESPONSE)) {
-
       final String[] movedInfo = parseTargetHostAndSlot(message, 6);
       final Node targetNode = nodeMapper.apply(Node.create(movedInfo[1], movedInfo[2]));
 
@@ -165,7 +148,6 @@ final class RESProtocol {
     }
 
     if (message.startsWith(ASK_RESPONSE)) {
-
       final String[] askInfo = parseTargetHostAndSlot(message, 4);
       final Node targetNode = nodeMapper.apply(Node.create(askInfo[1], askInfo[2]));
 
@@ -173,12 +155,10 @@ final class RESProtocol {
     }
 
     if (message.startsWith(CLUSTERDOWN_RESPONSE)) {
-
       return new RedisClusterDownException(node, message);
     }
 
     if (message.startsWith(BUSY_RESPONSE)) {
-
       return new RedisBusyException(node, message);
     }
 
@@ -255,6 +235,10 @@ final class RESProtocol {
 
     final int len = is.readIntCRLF();
     if (len == -1) {
+      // http://redis.io/topics/protocol
+      // Returning a null is part of the Redis Protocol, do NOT change.
+      // It is neccessary to determine the difference between an empty String/byte[] and a missing
+      // Key.
       return null;
     }
 
@@ -279,6 +263,10 @@ final class RESProtocol {
 
     final int num = is.readIntCRLF();
     if (num == -1) {
+      // http://redis.io/topics/protocol
+      // Returning a null array is part of the Redis Protocol, do NOT change.
+      // It is neccessary to determine the difference between an empty Redis List and for example a
+      // timeout of a command like BLPOP.
       return null;
     }
 
@@ -357,6 +345,10 @@ final class RESProtocol {
       case ASTERISK_BYTE:
         final int num = is.readIntCRLF();
         if (num == -1) {
+          // http://redis.io/topics/protocol
+          // Returning a null array is part of the Redis Protocol, do NOT change.
+          // It is neccessary to determine the difference between an empty Redis List and for
+          // example a timeout of a command like BLPOP.
           return null;
         }
 
@@ -396,6 +388,10 @@ final class RESProtocol {
       case ASTERISK_BYTE:
         final int num = is.readIntCRLF();
         if (num == -1) {
+          // http://redis.io/topics/protocol
+          // Returning a null array is part of the Redis Protocol, do NOT change.
+          // It is neccessary to determine the difference between an empty Redis List and for
+          // example a timeout of a command like BLPOP.
           return null;
         }
 

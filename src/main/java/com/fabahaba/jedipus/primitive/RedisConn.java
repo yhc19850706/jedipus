@@ -23,11 +23,9 @@ abstract class RedisConn implements AutoCloseable {
 
   protected RedisConn(final Node node, final NodeMapper nodeMapper, final Socket socket,
       final int soTimeoutMillis, final int outputBufferSize, final int inputBufferSize) {
-
     this.nodeMapper = nodeMapper;
     this.soTimeoutMillis = soTimeoutMillis;
     this.socket = socket;
-
     try {
       outputStream = new RedisOutputStream(socket.getOutputStream(),
           Math.min(outputBufferSize, socket.getSendBufferSize()));
@@ -39,7 +37,6 @@ abstract class RedisConn implements AutoCloseable {
   }
 
   public Node getNode() {
-
     return inputStream.getNode();
   }
 

@@ -5,14 +5,9 @@ import java.io.Serializable;
 import java.net.Socket;
 import java.util.Arrays;
 
-import javax.net.SocketFactory;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLParameters;
-import javax.net.ssl.SSLSocketFactory;
-
 import com.fabahaba.jedipus.client.BaseConnectedSocketFactory;
-import com.fabahaba.jedipus.client.ConnectedSSLSocketFactory;
 import com.fabahaba.jedipus.client.ConnectedSocketFactory;
+import com.fabahaba.jedipus.client.IOFactory;
 import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.client.RedisClient.ReplyMode;
@@ -168,10 +163,7 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient>, Ser
     private int inputBufferSize = Integer.MAX_VALUE;
 
     private volatile ConnectedSocketFactory<? extends Socket> connectedSocketFactory;
-    private SocketFactory socketFactory;
-    private boolean ssl;
-    private SSLParameters sslParameters;
-    private HostnameVerifier hostnameVerifier;
+    private IOFactory<Socket> socketFactory;
 
     private Builder() {}
 
@@ -208,18 +200,10 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient>, Ser
 
     public Builder initConnectedSocketFactory() {
 
-      if (connectedSocketFactory != null) {
-        return this;
+      if (connectedSocketFactory == null) {
+        connectedSocketFactory = new BaseConnectedSocketFactory(socketFactory, soTimeoutMillis);
       }
 
-      if (ssl) {
-        connectedSocketFactory = new ConnectedSSLSocketFactory(
-            socketFactory == null ? SSLSocketFactory.getDefault() : socketFactory, soTimeoutMillis,
-            sslParameters, hostnameVerifier);
-        return this;
-      }
-
-      connectedSocketFactory = new BaseConnectedSocketFactory(socketFactory, soTimeoutMillis);
       return this;
     }
 
@@ -380,15 +364,6 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient>, Ser
       return this;
     }
 
-    public boolean isSsl() {
-      return ssl;
-    }
-
-    public Builder withSsl(final boolean ssl) {
-      this.ssl = ssl;
-      return this;
-    }
-
     public ConnectedSocketFactory<? extends Socket> getConnectedSocketFactory() {
       return connectedSocketFactory;
     }
@@ -399,30 +374,12 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient>, Ser
       return this;
     }
 
-    public SocketFactory getSocketFactory() {
+    public IOFactory<Socket> getSocketFactory() {
       return socketFactory;
     }
 
-    public Builder withSocketFactory(final SocketFactory socketFactory) {
+    public Builder withSocketFactory(final IOFactory<Socket> socketFactory) {
       this.socketFactory = socketFactory;
-      return this;
-    }
-
-    public SSLParameters getSslParameters() {
-      return sslParameters;
-    }
-
-    public Builder withSslParameters(final SSLParameters sslParameters) {
-      this.sslParameters = sslParameters;
-      return this;
-    }
-
-    public HostnameVerifier getHostnameVerifier() {
-      return hostnameVerifier;
-    }
-
-    public Builder withHostnameVerifier(final HostnameVerifier hostnameVerifier) {
-      this.hostnameVerifier = hostnameVerifier;
       return this;
     }
 
@@ -432,9 +389,8 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient>, Ser
           .append(", connTimeout=").append(connTimeoutMillis).append(", soTimeout=")
           .append(soTimeoutMillis).append(", pass=").append(pass).append(", clientName=")
           .append(clientName).append(", initReadOnly=").append(initReadOnly).append(", replyMode=")
-          .append(replyMode).append(", ssl=").append(ssl).append(", sslSocketFactory=")
-          .append(connectedSocketFactory).append(", sslParameters=").append(sslParameters)
-          .append(", hostnameVerifier=").append(hostnameVerifier).append("]").toString();
+          .append(replyMode).append(", sslSocketFactory=").append(connectedSocketFactory)
+          .append("]").toString();
     }
   }
 }

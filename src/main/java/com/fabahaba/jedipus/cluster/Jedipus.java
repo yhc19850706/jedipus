@@ -9,13 +9,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 
 import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.client.RedisClient;
+import com.fabahaba.jedipus.client.SerializableFunction;
+import com.fabahaba.jedipus.client.SerializableSupplier;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 import com.fabahaba.jedipus.exceptions.AskNodeException;
@@ -58,64 +59,63 @@ public final class Jedipus implements RedisClusterExecutor {
       new DefaultEvictionStrategy<>(ClientPool.DEFAULT_SOFT_MIN_EVICTABLE_IDLE_DURATION,
           ClientPool.DEFAULT_MIN_EVICTABLE_IDLE_DURATION, 2);
 
-  private static final Function<Node, ClientPool<RedisClient>> DEFAULT_MASTER_POOL_FACTORY =
+  private static final SerializableFunction<Node, ClientPool<RedisClient>> DEFAULT_MASTER_POOL_FACTORY =
       node -> DEFAULT_POOL_BUILDER.create(DEFAULT_REDIS_FACTORY.createPooled(node),
           DEFAULT_EVICTION_STRATEGY);
 
-  private static final Function<Node, ClientPool<RedisClient>> DEFAULT_SLAVE_POOL_FACTORY =
+  private static final SerializableFunction<Node, ClientPool<RedisClient>> DEFAULT_SLAVE_POOL_FACTORY =
       node -> DEFAULT_POOL_BUILDER.create(DEFAULT_REDIS_FACTORY.createPooled(node, true),
           DEFAULT_EVICTION_STRATEGY);
 
-  private static final Function<Node, RedisClient> DEFAULT_UNKOWN_NODE_FACTORY =
+  private static final SerializableFunction<Node, RedisClient> DEFAULT_UNKOWN_NODE_FACTORY =
       DEFAULT_REDIS_FACTORY::create;
 
-  private static final BiFunction<ReadMode, ClientPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> DEFAULT_LB_FACTORIES =
-      (defaultReadMode, slavePools) -> {
+  private static final LBPoolsFactory DEFAULT_LB_FACTORIES = (defaultReadMode, slavePools) -> {
 
-        if (slavePools.length == 0) {
-          return (rm, def) -> def;
+    if (slavePools.length == 0) {
+      return (rm, def) -> def;
+    }
+
+    switch (defaultReadMode) {
+      case MASTER:
+        // No load balancer needed for single master pool.
+        return null;
+      case SLAVES:
+
+        if (slavePools.length == 1) {
+
+          final ClientPool<RedisClient> pool = slavePools[0];
+
+          return (rm, def) -> pool;
         }
 
-        switch (defaultReadMode) {
-          case MASTER:
-            // No load balancer needed for single master pool.
-            return null;
-          case SLAVES:
+        return new RoundRobinPools<>(slavePools);
+      case MIXED_SLAVES:
 
-            if (slavePools.length == 1) {
+        if (slavePools.length == 1) {
 
-              final ClientPool<RedisClient> pool = slavePools[0];
+          final ClientPool<RedisClient> pool = slavePools[0];
 
-              return (rm, def) -> pool;
+          return (rm, def) -> {
+            switch (rm) {
+              case MASTER:
+                return def;
+              case MIXED:
+                // ignore request to lb across master. Should use MIXED as default instead.
+              case MIXED_SLAVES:
+              case SLAVES:
+              default:
+                return pool;
             }
-
-            return new RoundRobinPools<>(slavePools);
-          case MIXED_SLAVES:
-
-            if (slavePools.length == 1) {
-
-              final ClientPool<RedisClient> pool = slavePools[0];
-
-              return (rm, def) -> {
-                switch (rm) {
-                  case MASTER:
-                    return def;
-                  case MIXED:
-                    // ignore request to lb across master. Should use MIXED as default instead.
-                  case MIXED_SLAVES:
-                  case SLAVES:
-                  default:
-                    return pool;
-                }
-              };
-            }
-
-            return new RoundRobinPools<>(slavePools);
-          case MIXED:
-          default:
-            return new RoundRobinPools<>(slavePools);
+          };
         }
-      };
+
+        return new RoundRobinPools<>(slavePools);
+      case MIXED:
+      default:
+        return new RoundRobinPools<>(slavePools);
+    }
+  };
 
   private final int maxRedirections;
   private final int maxRetries;
@@ -347,7 +347,6 @@ public final class Jedipus implements RedisClusterExecutor {
       retries =
           connHandler.getClusterNodeRetryDelay().markFailure(failedNode, maxRetries, rcex, retries);
     } catch (final AskNodeException askEx) {
-
       if (maxRedirections == 0) {
         throw new MaxRedirectsExceededException(askEx);
       }
@@ -519,6 +518,7 @@ public final class Jedipus implements RedisClusterExecutor {
       final int maxRetries) {
 
     for (long retries = 0;;) {
+
       try (final RedisClient client = connHandler.createUnknownNode(node)) {
         final R result = clientConsumer.apply(client);
         connHandler.getClusterNodeRetryDelay().markSuccess(node);
@@ -530,7 +530,6 @@ public final class Jedipus implements RedisClusterExecutor {
         if (!retryUnhandledRetryableExceptions) {
           throw retryableEx;
         }
-
         retries = connHandler.getClusterNodeRetryDelay().markFailure(node, maxRetries, retryableEx,
             retries);
       }
@@ -541,7 +540,6 @@ public final class Jedipus implements RedisClusterExecutor {
   public <R> List<CompletableFuture<R>> applyAllMasters(
       final Function<RedisClient, R> clientConsumer, final int maxRetries,
       final ExecutorService executor) {
-
     return applyAll(connHandler.getMasterPools(), clientConsumer, maxRetries, executor);
   }
 
@@ -549,14 +547,12 @@ public final class Jedipus implements RedisClusterExecutor {
   public <R> List<CompletableFuture<R>> applyAllSlaves(
       final Function<RedisClient, R> clientConsumer, final int maxRetries,
       final ExecutorService executor) {
-
     return applyAll(connHandler.getSlavePools(), clientConsumer, maxRetries, executor);
   }
 
   @Override
   public <R> List<CompletableFuture<R>> applyAll(final Function<RedisClient, R> clientConsumer,
       final int maxRetries, final ExecutorService executor) {
-
     return applyAll(connHandler.getAllPools(), clientConsumer, maxRetries, executor);
   }
 
@@ -581,7 +577,6 @@ public final class Jedipus implements RedisClusterExecutor {
       final Function<RedisClient, R> clientConsumer, final int maxRetries) {
 
     for (long retries = 0;;) {
-
       RedisClient client = null;
       try {
         client = RedisClientPool.borrowClient(pool);
@@ -614,13 +609,11 @@ public final class Jedipus implements RedisClusterExecutor {
 
   @Override
   public void refreshSlotCache() {
-
     connHandler.refreshSlotCache();
   }
 
   @Override
   public void close() {
-
     connHandler.close();
   }
 
@@ -638,7 +631,7 @@ public final class Jedipus implements RedisClusterExecutor {
     private static final long serialVersionUID = -182901200777846711L;
 
     private ReadMode defaultReadMode = ReadMode.MASTER;
-    private Supplier<Collection<Node>> discoveryNodes;
+    private SerializableSupplier<Collection<Node>> discoveryNodes;
     private PartitionedStrategyConfig partitionedStrategyConfig = DEFAULT_PARTITIONED_STRATEGY;
     private NodeMapper nodeMapper = Node.DEFAULT_NODE_MAPPER;
     private int maxRedirections = DEFAULT_MAX_REDIRECTIONS;
@@ -646,12 +639,14 @@ public final class Jedipus implements RedisClusterExecutor {
     private ElementRetryDelay<Node> clusterNodeRetryDelay = DEFAULT_RETRY_DELAY;
     private int refreshSlotCacheEvery = DEFAULT_REFRESH_SLOT_CACHE_EVERY;
     private boolean retryUnhandledRetryableExceptions = false;
-    private Function<Node, ClientPool<RedisClient>> masterPoolFactory = DEFAULT_MASTER_POOL_FACTORY;
-    private Function<Node, ClientPool<RedisClient>> slavePoolFactory = DEFAULT_SLAVE_POOL_FACTORY;
+    private SerializableFunction<Node, ClientPool<RedisClient>> masterPoolFactory =
+        DEFAULT_MASTER_POOL_FACTORY;
+    private SerializableFunction<Node, ClientPool<RedisClient>> slavePoolFactory =
+        DEFAULT_SLAVE_POOL_FACTORY;
     // Used for ASK requests if no pool already exists and random node discovery.
-    private Function<Node, RedisClient> nodeUnknownFactory = DEFAULT_UNKOWN_NODE_FACTORY;
-    private BiFunction<ReadMode, ClientPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> lbFactory =
-        DEFAULT_LB_FACTORIES;
+    private SerializableFunction<Node, RedisClient> nodeUnknownFactory =
+        DEFAULT_UNKOWN_NODE_FACTORY;
+    private LBPoolsFactory lbFactory = DEFAULT_LB_FACTORIES;
     // If true, access to slot pool cache will not lock when retreiving a pool/client during a slot
     // migration.
     private boolean optimisticReads = true;
@@ -660,7 +655,7 @@ public final class Jedipus implements RedisClusterExecutor {
     // pools are available.
     private Duration maxAwaitCacheRefresh = DEFAULT_MAX_AWAIT_CACHE_REFRESH;
 
-    Builder(final Supplier<Collection<Node>> discoveryNodes) {
+    Builder(final SerializableSupplier<Collection<Node>> discoveryNodes) {
       this.discoveryNodes = discoveryNodes;
     }
 
@@ -681,7 +676,7 @@ public final class Jedipus implements RedisClusterExecutor {
       return this;
     }
 
-    public Supplier<Collection<Node>> getDiscoveryNodeSupplier() {
+    public SerializableSupplier<Collection<Node>> getDiscoveryNodeSupplier() {
       return discoveryNodes;
     }
 
@@ -690,7 +685,8 @@ public final class Jedipus implements RedisClusterExecutor {
       return this;
     }
 
-    public Builder withDiscoveryNodeSupplier(final Supplier<Collection<Node>> discoveryNodes) {
+    public Builder withDiscoveryNodeSupplier(
+        final SerializableSupplier<Collection<Node>> discoveryNodes) {
       this.discoveryNodes = discoveryNodes;
       return this;
     }
@@ -787,41 +783,41 @@ public final class Jedipus implements RedisClusterExecutor {
       return this;
     }
 
-    public Function<Node, ClientPool<RedisClient>> getMasterPoolFactory() {
+    public SerializableFunction<Node, ClientPool<RedisClient>> getMasterPoolFactory() {
       return masterPoolFactory;
     }
 
     public Builder withMasterPoolFactory(
-        final Function<Node, ClientPool<RedisClient>> masterPoolFactory) {
+        final SerializableFunction<Node, ClientPool<RedisClient>> masterPoolFactory) {
       this.masterPoolFactory = masterPoolFactory;
       return this;
     }
 
-    public Function<Node, ClientPool<RedisClient>> getSlavePoolFactory() {
+    public SerializableFunction<Node, ClientPool<RedisClient>> getSlavePoolFactory() {
       return slavePoolFactory;
     }
 
     public Builder withSlavePoolFactory(
-        final Function<Node, ClientPool<RedisClient>> slavePoolFactory) {
+        final SerializableFunction<Node, ClientPool<RedisClient>> slavePoolFactory) {
       this.slavePoolFactory = slavePoolFactory;
       return this;
     }
 
-    public Function<Node, RedisClient> getNodeUnknownFactory() {
+    public SerializableFunction<Node, RedisClient> getNodeUnknownFactory() {
       return nodeUnknownFactory;
     }
 
-    public Builder withNodeUnknownFactory(final Function<Node, RedisClient> nodeUnknownFactory) {
+    public Builder withNodeUnknownFactory(
+        final SerializableFunction<Node, RedisClient> nodeUnknownFactory) {
       this.nodeUnknownFactory = nodeUnknownFactory;
       return this;
     }
 
-    public BiFunction<ReadMode, ClientPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> getLbFactory() {
+    public LBPoolsFactory getLbFactory() {
       return lbFactory;
     }
 
-    public Builder withLbFactory(
-        final BiFunction<ReadMode, ClientPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>> lbFactory) {
+    public Builder withLbFactory(final LBPoolsFactory lbFactory) {
       this.lbFactory = lbFactory;
       return this;
     }

@@ -19,9 +19,7 @@ final class PrimRedisConn extends RedisConn {
   PrimRedisConn(final Node node, final ReplyMode replyMode, final NodeMapper nodeMapper,
       final Socket socket, final int soTimeoutMillis, final int outputBufferSize,
       final int inputBufferSize) {
-
     super(node, nodeMapper, socket, soTimeoutMillis, outputBufferSize, inputBufferSize);
-
     this.replyMode = replyMode;
   }
 
@@ -80,7 +78,6 @@ final class PrimRedisConn extends RedisConn {
   }
 
   void resetState() {
-
     switch (replyMode) {
       case OFF:
       case SKIP:
@@ -116,6 +113,9 @@ final class PrimRedisConn extends RedisConn {
   }
 
   long[] getLongArrayReply(final Function<long[], long[]> replyHandler) {
+    // http://redis.io/topics/protocol
+    // Returning a null array is part of the Redis Protocol, do NOT change.
+    // In the case of REPLY OFF AND SKIP return null to make it clear that no reply was handled.
     switch (replyMode) {
       case OFF:
         return null;
@@ -159,7 +159,6 @@ final class PrimRedisConn extends RedisConn {
   }
 
   private String setReplyOn() {
-
     sendCmd(ClientCmds.CLIENT.getCmdBytes(), ClientCmds.CLIENT_REPLY.getCmdBytes(),
         ClientCmds.ON.getCmdBytes());
     flushOS();

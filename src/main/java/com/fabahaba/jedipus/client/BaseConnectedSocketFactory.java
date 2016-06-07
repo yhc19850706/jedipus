@@ -4,13 +4,11 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
-import javax.net.SocketFactory;
-
 public class BaseConnectedSocketFactory implements ConnectedSocketFactory<Socket> {
 
   private static final long serialVersionUID = -8720044585962105507L;
 
-  protected final SocketFactory socketFactory;
+  protected final IOFactory<Socket> socketFactory;
   protected final int soTimeoutMillis;
 
   public BaseConnectedSocketFactory(final int soTimeoutMillis) {
@@ -18,7 +16,8 @@ public class BaseConnectedSocketFactory implements ConnectedSocketFactory<Socket
     this.soTimeoutMillis = soTimeoutMillis;
   }
 
-  public BaseConnectedSocketFactory(final SocketFactory socketFactory, final int soTimeoutMillis) {
+  public BaseConnectedSocketFactory(final IOFactory<Socket> socketFactory,
+      final int soTimeoutMillis) {
     this.socketFactory = socketFactory;
     this.soTimeoutMillis = soTimeoutMillis;
   }
@@ -26,8 +25,7 @@ public class BaseConnectedSocketFactory implements ConnectedSocketFactory<Socket
   @Override
   public Socket create(final String host, final int port, final int connTimeoutMillis)
       throws IOException {
-
-    final Socket socket = socketFactory == null ? new Socket() : socketFactory.createSocket();
+    final Socket socket = socketFactory == null ? new Socket() : socketFactory.create();
     initSocket(socket).connect(new InetSocketAddress(host, port), connTimeoutMillis);
     return socket;
   }

@@ -580,15 +580,11 @@ final class FinalClientPool<C> implements ClientPool<C> {
   }
 
   private void ensureMinIdle(final int minIdle) {
-
     while (!closed && idleClients.size() < minIdle) {
-
       final PooledClient<C> pooledClient = create();
-
       if (pooledClient == null) {
         return;
       }
-
       addIdleClient(pooledClient);
     }
   }

@@ -8,12 +8,10 @@ public final class RedisClientPool {
   private RedisClientPool() {}
 
   public static RedisClient borrowClient(final ClientPool<RedisClient> pool) {
-
     return pool.borrowClient();
   }
 
   public static void returnClient(final ClientPool<RedisClient> pool, final RedisClient client) {
-
     if (client == null || pool == null) {
       return;
     }

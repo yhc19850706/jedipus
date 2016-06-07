@@ -1,20 +1,18 @@
 package com.fabahaba.jedipus.exceptions;
 
-import java.util.List;
-
 import com.fabahaba.jedipus.cluster.data.ClusterSlotVotes;
 
 @SuppressWarnings("serial")
 public class RedisClusterPartitionedException extends RedisUnhandledException {
 
-  private final List<ClusterSlotVotes> clusterSlotVotes;
+  private final ClusterSlotVotes[] clusterSlotVotes;
 
-  public RedisClusterPartitionedException(final List<ClusterSlotVotes> clusterSlotVotes) {
-    super(null, String.format("Cluster has %d partitions.", clusterSlotVotes.size()));
+  public RedisClusterPartitionedException(final ClusterSlotVotes[] clusterSlotVotes) {
+    super(null, String.format("Cluster has %d partitions.", clusterSlotVotes.length));
     this.clusterSlotVotes = clusterSlotVotes;
   }
 
-  public List<ClusterSlotVotes> getClusterSlotVotes() {
+  public ClusterSlotVotes[] getClusterSlotVotes() {
     return clusterSlotVotes;
   }
 }

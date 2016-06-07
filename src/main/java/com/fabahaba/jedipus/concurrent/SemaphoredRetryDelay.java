@@ -2,22 +2,24 @@ package com.fabahaba.jedipus.concurrent;
 
 import java.io.Serializable;
 import java.time.Duration;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
-import java.util.function.LongFunction;
+
+import com.fabahaba.jedipus.client.SerializableFunction;
+import com.fabahaba.jedipus.client.SerializableLongFunction;
 
 final class SemaphoredRetryDelay<E> implements ElementRetryDelay<E>, Serializable {
 
   private static final long serialVersionUID = 3049702722917839982L;
 
-  private final Map<E, RetrySemaphore> retrySemaphores;
-  private final LongFunction<Duration> delayFunction;
-  private final Function<E, RetrySemaphore> retrySemaphoreFactory;
+  private final ConcurrentHashMap<E, RetrySemaphore> retrySemaphores;
+  private final SerializableLongFunction<Duration> delayFunction;
+  private final SerializableFunction<E, RetrySemaphore> retrySemaphoreFactory;
 
-  SemaphoredRetryDelay(final int numConurrentRetries, final LongFunction<Duration> delayFunction) {
+  SemaphoredRetryDelay(final int numConurrentRetries,
+      final SerializableLongFunction<Duration> delayFunction) {
     this.retrySemaphores = new ConcurrentHashMap<>();
     this.retrySemaphoreFactory = e -> new RetrySemaphore(numConurrentRetries);
     this.delayFunction = delayFunction;
@@ -31,7 +33,6 @@ final class SemaphoredRetryDelay<E> implements ElementRetryDelay<E>, Serializabl
       if (retry >= maxRetries) {
         throw cause;
       }
-
       return retry + 1;
     }
 

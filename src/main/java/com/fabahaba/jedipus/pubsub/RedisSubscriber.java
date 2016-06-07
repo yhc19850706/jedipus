@@ -5,9 +5,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
+import com.fabahaba.jedipus.client.SerializableConsumer;
+import com.fabahaba.jedipus.client.SerializableFunction;
 import com.fabahaba.jedipus.executor.RedisClientExecutor;
 
 public interface RedisSubscriber extends Runnable {
@@ -96,10 +96,10 @@ public interface RedisSubscriber extends Runnable {
     private static final long serialVersionUID = 7465574872719472102L;
 
     private int soTimeoutMillis = 0; // silently block forever.
-    private Consumer<RedisSubscriber> onSocketTimeout = subscriber -> subscriber.ping();
-    private Function<String, Collection<MsgConsumer>> consumerCollectionFactory =
+    private SerializableConsumer<RedisSubscriber> onSocketTimeout = RedisSubscriber::ping;
+    private SerializableFunction<String, Collection<MsgConsumer>> consumerCollectionFactory =
         ch -> new HashSet<>();
-    private Consumer<String> pongConsumer = pong -> {
+    private SerializableConsumer<String> pongConsumer = pong -> {
     };
 
     private Builder() {}
@@ -162,30 +162,31 @@ public interface RedisSubscriber extends Runnable {
       return this;
     }
 
-    public Consumer<RedisSubscriber> getOnSocketTimeout() {
+    public SerializableConsumer<RedisSubscriber> getOnSocketTimeout() {
       return onSocketTimeout;
     }
 
-    public Builder withOnSocketTimeout(final Consumer<RedisSubscriber> onSocketTimeout) {
+    public Builder withOnSocketTimeout(
+        final SerializableConsumer<RedisSubscriber> onSocketTimeout) {
       this.onSocketTimeout = onSocketTimeout;
       return this;
     }
 
-    public Function<String, Collection<MsgConsumer>> getConsumerCollectionFactory() {
+    public SerializableFunction<String, Collection<MsgConsumer>> getConsumerCollectionFactory() {
       return consumerCollectionFactory;
     }
 
     public Builder withConsumerCollectionFactory(
-        final Function<String, Collection<MsgConsumer>> consumerCollectionFactory) {
+        final SerializableFunction<String, Collection<MsgConsumer>> consumerCollectionFactory) {
       this.consumerCollectionFactory = consumerCollectionFactory;
       return this;
     }
 
-    public Consumer<String> getPongConsumer() {
+    public SerializableConsumer<String> getPongConsumer() {
       return pongConsumer;
     }
 
-    public Builder withPongConsumer(final Consumer<String> pongConsumer) {
+    public Builder withPongConsumer(final SerializableConsumer<String> pongConsumer) {
       this.pongConsumer = pongConsumer;
       return this;
     }

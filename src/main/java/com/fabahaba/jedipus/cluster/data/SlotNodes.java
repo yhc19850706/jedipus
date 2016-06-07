@@ -1,10 +1,13 @@
 package com.fabahaba.jedipus.cluster.data;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 import com.fabahaba.jedipus.cluster.Node;
 
-public final class SlotNodes implements Comparable<SlotNodes> {
+public final class SlotNodes implements Comparable<SlotNodes>, Serializable {
+
+  private static final long serialVersionUID = -7223891480798183373L;
 
   private final int slotBegin;
   private final int slotEndExclusive;

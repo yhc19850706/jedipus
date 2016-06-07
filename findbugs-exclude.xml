@@ -9,12 +9,15 @@
 		<Bug pattern="MS_EXPOSE_REP" />
 	</Match>
 	<Match>
+		<Class name="com.fabahaba.jedipus.primitive.RESProtocol" />
 		<Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS" />
 	</Match>
 	<Match>
-		<Bug pattern="BC_UNCONFIRMED_CAST_OF_RETURN_VALUE" />
+		<Class name="com.fabahaba.jedipus.primitive.PrimRedisConn" />
+		<Method name="getLongArrayReply" />
+		<Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS" />
 	</Match>
 	<Match>
-		<Bug pattern="SE_BAD_FIELD" />
+		<Class name="com.fabahaba.jedipus.client.MockRedisClient" />
 	</Match>
 </FindBugsFilter>

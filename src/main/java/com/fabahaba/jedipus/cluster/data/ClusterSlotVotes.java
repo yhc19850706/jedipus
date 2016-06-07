@@ -1,5 +1,6 @@
 package com.fabahaba.jedipus.cluster.data;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -7,7 +8,9 @@ import java.util.function.Supplier;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.RESP;
 
-public final class ClusterSlotVotes implements Comparable<ClusterSlotVotes> {
+public final class ClusterSlotVotes implements Comparable<ClusterSlotVotes>, Serializable {
+
+  private static final long serialVersionUID = -3636628959055130264L;
 
   private final SlotNodes[] clusterSlots;
   private volatile Set<Node> nodeVotes = null;

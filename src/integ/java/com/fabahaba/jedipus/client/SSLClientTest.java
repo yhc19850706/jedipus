@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -37,15 +38,14 @@ public class SSLClientTest {
 
   public static final Node DEFAULT_SSL_NODE = Node.create("localhost", REDIS_SSL_PORT);
 
-  public static final RedisClientFactory.Builder DEFAULT_SSL_CLIENT_FACTORY_BUILDER =
-      RedisClientFactory.startBuilding().withAuth(BaseRedisClientTest.REDIS_PASS).withSsl(true);
-
   @Test
   public void connectAndPing() {
     System.setProperty("javax.net.ssl.trustStore", JCEKS_TRUSTSTORE.toString());
     System.setProperty("javax.net.ssl.trustStoreType", "jceks");
 
-    try (final RedisClient client = DEFAULT_SSL_CLIENT_FACTORY_BUILDER.create(DEFAULT_SSL_NODE)) {
+    try (final RedisClient client = RedisClientFactory.startBuilding()
+        .withAuth(BaseRedisClientTest.REDIS_PASS)
+        .withSocketFactory(SSLSocketFactory.getDefault()::createSocket).create(DEFAULT_SSL_NODE)) {
       final String ssl = client.sendCmd(Cmds.PING, "SSL");
       assertEquals("SSL", ssl);
     }
@@ -53,18 +53,17 @@ public class SSLClientTest {
 
   @Test
   public void useNonDefaultSocketFactory() {
-    final SSLSocketFactory sslSocketFactory = createTrustStoreSslSocketFactory();
+    final IOFactory<Socket> sslSocketFactory = createTrustStoreSslSocketFactory();
 
     try (final RedisClient client =
         RedisClientFactory.startBuilding().withAuth(BaseRedisClientTest.REDIS_PASS)
-            .withSocketFactory(sslSocketFactory).withSsl(true).create(DEFAULT_SSL_NODE)) {
-
+            .withSocketFactory(sslSocketFactory).create(DEFAULT_SSL_NODE)) {
       final String ssl = client.sendCmd(Cmds.PING, "SSL");
       assertEquals("SSL", ssl);
     }
   }
 
-  private static SSLSocketFactory createTrustStoreSslSocketFactory() {
+  private static IOFactory<Socket> createTrustStoreSslSocketFactory() {
     try {
       final KeyStore trustStore = KeyStore.getInstance("jceks");
 
@@ -79,9 +78,9 @@ public class SSLClientTest {
       final TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
 
       final SSLContext sslContext = SSLContext.getInstance("TLS");
-
       sslContext.init(null, trustManagers, new SecureRandom());
-      return sslContext.getSocketFactory();
+
+      return sslContext.getSocketFactory()::createSocket;
     } catch (KeyManagementException | KeyStoreException | NoSuchAlgorithmException e) {
       throw new RuntimeException(e);
     }

@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.util.function.Function;
 import java.util.function.LongFunction;
 
+import com.fabahaba.jedipus.client.SerializableLongFunction;
 import com.fabahaba.jedipus.cluster.Node;
 
 public interface ElementRetryDelay<E> {
@@ -135,14 +136,13 @@ public interface ElementRetryDelay<E> {
     private static final long serialVersionUID = -1206437227491510129L;
 
     private int baseDelayMillis = 10;
-    private LongFunction<Duration> delayFunction;
+    private SerializableLongFunction<Duration> delayFunction;
     private Duration maxDelay;
     private int numConurrentRetries = 1;
 
     private Builder() {}
 
     public ElementRetryDelay<Node> create() {
-
       if (maxDelay == null) {
         maxDelay = Duration.ofMillis(2000);
       }
@@ -159,7 +159,7 @@ public interface ElementRetryDelay<E> {
       return delayFunction;
     }
 
-    public Builder withDelayFunction(final LongFunction<Duration> delayFunction) {
+    public Builder withDelayFunction(final SerializableLongFunction<Duration> delayFunction) {
       this.delayFunction = delayFunction;
       return this;
     }

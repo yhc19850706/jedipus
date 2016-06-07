@@ -23,7 +23,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
@@ -38,6 +37,7 @@ import com.fabahaba.jedipus.client.FutureLongReply;
 import com.fabahaba.jedipus.client.FutureReply;
 import com.fabahaba.jedipus.client.HostPort;
 import com.fabahaba.jedipus.client.RedisClient;
+import com.fabahaba.jedipus.client.SerializableFunction;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.Cmds;
@@ -678,9 +678,9 @@ public class RedisClusterTest extends BaseRedisClientTest {
   @Test(timeout = 200, expected = NoSuchElementException.class)
   public void testIfPoolConfigAppliesToClusterPools() {
 
-    final Function<Node, ClientPool<RedisClient>> poolFactory = node -> ClientPool.startBuilding()
-        .withMaxTotal(0).withBorrowTimeout(Duration.ofMillis(20)).withBlockWhenExhausted(true)
-        .create(RedisClientFactory.startBuilding().createPooled(node));
+    final SerializableFunction<Node, ClientPool<RedisClient>> poolFactory = node -> ClientPool
+        .startBuilding().withMaxTotal(0).withBorrowTimeout(Duration.ofMillis(20))
+        .withBlockWhenExhausted(true).create(RedisClientFactory.startBuilding().createPooled(node));
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
         .withMasterPoolFactory(poolFactory)
@@ -718,7 +718,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final RedisClientFactory.Builder poolFactoryBuilder =
         RedisClientFactory.startBuilding().withConnTimeout(1234).withSoTimeout(4321);
 
-    final Function<Node, ClientPool<RedisClient>> poolFactory =
+    final SerializableFunction<Node, ClientPool<RedisClient>> poolFactory =
         node -> ClientPool.startBuilding().create(poolFactoryBuilder.createPooled(node));
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
@@ -736,9 +736,8 @@ public class RedisClusterTest extends BaseRedisClientTest {
   public void testRedisClusterRunsWithMultithreaded()
       throws InterruptedException, ExecutionException {
 
-
-    final Function<Node, ClientPool<RedisClient>> poolFactory = node -> ClientPool.startBuilding()
-        .create(RedisClientFactory.startBuilding().createPooled(node));
+    final SerializableFunction<Node, ClientPool<RedisClient>> poolFactory = node -> ClientPool
+        .startBuilding().create(RedisClientFactory.startBuilding().createPooled(node));
 
     final int numThreads = Runtime.getRuntime().availableProcessors() * 2;
     final ThreadPoolExecutor executor = new ThreadPoolExecutor(numThreads, numThreads,
@@ -785,12 +784,13 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final byte[] key = RESP.toBytes(keyString);
     final int slot = CRC16.getSlot(key);
 
-    final Function<Node, ClientPool<RedisClient>> poolFactory = node -> ClientPool.startBuilding()
-        .withMaxTotal(1).create(RedisClientFactory.startBuilding().createPooled(node));
+    final SerializableFunction<Node, ClientPool<RedisClient>> poolFactory =
+        node -> ClientPool.startBuilding().withMaxTotal(1)
+            .create(RedisClientFactory.startBuilding().createPooled(node));
 
-    try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withMasterPoolFactory(poolFactory)
-        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
+    try (final RedisClusterExecutor rce =
+        RedisClusterExecutor.startBuilding(discoveryNodes).withMasterPoolFactory(poolFactory)
+            .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create()) {
 
       rce.accept(slot, client -> {
 

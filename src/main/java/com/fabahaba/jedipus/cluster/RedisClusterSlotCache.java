@@ -1,13 +1,11 @@
 package com.fabahaba.jedipus.cluster;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -160,33 +158,33 @@ class RedisClusterSlotCache implements AutoCloseable {
       final ElementRetryDelay<Node> clusterNodeRetryDelay) {
 
     final Collection<Node> discoveryNodes = discoveryNodesSupplier.get();
-    final List<ClusterSlotVotes> slotNodesCandidates = getSlotNodesVotes(discoveryNodes, nodeMapper,
+    final ClusterSlotVotes[] slotNodesCandidates = getSlotNodesVotes(discoveryNodes, nodeMapper,
         nodeUnknownFactory, new AtomicInteger(partitionedStrategyConfig.getMaxVotes()));
-
-    final int numCandidates = slotNodesCandidates.size();
 
     switch (partitionedStrategyConfig.getStrategy()) {
       case THROW:
-        if (numCandidates == 0) {
+        if (slotNodesCandidates.length == 0) {
           break;
         }
 
-        if (numCandidates > 1) {
+        if (slotNodesCandidates.length > 1) {
           throw new RedisClusterPartitionedException(slotNodesCandidates);
         }
 
-        initSlotCache(slotNodesCandidates.get(0), defaultReadMode, nodeMapper, masterPoolFactory,
+        initSlotCache(slotNodesCandidates[0], defaultReadMode, nodeMapper, masterPoolFactory,
             slavePoolFactory, lbFactory, masterPools, masterSlots, slavePools, slaveSlots);
         break;
       case MAJORITY:
-        if (numCandidates == 0) {
+        if (slotNodesCandidates.length == 0) {
           break;
         }
 
-        if (numCandidates > 1) {
-          final int numWinningVotes = slotNodesCandidates.get(0).getNodeVotes().size();
-          final double numVotes = slotNodesCandidates.stream().map(ClusterSlotVotes::getNodeVotes)
-              .mapToInt(Collection::size).sum();
+        if (slotNodesCandidates.length > 1) {
+          final int numWinningVotes = slotNodesCandidates[0].getNodeVotes().size();
+          double numVotes = 0;
+          for (final ClusterSlotVotes vote : slotNodesCandidates) {
+            numVotes += vote.getNodeVotes().size();
+          }
 
           if (numWinningVotes / numVotes <= partitionedStrategyConfig
               .getMinMajorityPercentExclusive()) {
@@ -194,12 +192,12 @@ class RedisClusterSlotCache implements AutoCloseable {
           }
         }
 
-        initSlotCache(slotNodesCandidates.get(0), defaultReadMode, nodeMapper, masterPoolFactory,
+        initSlotCache(slotNodesCandidates[0], defaultReadMode, nodeMapper, masterPoolFactory,
             slavePoolFactory, lbFactory, masterPools, masterSlots, slavePools, slaveSlots);
         break;
       case TOP:
-        if (numCandidates > 0) {
-          initSlotCache(slotNodesCandidates.get(0), defaultReadMode, nodeMapper, masterPoolFactory,
+        if (slotNodesCandidates.length > 0) {
+          initSlotCache(slotNodesCandidates[0], defaultReadMode, nodeMapper, masterPoolFactory,
               slavePoolFactory, lbFactory, masterPools, masterSlots, slavePools, slaveSlots);
         }
         break;
@@ -245,30 +243,31 @@ class RedisClusterSlotCache implements AutoCloseable {
         return;
       }
 
-      final List<ClusterSlotVotes> slotNodesCandidates = getSlotNodesVotes();
-      final int numCandidates = slotNodesCandidates.size();
+      final ClusterSlotVotes[] slotNodesCandidates = getSlotNodesVotes();
 
       switch (partitionedStrategyConfig.getStrategy()) {
         case THROW:
-          if (numCandidates == 0) {
+          if (slotNodesCandidates.length == 0) {
             return;
           }
 
-          if (numCandidates > 1) {
+          if (slotNodesCandidates.length > 1) {
             throw new RedisClusterPartitionedException(slotNodesCandidates);
           }
 
-          cacheClusterSlots(slotNodesCandidates.get(0));
+          cacheClusterSlots(slotNodesCandidates[0]);
           return;
         case MAJORITY:
-          if (numCandidates == 0) {
+          if (slotNodesCandidates.length == 0) {
             return;
           }
 
-          if (numCandidates > 1) {
-            final int numWinningVotes = slotNodesCandidates.get(0).getNodeVotes().size();
-            final double numVotes = slotNodesCandidates.stream().map(ClusterSlotVotes::getNodeVotes)
-                .mapToInt(Collection::size).sum();
+          if (slotNodesCandidates.length > 1) {
+            final int numWinningVotes = slotNodesCandidates[0].getNodeVotes().size();
+            double numVotes = 0;
+            for (final ClusterSlotVotes vote : slotNodesCandidates) {
+              numVotes += vote.getNodeVotes().size();
+            }
 
             if (numWinningVotes / numVotes <= partitionedStrategyConfig
                 .getMinMajorityPercentExclusive()) {
@@ -276,11 +275,11 @@ class RedisClusterSlotCache implements AutoCloseable {
             }
           }
 
-          cacheClusterSlots(slotNodesCandidates.get(0));
+          cacheClusterSlots(slotNodesCandidates[0]);
           return;
         case TOP:
-          if (numCandidates > 0) {
-            cacheClusterSlots(slotNodesCandidates.get(0));
+          if (slotNodesCandidates.length > 0) {
+            cacheClusterSlots(slotNodesCandidates[0]);
           }
           return;
         default:
@@ -355,7 +354,7 @@ class RedisClusterSlotCache implements AutoCloseable {
     }
   }
 
-  private List<ClusterSlotVotes> getSlotNodesVotes() {
+  private ClusterSlotVotes[] getSlotNodesVotes() {
 
     final AtomicInteger maxVotes = new AtomicInteger(partitionedStrategyConfig.getMaxVotes());
 
@@ -395,10 +394,9 @@ class RedisClusterSlotCache implements AutoCloseable {
               nodeUnknownFactory, clusterSlots, pool, voteFutures, maxVotes)));
         }
 
-        final List<ClusterSlotVotes> sortedClusterNodes =
-            awaitAndSortVotes(voteFutures, clusterSlots);
+        final ClusterSlotVotes[] sortedClusterNodes = awaitAndSortVotes(voteFutures, clusterSlots);
 
-        if (sortedClusterNodes.isEmpty()) {
+        if (sortedClusterNodes.length == 0) {
           break;
         }
         return sortedClusterNodes;
@@ -410,7 +408,7 @@ class RedisClusterSlotCache implements AutoCloseable {
     return getSlotNodesVotes(discoveryNodeSupplier.get(), nodeMapper, nodeUnknownFactory, maxVotes);
   }
 
-  private static List<ClusterSlotVotes> getSlotNodesVotes(final Collection<Node> nodes,
+  private static ClusterSlotVotes[] getSlotNodesVotes(final Collection<Node> nodes,
       final NodeMapper nodeMapper, final Function<Node, RedisClient> nodeUnknownFactory,
       final AtomicInteger maxVotes) {
 
@@ -456,7 +454,7 @@ class RedisClusterSlotCache implements AutoCloseable {
     return awaitAndSortVotes(voteFutures, clusterSlots);
   }
 
-  private static List<ClusterSlotVotes> awaitAndSortVotes(final Queue<ForkJoinTask<?>> voteFutures,
+  private static ClusterSlotVotes[] awaitAndSortVotes(final Queue<ForkJoinTask<?>> voteFutures,
       final Map<ClusterSlotVotes, ClusterSlotVotes> clusterSlots) {
 
     for (;;) {
@@ -468,11 +466,15 @@ class RedisClusterSlotCache implements AutoCloseable {
     }
 
     if (clusterSlots.isEmpty()) {
-      return Collections.emptyList();
+      return new ClusterSlotVotes[0];
     }
 
-    final List<ClusterSlotVotes> sortedClusterNodes = new ArrayList<>(clusterSlots.size());
-    clusterSlots.values().stream().sorted().forEach(sortedClusterNodes::add);
+    final ClusterSlotVotes[] sortedClusterNodes = new ClusterSlotVotes[clusterSlots.size()];
+    int index = 0;
+    for (final ClusterSlotVotes votes : clusterSlots.values()) {
+      sortedClusterNodes[index++] = votes;
+    }
+    Arrays.sort(sortedClusterNodes);
 
     return sortedClusterNodes;
   }

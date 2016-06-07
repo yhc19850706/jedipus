@@ -15,29 +15,24 @@ public final class RedisInputStream extends InputStream {
   private int limit;
 
   RedisInputStream(final Node node, final InputStream in, final int size) {
-
     if (size <= 0) {
       throw new IllegalArgumentException("Buffer size <= 0");
     }
-
     this.in = in;
     this.node = node;
     this.buf = new byte[size];
   }
 
   public Node getNode() {
-
     return node;
   }
 
   public byte readByte() {
-
     ensureFill();
     return buf[pos++];
   }
 
   public String readLine() {
-
     for (final StringBuilder sb = new StringBuilder();;) {
       ensureFill();
 
@@ -66,11 +61,9 @@ public final class RedisInputStream extends InputStream {
   }
 
   public byte[] readLineBytes() {
-
     ensureFill();
 
     for (int lookAhead = pos;;) {
-
       if (buf[lookAhead++] == '\r') {
         if (lookAhead == limit) {
           grow(lookAhead);
@@ -92,7 +85,6 @@ public final class RedisInputStream extends InputStream {
   }
 
   private void grow(final int pos) {
-
     final int originalLength = buf.length;
     final byte[] doubled = new byte[originalLength << 1];
     System.arraycopy(buf, 0, doubled, 0, originalLength);
@@ -101,12 +93,10 @@ public final class RedisInputStream extends InputStream {
   }
 
   public int readIntCRLF() {
-
     return (int) readLongCRLF();
   }
 
   public long readLongCRLF() {
-
     final byte[] buf = this.buf;
 
     ensureFill();
@@ -120,7 +110,6 @@ public final class RedisInputStream extends InputStream {
   }
 
   private long readUnsignedLongCRLF() {
-
     for (long value = 0;;) {
       ensureFill();
 
@@ -141,7 +130,6 @@ public final class RedisInputStream extends InputStream {
 
   @Override
   public int read(final byte[] data, final int off, final int len) {
-
     ensureFill();
 
     final int length = Math.min(limit - pos, len);
@@ -151,7 +139,6 @@ public final class RedisInputStream extends InputStream {
   }
 
   private void ensureFill() {
-
     if (pos < limit) {
       return;
     }
@@ -164,7 +151,6 @@ public final class RedisInputStream extends InputStream {
   }
 
   private int readChecked(final int off, final int len) {
-
     try {
       final int read = in.read(buf, off, len);
 
@@ -184,7 +170,6 @@ public final class RedisInputStream extends InputStream {
 
   @Override
   public int read() throws IOException {
-
     return in.read();
   }
 
@@ -197,7 +182,7 @@ public final class RedisInputStream extends InputStream {
       while (in.read(buf) > 0) {
       }
     } catch (final IOException e) {
-      // purpose is to ignore replies anyways.
+      // Purpose is to ignore replies anyways.
     } finally {
       pos = 0;
       limit = 0;
