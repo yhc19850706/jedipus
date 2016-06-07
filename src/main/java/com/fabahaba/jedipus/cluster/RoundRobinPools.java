@@ -12,14 +12,12 @@ class RoundRobinPools<T> implements LoadBalancedPools<T, ReadMode> {
   private final ClientPool<T>[] pools;
 
   RoundRobinPools(final ClientPool<T>[] pools) {
-
     this.roundRobinIndex = new AtomicInteger(0);
     this.pools = pools;
   }
 
   @Override
   public ClientPool<T> next(final ReadMode readMode, final ClientPool<T> defaultPool) {
-
     switch (readMode) {
       case MIXED:
         int index = roundRobinIndex

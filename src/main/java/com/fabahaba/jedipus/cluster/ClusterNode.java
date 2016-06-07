@@ -10,45 +10,38 @@ final class ClusterNode implements Node {
   private String id;
 
   ClusterNode(final HostPort hostPort, final String id) {
-
     this.hostPort = hostPort;
     this.id = id;
   }
 
   @Override
   public HostPort getHostPort() {
-
     return hostPort;
   }
 
   @Override
   public String getHost() {
-
     return hostPort.getHost();
   }
 
   @Override
   public int getPort() {
-
     return hostPort.getPort();
   }
 
   @Override
   public String getId() {
-
     return id;
   }
 
   @Override
   public Node updateId(final String id) {
-
     this.id = id;
     return this;
   }
 
   @Override
   public boolean equals(final Object other) {
-
     if (this == other) {
       return true;
     }
@@ -67,13 +60,11 @@ final class ClusterNode implements Node {
 
   @Override
   public int hashCode() {
-
     return hostPort.hashCode();
   }
 
   @Override
   public String toString() {
-
     return id == null ? hostPort.toString() : id + "@" + hostPort;
   }
 }

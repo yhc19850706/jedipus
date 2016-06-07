@@ -36,7 +36,6 @@ public class RedisClientPoolTest {
 
   @Test(timeout = 1000)
   public void checkCloseableConnections() {
-
     try (final ClientPool<RedisClient> pool =
         DEFAULT_POOL_BUILDER.create(DEFAULT_POOLED_CLIENT_FACTORY)) {
 
@@ -51,7 +50,6 @@ public class RedisClientPoolTest {
 
   @Test(timeout = 1000)
   public void checkClientIsReusedWhenReturned() {
-
     try (final ClientPool<RedisClient> pool =
         DEFAULT_POOL_BUILDER.create(DEFAULT_POOLED_CLIENT_FACTORY)) {
 
@@ -69,7 +67,6 @@ public class RedisClientPoolTest {
 
   @Test
   public void checkPoolRepairedWhenClientIsBroken() {
-
     try (final ClientPool<RedisClient> pool =
         DEFAULT_POOL_BUILDER.create(DEFAULT_POOLED_CLIENT_FACTORY)) {
 
@@ -86,7 +83,6 @@ public class RedisClientPoolTest {
 
   @Test(timeout = 1000, expected = NoSuchElementException.class)
   public void checkPoolOverflow() {
-
     try (final ClientPool<RedisClient> pool = ClientPool.startBuilding().withMaxTotal(1)
         .withBlockWhenExhausted(false).create(DEFAULT_POOLED_CLIENT_FACTORY)) {
 
@@ -100,7 +96,6 @@ public class RedisClientPoolTest {
 
   @Test
   public void securePool() {
-
     try (final ClientPool<RedisClient> pool =
         ClientPool.startBuilding().withTestOnBorrow(true).create(DEFAULT_POOLED_CLIENT_FACTORY)) {
 
@@ -113,7 +108,6 @@ public class RedisClientPoolTest {
 
   @Test(timeout = 1000)
   public void nonDefaultDatabase() {
-
     try (final ClientPool<RedisClient> pool =
         DEFAULT_POOL_BUILDER.create(DEFAULT_POOLED_CLIENT_FACTORY)) {
 
@@ -134,7 +128,6 @@ public class RedisClientPoolTest {
 
   @Test
   public void customClientName() {
-
     final String clientName = "test_name";
 
     try (final ClientPool<RedisClient> pool = DEFAULT_POOL_BUILDER.create(RedisClientFactory
@@ -148,7 +141,6 @@ public class RedisClientPoolTest {
   }
 
   private static class CrashingClient extends MockRedisClient {
-
     @Override
     public void resetState() {
       throw new RedisException("crashed");
@@ -165,13 +157,11 @@ public class RedisClientPoolTest {
 
     @Override
     public void destroyClient(final PooledClient<RedisClient> pooledClient) {
-
       destroyed.incrementAndGet();
     }
 
     @Override
     public PooledClient<RedisClient> createClient() {
-
       return new DefaultPooledClient<>(null, new CrashingClient());
     }
 
@@ -183,12 +173,10 @@ public class RedisClientPoolTest {
 
   @Test(timeout = 1000)
   public void returnResourceDestroysResourceOnException() {
-
     final AtomicInteger destroyed = new AtomicInteger(0);
     final PooledClientFactory<RedisClient> crashingFactory = new CrashingPool(destroyed);
 
     final ClientPool<RedisClient> pool = DEFAULT_POOL_BUILDER.create(crashingFactory);
-
     final RedisClient client = RedisClientPool.borrowClient(pool);
 
     try {
@@ -201,7 +189,6 @@ public class RedisClientPoolTest {
 
   @Test
   public void returnResourceShouldResetState() {
-
     try (final ClientPool<RedisClient> pool = ClientPool.startBuilding().withMaxTotal(1)
         .withBlockWhenExhausted(false).create(DEFAULT_POOLED_CLIENT_FACTORY)) {
 
@@ -228,7 +215,6 @@ public class RedisClientPoolTest {
 
   @Test(timeout = 1000)
   public void checkResourceIsCloseable() {
-
     try (final ClientPool<RedisClient> pool = ClientPool.startBuilding().withMaxTotal(1)
         .withBlockWhenExhausted(false).create(DEFAULT_POOLED_CLIENT_FACTORY)) {
 
@@ -250,7 +236,6 @@ public class RedisClientPoolTest {
 
   @Test
   public void testEvictionRuns() throws InterruptedException {
-
     try (final ClientPool<RedisClient> pool = ClientPool.startBuilding().withMaxTotal(2)
         .withDurationBetweenEvictionRuns(Duration.ofMillis(20)).withTestWhileIdle(true)
         .withSoftMinEvictableIdleDuration(Duration.ofMillis(40)).withBlockWhenExhausted(false)
@@ -269,7 +254,6 @@ public class RedisClientPoolTest {
 
   @Test(timeout = 1000)
   public void getNumActiveIdleIsZeroWhenPoolIsClosed() {
-
     ClientPool<RedisClient> expose = null;
 
     try (final ClientPool<RedisClient> pool =
@@ -286,7 +270,6 @@ public class RedisClientPoolTest {
 
   @Test(timeout = 1000)
   public void getNumActiveReturnsTheCorrectNumber() {
-
     try (final ClientPool<RedisClient> pool =
         DEFAULT_POOL_BUILDER.create(DEFAULT_POOLED_CLIENT_FACTORY)) {
 
@@ -312,7 +295,6 @@ public class RedisClientPoolTest {
 
   @Test(timeout = 1000, expected = RedisUnhandledException.class)
   public void testCloseConnectionOnMakeObject() {
-
     try (final ClientPool<RedisClient> pool = ClientPool.startBuilding().create(RedisClientFactory
         .startBuilding().withAuth("wrong").createPooled(BaseRedisClientTest.DEFAULT_NODE))) {
       RedisClientPool.borrowClient(pool);
@@ -321,7 +303,6 @@ public class RedisClientPoolTest {
 
   @Test
   public void testDefaultDbSelection() {
-
     final int defaultDb = 2;
 
     try (final ClientPool<RedisClient> pool = ClientPool.startBuilding()

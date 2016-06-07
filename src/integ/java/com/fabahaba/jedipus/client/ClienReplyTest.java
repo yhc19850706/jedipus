@@ -12,7 +12,6 @@ public class ClienReplyTest extends BaseRedisClientTest {
 
   @Test
   public void testReplyModeChanges() {
-
     assertNull(client.replyOff().sendCmd(Cmds.PING));
     assertNull(client.sendCmd(Cmds.PING));
     assertNull(client.sendCmd(Cmds.PING));

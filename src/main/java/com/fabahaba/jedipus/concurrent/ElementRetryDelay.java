@@ -72,7 +72,6 @@ public interface ElementRetryDelay<E> {
    *         multiplies it by the {@code baseFactor}.
    */
   static LongFunction<Duration> exponentialBackoff(final Duration baseFactor) {
-
     return exponentialBackoff(baseFactor.toMillis());
   }
 
@@ -82,7 +81,6 @@ public interface ElementRetryDelay<E> {
    *         multiplies it by the {@code baseFactorMillis}.
    */
   static LongFunction<Duration> exponentialBackoff(final double baseDelayMillis) {
-
     return exponentialBackoff(baseDelayMillis, Long.MAX_VALUE);
   }
 
@@ -94,9 +92,7 @@ public interface ElementRetryDelay<E> {
    */
   static LongFunction<Duration> exponentialBackoff(final double baseDelayMillis,
       final long maxDelayMillis) {
-
     final long maxX = (long) Math.log(maxDelayMillis / baseDelayMillis);
-
     return exponentialBackoff(baseDelayMillis, maxX, Duration.ofMillis(maxDelayMillis));
   }
 
@@ -108,9 +104,7 @@ public interface ElementRetryDelay<E> {
    */
   static LongFunction<Duration> exponentialBackoff(final double baseDelayMillis,
       final Duration maxDelay) {
-
     final long maxX = (long) Math.log(maxDelay.toMillis() / baseDelayMillis);
-
     return exponentialBackoff(baseDelayMillis, maxX, maxDelay);
   }
 
@@ -122,12 +116,10 @@ public interface ElementRetryDelay<E> {
    */
   static LongFunction<Duration> exponentialBackoff(final double baseDelayMillis, final long maxX,
       final Duration maxDelay) {
-
     return x -> x > maxX ? maxDelay : Duration.ofMillis((long) (Math.exp(x) * baseDelayMillis));
   }
 
   static Builder startBuilding() {
-
     return new Builder();
   }
 

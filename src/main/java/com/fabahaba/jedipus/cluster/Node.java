@@ -7,39 +7,32 @@ import com.fabahaba.jedipus.cmds.RESP;
 public interface Node extends HostPort {
 
   public static Node create(final HostPort hostPort) {
-
     return new ClusterNode(hostPort, null);
   }
 
   public static Node create(final String host, final String port) {
-
     return create(host, Integer.parseInt(port));
   }
 
   public static Node create(final HostPort hostPort, final String nodeId) {
-
     return new ClusterNode(hostPort, nodeId);
   }
 
   public static Node create(final String host, final int port) {
-
     return create(HostPort.create(host, port));
   }
 
   public static Node create(final String host, final int port, final String nodeId) {
-
     return create(HostPort.create(host, port), nodeId);
   }
 
   public static final NodeMapper DEFAULT_NODE_MAPPER = node -> node;
 
   static Node create(final Object[] hostInfos) {
-
     return create(DEFAULT_NODE_MAPPER, hostInfos);
   }
 
   static Node create(final NodeMapper nodeMapper, final Object[] hostInfos) {
-
     final HostPort hostPort =
         HostPort.create(RESP.toString(hostInfos[0]), RESP.longToInt(hostInfos[1]));
 
@@ -56,13 +49,11 @@ public interface Node extends HostPort {
 
   @Override
   default String getHost() {
-
     return getHostPort().getHost();
   }
 
   @Override
   default int getPort() {
-
     return getHostPort().getPort();
   }
 

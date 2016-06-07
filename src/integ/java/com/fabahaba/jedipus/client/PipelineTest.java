@@ -17,7 +17,6 @@ public class PipelineTest extends BaseRedisClientTest {
 
   @Test
   public void pipeline() {
-
     final RedisPipeline pipeline = client.pipeline();
 
     final FutureReply<String> setReply = pipeline.sendCmd(Cmds.SET, "foo", "bar");
@@ -31,7 +30,6 @@ public class PipelineTest extends BaseRedisClientTest {
 
   @Test
   public void pipelineReply() {
-
     client.sendCmd(Cmds.SET, "string", "foo");
     client.sendCmd(Cmds.LPUSH, "list", "foo");
     client.sendCmd(Cmds.HSET, "hash", "foo", "bar");
@@ -87,7 +85,6 @@ public class PipelineTest extends BaseRedisClientTest {
 
   @Test
   public void pipelineReplyWithoutData() {
-
     client.sendCmd(Cmds.ZADD, "zset", "1", "foo");
 
     try (final RedisPipeline pipeline = client.pipeline()) {
@@ -100,11 +97,9 @@ public class PipelineTest extends BaseRedisClientTest {
 
   @Test(expected = RedisUnhandledException.class)
   public void pipelineReplyWithinPipeline() {
-
     client.sendCmd(Cmds.SET, "string", "foo");
 
     try (final RedisPipeline pipeline = client.pipeline()) {
-
       final FutureReply<String> string = pipeline.sendCmd(Cmds.GET, "string");
       string.get();
       pipeline.sync();
@@ -113,9 +108,7 @@ public class PipelineTest extends BaseRedisClientTest {
 
   @Test
   public void canRetrieveUnsetKey() {
-
     try (final RedisPipeline pipeline = client.pipeline()) {
-
       final FutureReply<String> shouldNotExist =
           pipeline.sendCmd(Cmds.GET, UUID.randomUUID().toString());
       pipeline.sync();
@@ -125,9 +118,7 @@ public class PipelineTest extends BaseRedisClientTest {
 
   @Test
   public void piplineWithError() {
-
     try (final RedisPipeline pipeline = client.pipeline()) {
-
       pipeline.sendCmd(Cmds.SET, "foo", "bar");
 
       final FutureReply<Object[]> error = pipeline.sendCmd(Cmds.SMEMBERS, "foo");
@@ -145,9 +136,7 @@ public class PipelineTest extends BaseRedisClientTest {
 
   @Test(expected = RedisUnhandledException.class)
   public void piplineWithCheckedError() {
-
     try (final RedisPipeline pipeline = client.pipeline()) {
-
       pipeline.sendCmd(Cmds.SET, "foo", "bar");
 
       pipeline.sendCmd(Cmds.SMEMBERS, "foo");
@@ -159,9 +148,7 @@ public class PipelineTest extends BaseRedisClientTest {
 
   @Test
   public void multi() {
-
     try (final RedisPipeline pipeline = client.pipeline()) {
-
       pipeline.multi();
 
       final FutureLongReply r1 = pipeline.sendCmd(Cmds.HINCRBY.prim(), "a", "f1", "-1");
@@ -182,9 +169,7 @@ public class PipelineTest extends BaseRedisClientTest {
 
   @Test
   public void multiWithMassiveRequests() {
-
     try (final RedisPipeline pipeline = client.pipeline()) {
-
       pipeline.multi();
 
       final CmdByteArray<Long> setCmdArgs =
@@ -206,13 +191,11 @@ public class PipelineTest extends BaseRedisClientTest {
 
   @Test
   public void multiWithSync() {
-
     client.sendCmd(Cmds.SET, "foo", "bar");
     client.sendCmd(Cmds.SET, "bar", "foo");
     client.sendCmd(Cmds.SET, "hello", "world");
 
     try (final RedisPipeline pipeline = client.pipeline()) {
-
       final FutureReply<String> r1 = pipeline.sendCmd(Cmds.GET, "bar");
       pipeline.multi();
       final FutureReply<String> r2 = pipeline.sendCmd(Cmds.GET, "foo");
@@ -275,7 +258,6 @@ public class PipelineTest extends BaseRedisClientTest {
   @Test
   public void testDiscardInPipeline() {
     try (final RedisPipeline pipeline = client.pipeline()) {
-
       pipeline.multi();
       pipeline.sendCmd(Cmds.SET, "foo", "bar");
       final FutureReply<String> discard = pipeline.discard();

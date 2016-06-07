@@ -34,11 +34,9 @@ public class BaseRedisClientTest {
 
   @After
   public void after() {
-
     if (client == null || client.isBroken()) {
       return;
     }
-
     client.close();
   }
 }
