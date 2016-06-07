@@ -2,6 +2,22 @@
 
 >Jedipus is a Redis 3.2+ Java 8 client that manages client object pools and command execution.
 
+```java
+final RedisClientExecutor rce =
+    RedisClientExecutor.startBuilding().createPooled(() -> Node.create("localhost", 6379));
+
+final String key = "42";
+rce.accept(client -> client.sendCmd(Cmds.SET, key, "107.6"));
+
+final String temp = rce.apply(client -> client.sendCmd(Cmds.GET, key));
+if (temp.equals("107.6")) {
+  System.out.println("Showers' ready, don't forget your towel.");
+}
+
+// ...
+rce.close();
+```
+
 ######Features
 * Executes `Consumer<RedisClient>` and `Function<RedisClient, R>` lambas.
 * Flexible generic or primitive return types to match the dynamic return type design of Redis.
@@ -14,11 +30,11 @@
   * Load balance read-only requests across master and/or slave pools.
   * Reuse known slot integers for direct O(1) primitive array access to a corresponding `RedisClient` pool.
 * Zero dependencies and PGP signed releases.  [Bintray](https://bintray.com/jamespedwards42/libs/jedipus/_latestVersion) verifies signatures automatically.  See [verifying your Jedipus jar](scripts/gpgVerifyJedipus.sh).
-* [SSL support](https://github.com/jamespedwards42/jedipus/blob/master/src/integ/java/com/fabahaba/jedipus/client/SSLClientTest.java#L45).
-* Optional user supplied [`Node`](src/main/java/com/fabahaba/jedipus/cluster/Node.java#L8) -> `ClientPool<RedisClient>` factories.
-* Optional user supplied [`LoadBalancedPools`](src/main/java/com/fabahaba/jedipus/concurrent/LoadBalancedPools.java#L5) factories.  By default, a [round robin strategy](src/main/java/com/fabahaba/jedipus/cluster/RoundRobinPools.java) is used.
+* [SSL support](https://github.com/jamespedwards42/jedipus/blob/master/src/integ/java/com/fabahaba/jedipus/client/SSLClientTest.java#L43).
+* Optional user supplied [`Node`](src/main/java/com/fabahaba/jedipus/cluster/Node.java#L7) -> `ClientPool<RedisClient>` factories.
+* Optional user supplied [`LoadBalancedPools`](src/main/java/com/fabahaba/jedipus/concurrent/LoadBalancedPools.java#L5) factories.  By default, a [round robin strategy](src/main/java/com/fabahaba/jedipus/cluster/RoundRobinPools.java#L9) is used.
 * [Client side HostPort mapping](https://gist.github.com/jamespedwards42/5037cf03768280ab1d81a88e7929c608) to internally-networked clusters.
-* Configurable `RedisConnectionException` [retry delays](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java#L9) per cluster node.  By default, an [exponential back-off delay](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java#L143) is used.
+* Configurable `RedisConnectionException` [retry delays](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java#L11) per cluster node.  By default, an [exponential back-off delay](src/main/java/com/fabahaba/jedipus/concurrent/ElementRetryDelay.java#L143) is used.
 * Execute directly against known or random nodes.
 * [Lua script utilities](src/main/java/com/fabahaba/jedipus/lua/LuaScript.java#L25).
 * Frequent point releases for new features, utilities and bug fixes.
@@ -52,20 +68,6 @@ dependencies {
 ######Basic Usage Demos
 
 >Note: The examples auto close the `RedisClusterExecutor` but you probably want it to be a long lived object.
-
-```java
-try (final RedisClusterExecutor rce =
-    RedisClusterExecutor.startBuilding(Node.create("localhost", 7000)).create()) {
-
-  final String key = "42";
-  rce.accept(key, client -> client.sendCmd(Cmds.SET, key, "107.6"));
-
-  final String temp = rce.apply(key, client -> client.sendCmd(Cmds.GET, key));
-  if (temp.equals("107.6")) {
-    System.out.println("Showers' ready, don't forget your towel.");
-  }
-}
-```
 
 ```java
 try (final RedisClusterExecutor rce =
