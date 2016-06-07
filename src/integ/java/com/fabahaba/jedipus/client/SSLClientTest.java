@@ -43,9 +43,10 @@ public class SSLClientTest {
     System.setProperty("javax.net.ssl.trustStore", JCEKS_TRUSTSTORE.toString());
     System.setProperty("javax.net.ssl.trustStoreType", "jceks");
 
-    try (final RedisClient client = RedisClientFactory.startBuilding()
-        .withAuth(BaseRedisClientTest.REDIS_PASS)
-        .withSocketFactory(SSLSocketFactory.getDefault()::createSocket).create(DEFAULT_SSL_NODE)) {
+    try (final RedisClient client =
+        RedisClientFactory.startBuilding().withAuth(BaseRedisClientTest.REDIS_PASS)
+            .withSocketFactory(() -> SSLSocketFactory.getDefault().createSocket())
+            .create(DEFAULT_SSL_NODE)) {
       final String ssl = client.sendCmd(Cmds.PING, "SSL");
       assertEquals("SSL", ssl);
     }
@@ -53,25 +54,18 @@ public class SSLClientTest {
 
   @Test
   public void useNonDefaultSocketFactory() {
-    final IOFactory<Socket> sslSocketFactory = createTrustStoreSslSocketFactory();
-
     try (final RedisClient client =
         RedisClientFactory.startBuilding().withAuth(BaseRedisClientTest.REDIS_PASS)
-            .withSocketFactory(sslSocketFactory).create(DEFAULT_SSL_NODE)) {
+            .withSocketFactory(createTrustStoreSslSocketFactory()).create(DEFAULT_SSL_NODE)) {
       final String ssl = client.sendCmd(Cmds.PING, "SSL");
       assertEquals("SSL", ssl);
     }
   }
 
   private static IOFactory<Socket> createTrustStoreSslSocketFactory() {
-    try {
+    try (final InputStream inputStream = Files.newInputStream(JCEKS_TRUSTSTORE)) {
       final KeyStore trustStore = KeyStore.getInstance("jceks");
-
-      try (final InputStream inputStream = Files.newInputStream(JCEKS_TRUSTSTORE)) {
-        trustStore.load(inputStream, null);
-      } catch (IOException | NoSuchAlgorithmException | CertificateException e) {
-        throw new RuntimeException(e);
-      }
+      trustStore.load(inputStream, null);
 
       final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("PKIX");
       trustManagerFactory.init(trustStore);
@@ -80,8 +74,10 @@ public class SSLClientTest {
       final SSLContext sslContext = SSLContext.getInstance("TLS");
       sslContext.init(null, trustManagers, new SecureRandom());
 
+      // Note: this factory with break the serializability of your Client factory.
       return sslContext.getSocketFactory()::createSocket;
-    } catch (KeyManagementException | KeyStoreException | NoSuchAlgorithmException e) {
+    } catch (IOException | CertificateException | KeyManagementException | KeyStoreException
+        | NoSuchAlgorithmException e) {
       throw new RuntimeException(e);
     }
   }

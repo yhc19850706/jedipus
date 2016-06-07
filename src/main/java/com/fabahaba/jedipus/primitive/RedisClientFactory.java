@@ -63,12 +63,10 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient>, Ser
   }
 
   public static Builder startBuilding() {
-
     return new Builder();
   }
 
   protected void initClient(final RedisClient client) {
-
     if (pass != null) {
       client.sendCmd(Cmds.AUTH.raw(), pass);
     }
@@ -186,9 +184,7 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient>, Ser
 
     public PooledClientFactory<RedisClient> createPooled(final Node node,
         final boolean initReadOnly) {
-
       initConnectedSocketFactory();
-
       return new RedisClientFactory(node, nodeMapper, connTimeoutMillis, connectedSocketFactory,
           soTimeoutMillis, pass, clientName, initReadOnly, replyMode, db, outputBufferSize,
           inputBufferSize);
@@ -199,11 +195,9 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient>, Ser
     }
 
     public Builder initConnectedSocketFactory() {
-
       if (connectedSocketFactory == null) {
         connectedSocketFactory = new BaseConnectedSocketFactory(socketFactory, soTimeoutMillis);
       }
-
       return this;
     }
 

@@ -12,20 +12,19 @@ public class BaseConnectedSocketFactory implements ConnectedSocketFactory<Socket
   protected final int soTimeoutMillis;
 
   public BaseConnectedSocketFactory(final int soTimeoutMillis) {
-    this.socketFactory = null;
-    this.soTimeoutMillis = soTimeoutMillis;
+    this(null, soTimeoutMillis);
   }
 
   public BaseConnectedSocketFactory(final IOFactory<Socket> socketFactory,
       final int soTimeoutMillis) {
-    this.socketFactory = socketFactory;
+    this.socketFactory = socketFactory == null ? () -> new Socket() : socketFactory;
     this.soTimeoutMillis = soTimeoutMillis;
   }
 
   @Override
   public Socket create(final String host, final int port, final int connTimeoutMillis)
       throws IOException {
-    final Socket socket = socketFactory == null ? new Socket() : socketFactory.create();
+    final Socket socket = socketFactory.create();
     initSocket(socket).connect(new InetSocketAddress(host, port), connTimeoutMillis);
     return socket;
   }
