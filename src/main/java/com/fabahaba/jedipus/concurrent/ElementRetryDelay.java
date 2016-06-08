@@ -2,7 +2,6 @@ package com.fabahaba.jedipus.concurrent;
 
 import java.io.Serializable;
 import java.time.Duration;
-import java.util.function.Function;
 import java.util.function.LongFunction;
 
 import com.fabahaba.jedipus.client.SerializableLongFunction;
@@ -41,9 +40,6 @@ public interface ElementRetryDelay<E> {
    */
   long markFailure(final E element, final long maxRetries, final RuntimeException cause,
       long retry);
-
-  long delayIfFailing(final E element, final long maxRetries,
-      final Function<E, ? extends RuntimeException> retriesExceededEx);
 
   /**
    * Called after a successful request immediately following a failed request.
@@ -98,7 +94,7 @@ public interface ElementRetryDelay<E> {
 
   /**
    * @param baseDelayMillis used as {@code Math.exp(x) * baseFactorMillis}.
-   * @param maxDelayMillis the maximum delay duration this function may return.
+   * @param maxDelay the maximum delay duration this function may return.
    * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
    *         multiplies it by the {@code baseFactorMillis}.
    */
@@ -110,7 +106,8 @@ public interface ElementRetryDelay<E> {
 
   /**
    * @param baseDelayMillis used as {@code Math.exp(x) * baseFactorMillis}.
-   * @param maxDelayMillis the maximum delay duration this function may return.
+   * @param maxX the number of retries that will exceed the maximum delay.
+   * @param maxDelay the maximum delay duration this function may return.
    * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
    *         multiplies it by the {@code baseFactorMillis}.
    */

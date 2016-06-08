@@ -1,19 +1,17 @@
-##Jedipus [![Build Status](https://img.shields.io/travis/jamespedwards42/jedipus.svg?branch=master)](https://travis-ci.org/jamespedwards42/jedipus) [![Bintray](https://api.bintray.com/packages/jamespedwards42/libs/jedipus/images/download.svg) ](https://bintray.com/jamespedwards42/libs/jedipus/_latestVersion) [![license](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://raw.githubusercontent.com/jamespedwards42/jedipus/master/LICENSE) [![Gitter Chat](https://badges.gitter.im/jamespedwards42/jedipus.svg)](https://gitter.im/jamespedwards42/jedipus?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![IRC https://webchat.freenode.net/?channels=jedipus](https://img.shields.io/badge/IRC-jedipus-blue.svg)](https://webchat.freenode.net/?channels=jedipus)
+##Jedipus [![Build Status](https://img.shields.io/travis/jamespedwards42/jedipus.svg?branch=master)](https://travis-ci.org/jamespedwards42/jedipus) [![Bintray](https://api.bintray.com/packages/jamespedwards42/libs/jedipus/images/download.svg) ](https://bintray.com/jamespedwards42/libs/jedipus/_latestVersion) [![license](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://raw.githubusercontent.com/jamespedwards42/jedipus/master/LICENSE) [![Gitter Chat](https://badges.gitter.im/jamespedwards42/jedipus.svg)](https://gitter.im/jamespedwards42/jedipus?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 >Jedipus is a Redis 3.2+ Java 8 client that manages client object pools and command execution.
 
 ```java
-final RedisClientExecutor rce =
-    RedisClientExecutor.startBuilding().createPooled(() -> Node.create("localhost", 6379));
-
-final String key = "42";
-rce.accept(client -> client.sendCmd(Cmds.SET, key, "107.6"));
-
-final String temp = rce.apply(client -> client.sendCmd(Cmds.GET, key));
+final RedisClientExecutor rce = RedisClientExecutor.startBuilding()
+  .createPooled(() -> Node.create("localhost", 6379));
+// SET 42 107.6
+rce.accept(client -> client.sendCmd(Cmds.SET, "42", "107.6"));
+// GET 42
+final String temp = rce.apply(client -> client.sendCmd(Cmds.GET, "42"));
 if (temp.equals("107.6")) {
   System.out.println("Showers' ready, don't forget your towel.");
 }
-
 // ...
 rce.close();
 ```

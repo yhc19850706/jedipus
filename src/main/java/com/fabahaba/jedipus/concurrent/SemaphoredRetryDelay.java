@@ -5,7 +5,6 @@ import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.LongAdder;
-import java.util.function.Function;
 
 import com.fabahaba.jedipus.client.SerializableFunction;
 import com.fabahaba.jedipus.client.SerializableLongFunction;
@@ -54,10 +53,8 @@ final class SemaphoredRetryDelay<E> implements ElementRetryDelay<E>, Serializabl
   private long delay(final RetrySemaphore retrySemaphore) {
     try {
       retrySemaphore.semaphore.acquire();
-
       final long numFailures = retrySemaphore.failureAdder.sum();
-      final Duration delay = delayFunction.apply(retrySemaphore.failureAdder.sum());
-
+      final Duration delay = delayFunction.apply(numFailures);
       Thread.sleep(delay.toMillis());
       return numFailures;
     } catch (final InterruptedException e) {
@@ -66,24 +63,6 @@ final class SemaphoredRetryDelay<E> implements ElementRetryDelay<E>, Serializabl
     } finally {
       retrySemaphore.semaphore.release();
     }
-  }
-
-  @Override
-  public long delayIfFailing(final E element, final long maxRetries,
-      final Function<E, ? extends RuntimeException> retriesExceededEx) {
-
-    final RetrySemaphore retrySemaphore = retrySemaphores.get(element);
-
-    if (retrySemaphore == null) {
-      return 0;
-    }
-
-    final long numFailures = retrySemaphore.failureAdder.sum();
-    if (numFailures > maxRetries) {
-      throw retriesExceededEx.apply(element);
-    }
-
-    return delay(retrySemaphore);
   }
 
   @Override

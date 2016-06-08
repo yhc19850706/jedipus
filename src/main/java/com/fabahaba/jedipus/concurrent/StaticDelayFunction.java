@@ -8,7 +8,7 @@ import java.util.function.LongFunction;
 
 import com.fabahaba.jedipus.client.SerializableLongFunction;
 
-public class StaticDelayFunction implements SerializableLongFunction<Duration> {
+public final class StaticDelayFunction implements SerializableLongFunction<Duration> {
 
   private static final long serialVersionUID = 383583396503221129L;
 
@@ -16,7 +16,6 @@ public class StaticDelayFunction implements SerializableLongFunction<Duration> {
   private final Duration maxDelay;
 
   private StaticDelayFunction(final List<Duration> delayDurations, final Duration maxDelay) {
-
     this.delays = delayDurations.toArray(new Duration[delayDurations.size()]);
     this.maxDelay = maxDelay;
   }
@@ -31,12 +30,10 @@ public class StaticDelayFunction implements SerializableLongFunction<Duration> {
     final List<Duration> delayDurations = new ArrayList<>();
 
     for (long retry = 0;; retry++) {
-
       final Duration delay = delayFunction.apply(retry);
       if (delay.compareTo(maxDelay) >= 0) {
         break;
       }
-
       delayDurations.add(delay);
     }
 
@@ -45,13 +42,11 @@ public class StaticDelayFunction implements SerializableLongFunction<Duration> {
 
   @Override
   public Duration apply(final long retry) {
-
     return retry >= delays.length ? maxDelay : delays[(int) retry];
   }
 
   @Override
   public String toString() {
-
     return new StringBuilder("StaticDelayFunction [delays=")
         .append(Arrays.asList(delays).subList(0, Math.min(delays.length, 7))).append(", maxDelay=")
         .append(maxDelay).append("]").toString();
