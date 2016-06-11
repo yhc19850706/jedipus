@@ -437,7 +437,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create()) {
 
       final Node exporting = rce.apply(slot, RedisClient::getNode);
       final Node importing = rce.applyUnknown(newNode, client -> {
