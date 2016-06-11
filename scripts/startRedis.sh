@@ -24,8 +24,7 @@ docker run -d --name="$REDIS_CONTAINER_NAME" -p "$serverPort:$serverPort" -v "$M
 docker run -d --name="$name-cluster" -p "$startPort-$endPort:$startPort-$endPort" -v "$MOUNT_MODULES" "$DOCKER_IMAGE" "$startPort" "$numNodes" \
    --cluster-enabled yes --cluster-node-timeout 200 --cluster-require-full-coverage yes --cluster-announce-ip "$announceIp" \
    --repl-diskless-sync yes --appendfsync no --save \"\" \
-   --protected-mode no --activerehashing no \
-   --lazyfree-lazy-eviction yes --lazyfree-lazy-expire yes --lazyfree-lazy-server-del yes --slave-lazy-flush yes &
+   --protected-mode no --activerehashing no &
 
 docker pull jamespedwards42/alpine-stunnel:latest
 perl -pi -e "s/accept.*/accept = $stunnelPort/" $(pwd)/stunnel/stunnel.conf

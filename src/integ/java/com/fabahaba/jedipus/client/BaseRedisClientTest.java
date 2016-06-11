@@ -1,6 +1,7 @@
 package com.fabahaba.jedipus.client;
 
 import java.util.Optional;
+import java.util.logging.Logger;
 
 import org.junit.After;
 import org.junit.Before;
@@ -10,6 +11,8 @@ import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
 public class BaseRedisClientTest {
+
+  protected final Logger log = Logger.getLogger(getClass().getSimpleName());
 
   protected BaseRedisClientTest() {}
 

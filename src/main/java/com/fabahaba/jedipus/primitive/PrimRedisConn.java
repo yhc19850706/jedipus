@@ -162,7 +162,6 @@ final class PrimRedisConn extends RedisConn {
     sendCmd(ClientCmds.CLIENT.getCmdBytes(), ClientCmds.CLIENT_REPLY.getCmdBytes(),
         ClientCmds.ON.getCmdBytes());
     flushOS();
-
     final String reply = ClientCmds.CLIENT_REPLY.apply(getReply());
     if (reply != null) {
       setReplyMode(ReplyMode.ON);
