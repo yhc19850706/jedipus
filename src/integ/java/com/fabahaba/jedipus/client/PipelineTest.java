@@ -198,14 +198,14 @@ public class PipelineTest extends BaseRedisClientTest {
   }
 
   @Test(expected = RedisUnhandledException.class)
-  public void pipelineExecShoudThrowJedisDataExceptionWhenNotInMulti() {
+  public void pipelineExecThrowRedisUnhandledExceptionWhenNotInMulti() {
     try (final RedisPipeline pipeline = client.pipeline()) {
       pipeline.exec();
     }
   }
 
   @Test(expected = RedisUnhandledException.class)
-  public void pipelineDiscardShoudThrowJedisDataExceptionWhenNotInMulti() {
+  public void pipelineDiscardThrowRedisUnhandledExceptionWhenNotInMulti() {
     try (final RedisPipeline pipeline = client.pipeline()) {
       pipeline.discard();
     }
@@ -213,7 +213,7 @@ public class PipelineTest extends BaseRedisClientTest {
   }
 
   @Test(expected = RedisUnhandledException.class)
-  public void pipelineMultiShoudThrowJedisDataExceptionWhenAlreadyInMulti() {
+  public void pipelineMultiThrowRedisUnhandledExceptionAlreadyInMulti() {
     try (final RedisPipeline pipeline = client.pipeline()) {
       pipeline.multi();
       pipeline.sendCmd(Cmds.SET, "foo", "3");
@@ -222,7 +222,7 @@ public class PipelineTest extends BaseRedisClientTest {
   }
 
   @Test
-  public void testReuseJedisWhenPipelineIsEmpty() {
+  public void testReuseClientWhenPipelineIsEmpty() {
     try (final RedisPipeline pipeline = client.pipeline()) {
       pipeline.sendCmd(Cmds.SET, "foo", "3");
       pipeline.sync();

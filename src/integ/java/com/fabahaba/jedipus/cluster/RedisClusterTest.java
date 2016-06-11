@@ -651,9 +651,9 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final SerializableFunction<Node, ClientPool<RedisClient>> poolFactory =
         node -> ClientPool.startBuilding().create(poolFactoryBuilder.createPooled(node));
 
-    try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withMasterPoolFactory(poolFactory)
-        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
+    try (final RedisClusterExecutor rce =
+        RedisClusterExecutor.startBuilding(discoveryNodes).withMasterPoolFactory(poolFactory)
+            .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create()) {
       rce.accept(client -> {
         assertEquals(1234, poolFactoryBuilder.getConnTimeout());
         assertEquals(4321, client.getSoTimeout());
@@ -675,9 +675,9 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final byte[] key = RESP.toBytes(keyString);
     final int slot = CRC16.getSlot(key);
 
-    try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withMasterPoolFactory(poolFactory)
-        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
+    try (final RedisClusterExecutor rce =
+        RedisClusterExecutor.startBuilding(discoveryNodes).withMasterPoolFactory(poolFactory)
+            .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create()) {
 
       final int numSets = 200;
       final List<Future<String>> futures = new ArrayList<>(numSets);

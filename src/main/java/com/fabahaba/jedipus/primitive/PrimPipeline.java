@@ -25,7 +25,6 @@ final class PrimPipeline implements RedisPipeline {
   private Queue<StatefulFutureReply<?>> multiReplies;
 
   PrimPipeline(final PrimRedisClient client) {
-
     this.client = client;
     this.pipelineReplies = new ArrayDeque<>();
   }
@@ -68,7 +67,6 @@ final class PrimPipeline implements RedisPipeline {
 
   private <T> FutureReply<T> queueMultiPipelinedReply(final Function<Object, T> builder) {
     pipelineReplies.add(new DirectFutureReply<>());
-
     final StatefulFutureReply<T> futureReply = new DeserializedFutureReply<>(builder);
     getMultiReplies().add(futureReply);
     return futureReply;
@@ -96,7 +94,6 @@ final class PrimPipeline implements RedisPipeline {
 
   private FutureLongReply queueMultiPipelinedReply(final LongUnaryOperator adapter) {
     pipelineReplies.add(new DirectFutureReply<>());
-
     final StatefulFutureReply<Void> futureReply = new AdaptedFutureLongReply(adapter);
     getMultiReplies().add(futureReply);
     return futureReply;
@@ -124,7 +121,6 @@ final class PrimPipeline implements RedisPipeline {
 
   private FutureReply<long[]> queueMultiPipelinedReply(final PrimArrayCmd adapter) {
     pipelineReplies.add(new DirectFutureReply<>());
-
     final StatefulFutureReply<long[]> futureReply = new AdaptedFutureLongArrayReply(adapter);
     getMultiReplies().add(futureReply);
     return futureReply;
@@ -165,12 +161,10 @@ final class PrimPipeline implements RedisPipeline {
 
   @Override
   public FutureReply<String> discard() {
-
     if (!client.conn.isInMulti()) {
       client.conn.drainIS();
       throw new RedisUnhandledException(client.getNode(), "DISCARD without MULTI.");
     }
-
     client.conn.discard();
     getMultiReplies().clear();
     return queuePipelinedReply(Cmd.STRING_REPLY);
@@ -178,17 +172,14 @@ final class PrimPipeline implements RedisPipeline {
 
   @Override
   public void sync(final boolean throwUnchecked) {
-
     if (client.conn.isInMulti()) {
       client.conn.drainIS();
       throw new RedisUnhandledException(client.getNode(), "EXEC your MULTI before calling SYNC.");
     }
 
     client.conn.flushOS();
-
     for (;;) {
       final StatefulFutureReply<?> futureReply = pipelineReplies.poll();
-
       if (futureReply == null) {
         return;
       }
@@ -211,17 +202,14 @@ final class PrimPipeline implements RedisPipeline {
 
   @Override
   public void primArraySync(final boolean throwUnchecked) {
-
     if (client.conn.isInMulti()) {
       client.conn.drainIS();
       throw new RedisUnhandledException(client.getNode(), "EXEC your MULTI before calling SYNC.");
     }
 
     client.conn.flushOS();
-
     for (;;) {
       final StatefulFutureReply<?> futureReply = pipelineReplies.poll();
-
       if (futureReply == null) {
         return;
       }
@@ -244,66 +232,52 @@ final class PrimPipeline implements RedisPipeline {
 
   @Override
   public FutureReply<String> multi() {
-
     if (client.conn.isInMulti()) {
       client.conn.drainIS();
       throw new RedisUnhandledException(client.getNode(), "MULTI calls cannot be nested.");
     }
-
     client.conn.multi();
     return queuePipelinedReply(Cmd.STRING_REPLY);
   }
 
   @Override
   public FutureReply<Object[]> exec() {
-
     if (!client.conn.isInMulti()) {
       client.conn.drainIS();
       throw new RedisUnhandledException(client.getNode(), "EXEC without MULTI.");
     }
 
     client.conn.exec();
-
     final StatefulFutureReply<Object[]> futureMultiExecReply = new ExecFutureReply<>(multiReplies);
-
     pipelineReplies.add(futureMultiExecReply);
-
     return futureMultiExecReply;
   }
 
   @Override
   public FutureReply<long[]> primExec() {
-
     if (!client.conn.isInMulti()) {
       client.conn.drainIS();
       throw new RedisUnhandledException(client.getNode(), "EXEC without MULTI.");
     }
 
     client.conn.exec();
-
     final StatefulFutureReply<long[]> futureMultiExecReply =
         new PrimArrayExecFutureReply(multiReplies);
-
     pipelineReplies.add(futureMultiExecReply);
-
     return futureMultiExecReply;
   }
 
   @Override
   public FutureReply<long[][]> primArrayExec() {
-
     if (!client.conn.isInMulti()) {
       client.conn.drainIS();
       throw new RedisUnhandledException(client.getNode(), "EXEC without MULTI.");
     }
 
     client.conn.exec();
-
     final StatefulFutureReply<long[][]> futureMultiExecReply =
         new Prim2DArrayExecFutureReply(multiReplies);
-
     pipelineReplies.add(futureMultiExecReply);
-
     return futureMultiExecReply;
   }
 
