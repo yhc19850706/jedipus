@@ -10,7 +10,7 @@ public final class CRC16 {
   private CRC16() {}
 
   public static final short NUM_SLOTS = 16384;
-  public static final short MAX_SLOT = NUM_SLOTS - 1;
+  public static final short MAX_SLOT = 0x3FFF; // 16384 - 1
 
   private static final int[] CRC16_TABLE = {0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6,
       0x70e7, 0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef, 0x1231, 0x0210,
@@ -55,19 +55,16 @@ public final class CRC16 {
 
   public static int getSlot(final String key) {
     final int s = key.indexOf('{');
-
     if (s > -1) {
       final int e = key.indexOf('}', s + 2);
       if (e > -1) {
         return getCRC16(key.substring(s + 1, e)) & MAX_SLOT;
       }
     }
-
     return getCRC16(key) & MAX_SLOT;
   }
 
   public static int getSlot(final byte[] key) {
-
     for (int i = 0, end = key.length - 2; i < end;) {
       if (key[i++] == '{') {
         for (final int s = ++i; i < key.length; i++) {
@@ -78,28 +75,23 @@ public final class CRC16 {
         break;
       }
     }
-
     return getCRC16(key) & MAX_SLOT;
   }
 
   public static int getCRC16(final byte[] bytes) {
     int crc = 0x0000;
-
     for (final byte bite : bytes) {
-      crc = ((crc << 8) ^ CRC16_TABLE[((crc >>> 8) ^ (bite & 0xFF)) & 0xFF]);
+      crc = (crc << 8) ^ CRC16_TABLE[((crc >>> 8) ^ bite) & 0xFF];
     }
-
-    return crc & 0xFFFF;
+    return crc;
   }
 
   public static int getCRC16(final byte[] bytes, final int inclusive, final int exclusive) {
     int crc = 0x0000;
-
     for (int i = inclusive; i < exclusive; i++) {
-      crc = ((crc << 8) ^ CRC16_TABLE[((crc >>> 8) ^ (bytes[i] & 0xFF)) & 0xFF]);
+      crc = (crc << 8) ^ CRC16_TABLE[((crc >>> 8) ^ bytes[i]) & 0xFF];
     }
-
-    return crc & 0xFFFF;
+    return crc;
   }
 
   public static int getCRC16(final String key) {
