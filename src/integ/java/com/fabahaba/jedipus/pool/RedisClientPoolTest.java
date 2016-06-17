@@ -34,13 +34,11 @@ public class RedisClientPoolTest {
           .withBorrowTimeout(Duration.ofMillis(200));
 
 
-  @Test(timeout = 1000)
+  @Test
   public void checkCloseableConnections() {
     try (final ClientPool<RedisClient> pool =
         DEFAULT_POOL_BUILDER.create(DEFAULT_POOLED_CLIENT_FACTORY)) {
-
       final RedisClient client = RedisClientPool.borrowClient(pool);
-
       client.sendCmd(Cmds.SET.raw(), "foo", "bar");
       assertEquals("bar", client.sendCmd(Cmds.GET, "foo"));
       client.sendCmd(Cmds.DEL.raw(), "foo");
@@ -48,16 +46,13 @@ public class RedisClientPoolTest {
     }
   }
 
-  @Test(timeout = 1000)
+  @Test
   public void checkClientIsReusedWhenReturned() {
     try (final ClientPool<RedisClient> pool =
         DEFAULT_POOL_BUILDER.create(DEFAULT_POOLED_CLIENT_FACTORY)) {
-
       RedisClient client = RedisClientPool.borrowClient(pool);
-
       client.sendCmd(Cmds.SET.raw(), "foo", "0");
       RedisClientPool.returnClient(pool, client);
-
       client = RedisClientPool.borrowClient(pool);
       client.sendCmd(Cmds.INCR.raw(), "foo");
       client.sendCmd(Cmds.DEL.raw(), "foo");
@@ -69,11 +64,9 @@ public class RedisClientPoolTest {
   public void checkPoolRepairedWhenClientIsBroken() {
     try (final ClientPool<RedisClient> pool =
         DEFAULT_POOL_BUILDER.create(DEFAULT_POOLED_CLIENT_FACTORY)) {
-
       RedisClient client = RedisClientPool.borrowClient(pool);
       client.close();
       RedisClientPool.returnClient(pool, client);
-
       client = RedisClientPool.borrowClient(pool);
       client.sendCmd(Cmds.INCR.raw(), "foo");
       client.sendCmd(Cmds.DEL.raw(), "foo");
@@ -81,14 +74,12 @@ public class RedisClientPoolTest {
     }
   }
 
-  @Test(timeout = 1000, expected = NoSuchElementException.class)
+  @Test(expected = NoSuchElementException.class)
   public void checkPoolOverflow() {
     try (final ClientPool<RedisClient> pool = ClientPool.startBuilding().withMaxTotal(1)
         .withBlockWhenExhausted(false).create(DEFAULT_POOLED_CLIENT_FACTORY)) {
-
       final RedisClient client = RedisClientPool.borrowClient(pool);
       client.sendCmd(Cmds.SET.raw(), "foo", "0");
-
       final RedisClient newClient = RedisClientPool.borrowClient(pool);
       newClient.sendCmd(Cmds.INCR.raw(), "foo");
     }
@@ -98,7 +89,6 @@ public class RedisClientPoolTest {
   public void securePool() {
     try (final ClientPool<RedisClient> pool =
         ClientPool.startBuilding().withTestOnBorrow(true).create(DEFAULT_POOLED_CLIENT_FACTORY)) {
-
       final RedisClient client = RedisClientPool.borrowClient(pool);
       client.sendCmd(Cmds.SET.raw(), "foo", "bar");
       client.sendCmd(Cmds.DEL.raw(), "foo");
@@ -106,11 +96,10 @@ public class RedisClientPoolTest {
     }
   }
 
-  @Test(timeout = 1000)
+  @Test
   public void nonDefaultDatabase() {
     try (final ClientPool<RedisClient> pool =
         DEFAULT_POOL_BUILDER.create(DEFAULT_POOLED_CLIENT_FACTORY)) {
-
       final RedisClient client0 = RedisClientPool.borrowClient(pool);
       client0.sendCmd(Cmds.SET.raw(), "foo", "bar");
       assertEquals("bar", client0.sendCmd(Cmds.GET, "foo"));
@@ -133,7 +122,6 @@ public class RedisClientPoolTest {
     try (final ClientPool<RedisClient> pool = DEFAULT_POOL_BUILDER.create(RedisClientFactory
         .startBuilding().withClientName(clientName).withAuth(BaseRedisClientTest.REDIS_PASS)
         .createPooled(BaseRedisClientTest.DEFAULT_NODE))) {
-
       final RedisClient client = RedisClientPool.borrowClient(pool);
       assertEquals(clientName, client.getClientName());
       RedisClientPool.returnClient(pool, client);
@@ -171,7 +159,7 @@ public class RedisClientPoolTest {
     }
   }
 
-  @Test(timeout = 1000)
+  @Test
   public void returnResourceDestroysResourceOnException() {
     final AtomicInteger destroyed = new AtomicInteger(0);
     final PooledClientFactory<RedisClient> crashingFactory = new CrashingPool(destroyed);
@@ -213,7 +201,7 @@ public class RedisClientPoolTest {
     }
   }
 
-  @Test(timeout = 1000)
+  @Test
   public void checkResourceIsCloseable() {
     try (final ClientPool<RedisClient> pool = ClientPool.startBuilding().withMaxTotal(1)
         .withBlockWhenExhausted(false).create(DEFAULT_POOLED_CLIENT_FACTORY)) {
@@ -252,7 +240,7 @@ public class RedisClientPoolTest {
     }
   }
 
-  @Test(timeout = 1000)
+  @Test
   public void getNumActiveIdleIsZeroWhenPoolIsClosed() {
     ClientPool<RedisClient> expose = null;
 
@@ -268,7 +256,7 @@ public class RedisClientPoolTest {
     }
   }
 
-  @Test(timeout = 1000)
+  @Test
   public void getNumActiveReturnsTheCorrectNumber() {
     try (final ClientPool<RedisClient> pool =
         DEFAULT_POOL_BUILDER.create(DEFAULT_POOLED_CLIENT_FACTORY)) {
@@ -293,7 +281,7 @@ public class RedisClientPoolTest {
     }
   }
 
-  @Test(timeout = 1000, expected = RedisUnhandledException.class)
+  @Test(expected = RedisUnhandledException.class)
   public void testCloseConnectionOnMakeObject() {
     try (final ClientPool<RedisClient> pool = ClientPool.startBuilding().create(RedisClientFactory
         .startBuilding().withAuth("wrong").createPooled(BaseRedisClientTest.DEFAULT_NODE))) {
@@ -308,7 +296,6 @@ public class RedisClientPoolTest {
     try (final ClientPool<RedisClient> pool = ClientPool.startBuilding()
         .create(RedisClientFactory.startBuilding().withAuth(BaseRedisClientTest.REDIS_PASS)
             .withDb(defaultDb).createPooled(BaseRedisClientTest.DEFAULT_NODE))) {
-
       final RedisClient client = RedisClientPool.borrowClient(pool);
       client.sendCmd(Cmds.SET.raw(), "foo", "bar");
       final RedisClient client2 = RedisClientPool.borrowClient(pool);

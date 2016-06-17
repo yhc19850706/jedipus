@@ -37,6 +37,7 @@ public interface Cmds extends LCmds, SCmds, HCmds, ZCmds, PFCmds, GeoCmds, Clust
   public static final Cmd<Object> ALPHA = Cmd.createCast("ALPHA");
   public static final Cmd<Object> STORE = Cmd.createCast("STORE");
   public static final Cmd<Long> TTL = Cmd.createCast("TTL");
+  public static final Cmd<Long> TOUCH = Cmd.createCast("TOUCH");
   public static final Cmd<String> TYPE = Cmd.createStringReply("TYPE");
   public static final Cmd<Long> WAIT = Cmd.createCast("WAIT");
 }

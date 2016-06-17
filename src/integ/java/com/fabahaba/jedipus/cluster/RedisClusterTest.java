@@ -219,7 +219,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final int invalidSlot = rotateSlotNode(slot);
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create()) {
       final int moveToPort = rce.apply(invalidSlot, invalid -> {
         try {
           invalid.sendCmd(Cmds.SET, key, new byte[0]);
@@ -227,7 +227,6 @@ public class RedisClusterTest extends BaseRedisClientTest {
           assertEquals(slot, jme.getSlot());
           return jme.getTargetNode().getPort();
         }
-
         throw new IllegalStateException(String.format(
             "SlotMovedException was not thrown when executing a %d slot key against a %d slot pool.",
             slot, invalidSlot));
@@ -243,7 +242,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create()) {
       final Node importing = rce.apply(importingNodeSlot, RedisClient::getNode);
       rce.accept(slot, client -> {
         client.clusterSetSlotMigrating(slot, importing.getId());
@@ -374,7 +373,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  @Test(timeout = 4000)
+  @Test
   public void testMigrateToNewNode() {
     final String keyString = "MIGRATE";
     final byte[] key = RESP.toBytes(keyString);
@@ -611,7 +610,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  @Test(timeout = 200, expected = NoSuchElementException.class)
+  @Test(expected = NoSuchElementException.class)
   public void testIfPoolConfigAppliesToClusterPools() {
     final SerializableFunction<Node, ClientPool<RedisClient>> poolFactory = node -> ClientPool
         .startBuilding().withMaxTotal(0).withBorrowTimeout(Duration.ofMillis(20))
@@ -734,7 +733,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  @Test(timeout = 3000, expected = RedisUnhandledException.class)
+  @Test(expected = RedisUnhandledException.class)
   public void testForClusterPartitioned() {
     final byte[] key = RESP.toBytes("42");
     final int slot = CRC16.getSlot(key);
