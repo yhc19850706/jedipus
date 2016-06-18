@@ -6,7 +6,6 @@ import static org.junit.Assert.assertNull;
 
 import java.util.UUID;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.fabahaba.jedipus.cmds.CmdByteArray;
@@ -16,18 +15,6 @@ import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 public class PipelineTest extends BaseRedisClientTest {
 
-  @Test
-  public void pipeline() {
-    try (final RedisPipeline pipeline = client.pipeline()) {
-      final FutureReply<String> setReply = pipeline.sendCmd(Cmds.SET, "foo", "bar");
-      final FutureReply<String> getReply = pipeline.sendCmd(Cmds.GET, "foo");
-      pipeline.sync();
-      assertEquals(RESP.OK, setReply.get());
-      assertEquals("bar", getReply.get());
-    }
-  }
-
-  @Ignore
   @Test
   public void pipelineReply() {
     assertEquals(RESP.OK, client.sendCmd(Cmds.SET, "string", "foo"));
@@ -41,6 +28,7 @@ public class PipelineTest extends BaseRedisClientTest {
         RESP.toBytes("0"), bytesForSetRange));
 
     try (final RedisPipeline pipeline = client.pipeline()) {
+      final FutureReply<String> replyon = pipeline.replyOff().replyOn();
       final FutureReply<String> string = pipeline.sendCmd(Cmds.GET, "string");
       final FutureReply<String> list = pipeline.sendCmd(Cmds.LPOP, "list");
       final FutureReply<String> hash = pipeline.sendCmd(Cmds.HGET, "hash", "foo");
@@ -63,6 +51,7 @@ public class PipelineTest extends BaseRedisClientTest {
 
       pipeline.sync();
 
+      assertEquals(RESP.OK, replyon.get());
       assertEquals("foo", string.get());
       assertEquals("foo", list.get());
       assertEquals("bar", hash.get());
@@ -79,6 +68,17 @@ public class PipelineTest extends BaseRedisClientTest {
       assertEquals("2", zrangeWithScores.get()[1]);
       assertEquals("123", getrange.get());
       assertArrayEquals(new byte[] {6, 7, 8}, (byte[]) getrangeBytes.get());
+    }
+  }
+
+  @Test
+  public void pipeline() {
+    try (final RedisPipeline pipeline = client.pipeline()) {
+      final FutureReply<String> setReply = pipeline.sendCmd(Cmds.SET, "foo", "bar");
+      final FutureReply<String> getReply = pipeline.sendCmd(Cmds.GET, "foo");
+      pipeline.sync();
+      assertEquals(RESP.OK, setReply.get());
+      assertEquals("bar", getReply.get());
     }
   }
 

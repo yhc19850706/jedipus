@@ -1,7 +1,7 @@
 uname_S := $(shell sh -c 'uname -s 2>/dev/null || echo not')
 
 ifeq ($(uname_S),Linux)
-	SHOBJ_CFLAGS ?=  -fno-common -g -ggdb
+	SHOBJ_CFLAGS ?= -fno-common -g -ggdb
 	SHOBJ_LDFLAGS ?= -shared
 else
 	SHOBJ_CFLAGS ?= -dynamic -fno-common -g -ggdb
@@ -11,7 +11,7 @@ endif
 
 .SUFFIXES: .c .so .xo .o
 
-all: integ.so 
+all: integ.so
 
 .c.xo:
 	$(CC) -I. $(CFLAGS) $(SHOBJ_CFLAGS) -fPIC -c $< -o $@
@@ -22,4 +22,4 @@ integ.so: integ.xo
 	$(LD) -o $@ $< $(SHOBJ_LDFLAGS) $(LIBS) -lc
 
 clean:
-	rm -rf *.xo *.so
+	rm -rf *.xo *.so *.o

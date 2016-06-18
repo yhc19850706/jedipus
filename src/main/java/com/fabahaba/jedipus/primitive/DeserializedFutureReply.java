@@ -2,8 +2,9 @@ package com.fabahaba.jedipus.primitive;
 
 import java.util.function.Function;
 
-final class DeserializedFutureReply<T> extends DirectFutureReply<T> {
+final class DeserializedFutureReply<T> extends StatefulFutureReply<T> {
 
+  private Object reply;
   private final Function<Object, T> deserializer;
   private T deserialized = null;
 
@@ -12,10 +13,19 @@ final class DeserializedFutureReply<T> extends DirectFutureReply<T> {
   }
 
   @Override
+  public StatefulFutureReply<T> setMultiReply(final Object reply) {
+    if (reply == null) {
+      state = State.READY;
+      return this;
+    }
+    this.reply = reply;
+    state = State.PENDING;
+    return this;
+  }
+
+  @Override
   public T get() {
-
     checkReply();
-
     return deserialized;
   }
 

@@ -13,6 +13,7 @@ import com.fabahaba.jedipus.client.RedisPipeline;
 import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.PrimArrayCmd;
 import com.fabahaba.jedipus.cmds.PrimCmd;
+import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.AskNodeException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.exceptions.UnhandledAskNodeException;
@@ -148,7 +149,7 @@ final class PrimPipeline implements RedisPipeline {
   public FutureReply<String> replyOn() {
     switch (client.conn.getReplyMode()) {
       case ON:
-        return null;
+        return new DirectFutureReply<String>().setMultiReply(RESP.OK);
       case OFF:
       case SKIP:
       default:

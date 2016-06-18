@@ -1,28 +1,20 @@
 package com.fabahaba.jedipus.primitive;
 
-class DirectFutureReply<T> extends StatefulFutureReply<T> {
+final class DirectFutureReply<T> extends StatefulFutureReply<T> {
 
-  protected Object reply;
+  private Object reply;
 
   @Override
-  public DirectFutureReply<T> setMultiReply(final Object reply) {
-
-    if (reply == null) {
-      state = State.READY;
-      return this;
-    }
-
+  public StatefulFutureReply<T> setMultiReply(final Object reply) {
     this.reply = reply;
-    state = State.PENDING;
+    state = State.READY;
     return this;
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public T get() {
-
     checkReply();
-
     return (T) reply;
   }
 

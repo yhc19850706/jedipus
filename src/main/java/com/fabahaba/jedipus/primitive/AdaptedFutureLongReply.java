@@ -13,9 +13,7 @@ final class AdaptedFutureLongReply extends StatefulFutureReply<Void> {
 
   @Override
   public long getAsLong() {
-
     checkReply();
-
     return adapter.applyAsLong(reply);
   }
 

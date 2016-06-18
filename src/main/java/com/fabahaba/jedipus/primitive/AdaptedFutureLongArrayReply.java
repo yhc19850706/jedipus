@@ -14,9 +14,7 @@ final class AdaptedFutureLongArrayReply extends StatefulFutureReply<long[]> {
 
   @Override
   public long[] get() {
-
     checkReply();
-
     return adapted;
   }
 

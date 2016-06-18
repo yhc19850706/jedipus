@@ -89,7 +89,6 @@ public class RedisClientTest extends BaseRedisClientTest {
 
   @Test
   public void checkDisconnectOnQuit() {
-    final RedisClient client = DEFAULT_CLIENT_FACTORY_BUILDER.create(DEFAULT_NODE);
     client.close();
     assertTrue(client.isBroken());
   }

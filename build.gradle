@@ -106,10 +106,10 @@ task makeClean(type:Exec) {
   commandLine 'make', 'clean'
 }
 
-compileIntegModules.dependsOn makeClean
 startRedis.dependsOn compileIntegModules
 test.dependsOn startRedis
 test.finalizedBy rmRedis
+rmRedis.finalizedBy makeClean
 
 task sourcesJar(type: Jar, dependsOn: classes) {
   from sourceSets.main.allSource
