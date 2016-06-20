@@ -17,7 +17,7 @@ rce.close();
 ```
 
 ######Features
-* Executes `Consumer<RedisClient>` and `Function<RedisClient, R>` lambas.
+* Executes `Consumer<RedisClient>` and `Function<RedisClient, R>` lambdas.
 * Flexible generic or primitive return types to match the dynamic return type design of Redis.
 * Flexible command interface allows for [calling Modules](src/integ/java/com/fabahaba/jedipus/client/ModuleTest.java#L17).
 * Performance focused:
