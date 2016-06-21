@@ -61,11 +61,9 @@ public class PipelineTest extends BaseRedisClientTest {
       assertEquals(2.0, Double.parseDouble(zincrby.get()), 0.0);
       assertEquals(1L, zcard.getAsLong());
       assertEquals(1, lrange.get().length);
-      assertEquals("foo", hgetAll.get()[0]);
-      assertEquals("bar", hgetAll.get()[1]);
+      assertArrayEquals(new String[] {"foo", "bar"}, hgetAll.get());
       assertEquals(1, smembers.get().length);
-      assertEquals("foo", zrangeWithScores.get()[0]);
-      assertEquals("2", zrangeWithScores.get()[1]);
+      assertArrayEquals(new String[] {"foo", "2"}, zrangeWithScores.get());
       assertEquals("123", getrange.get());
       assertArrayEquals(new byte[] {6, 7, 8}, (byte[]) getrangeBytes.get());
     }
