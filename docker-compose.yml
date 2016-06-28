@@ -1,0 +1,37 @@
+version: '2'
+services:
+  redis:
+    ports:
+      - "9736:9736"
+    volumes:
+      - ./redis/modules:/redis/modules
+    image: jamespedwards42/alpine-redis-testing:unstable
+    command: 9736 1 \
+              --requirepass "42" \
+              --protected-mode no \
+              --save \"\" \
+              --repl-diskless-sync yes \
+              --appendfsync no \
+              --activerehashing no
+  stunnel:
+    links:
+      - redis
+    ports:
+      - "6443:6443"
+    volumes:
+      - ./stunnel:/etc/stunnel/
+    image: jamespedwards42/alpine-stunnel:latest
+  redis_cluster:
+    ports:
+      - "7379-7384:7379-7384"
+    image: jamespedwards42/alpine-redis-testing:unstable
+    command: 7379 6 \
+              --cluster-enabled yes \
+              --cluster-node-timeout 200 \
+              --cluster-require-full-coverage yes \
+              --cluster-announce-ip "127.0.0.1" \
+              --repl-diskless-sync yes \
+              --appendfsync no \
+              --save \"\" \
+              --protected-mode no \
+              --activerehashing no

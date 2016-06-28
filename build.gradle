@@ -1,4 +1,5 @@
 plugins {
+  id 'com.gradle.build-scan' version '1.0'
   id 'java'
   id 'eclipse'
   id 'pl.allegro.tech.build.axion-release' version '1.3.4'
@@ -31,6 +32,11 @@ project.version = scmVersion.version
 
 sourceCompatibility = 1.8
 
+buildScan {
+    licenseAgreementUrl = 'https://gradle.com/terms-of-service'
+    licenseAgree = 'yes'
+}
+
 repositories {
   jcenter()
 }
@@ -52,16 +58,6 @@ sourceSets {
   }
 }
 
-project.ext.set('redisServerPort', '9736')
-project.ext.set('redisServerPass', '42')
-project.ext.set('redisSSLServerPort', '6443')
-project.ext.set('redisJceksTruststore', 'stunnel/integ.jks')
-
-project.ext.set('clusterAnnounceIp', '127.0.0.1')
-project.ext.set('startingClusterPort', '7379')
-project.ext.set('numMasters', '3')
-project.ext.set('numSlavesEach', '1')
-
 test {
   outputs.upToDateWhen { false }
   testLogging {
@@ -70,30 +66,27 @@ test {
     showStackTraces true
     exceptionFormat "full"
   }
-  systemProperty 'jedipus.redis.port', project.redisServerPort
-  systemProperty 'jedipus.redis.pass', project.redisServerPass
-  systemProperty 'jedipus.redis.ssl.port', project.redisSSLServerPort
-  systemProperty 'jedipus.redis.ssl.truststore.jceks', project.redisJceksTruststore
+  systemProperty 'jedipus.redis.port', '9736'
+  systemProperty 'jedipus.redis.pass', '42'
+  systemProperty 'jedipus.redis.ssl.port', '6443'
+  systemProperty 'jedipus.redis.ssl.truststore.jceks', 'stunnel/integ.jks'
 
-  systemProperty 'jedipus.redis.cluster.announceip', project.clusterAnnounceIp
-  systemProperty 'jedipus.redis.cluster.startingport', project.startingClusterPort
-  systemProperty 'jedipus.redis.cluster.nummasters', project.numMasters
-  systemProperty 'jedipus.redis.cluster.numslaveseach', project.numSlavesEach
+  systemProperty 'jedipus.redis.cluster.announceip', '127.0.0.1'
+  systemProperty 'jedipus.redis.cluster.startingport', '7379'
+  systemProperty 'jedipus.redis.cluster.nummasters', '3'
+  systemProperty 'jedipus.redis.cluster.numslaveseach', '1'
 }
 
 task startRedis(type:Exec) {
-  int numMasters = project.numMasters.toInteger()
-  int numClusterNodes = numMasters + numMasters *  project.numSlavesEach.toInteger()
-
-  commandLine './scripts/startRedis.sh', project.name, project.redisServerPort, project.redisServerPass, project.startingClusterPort, numClusterNodes, project.clusterAnnounceIp, project.redisSSLServerPort
+  commandLine 'docker-compose', 'up', '-d'
 }
 
 task rmRedis(type:Exec) {
-  commandLine './scripts/rmRedis.sh', project.name
+  commandLine 'docker-compose', 'down'
 }
 
 task wgetRedisModule(type:Exec) {
-  commandLine 'wget', '-O', 'redis/redismodule.h', 'https://raw.githubusercontent.com/antirez/redis/unstable/src/redismodule.h'
+  commandLine 'wget', '-N', '-O', 'redis/redismodule.h', 'https://raw.githubusercontent.com/antirez/redis/unstable/src/redismodule.h'
 }
 
 task compileIntegModules(type:Exec) {
@@ -106,6 +99,7 @@ task makeClean(type:Exec) {
   commandLine 'make', 'clean'
 }
 
+compileIntegModules.dependsOn wgetRedisModule
 startRedis.dependsOn compileIntegModules
 test.dependsOn startRedis
 test.finalizedBy rmRedis
