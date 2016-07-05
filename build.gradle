@@ -2,9 +2,9 @@ plugins {
   id 'com.gradle.build-scan' version '1.0'
   id 'java'
   id 'eclipse'
-  id 'pl.allegro.tech.build.axion-release' version '1.3.4'
+  id 'pl.allegro.tech.build.axion-release' version '1.3.5'
   id 'maven-publish'
-  id 'com.jfrog.bintray' version '1.6'
+  id 'com.jfrog.bintray' version '1.7'
   id 'findbugs'
   id 'checkstyle'
 }
@@ -91,12 +91,12 @@ task wgetRedisModule(type:Exec) {
 
 task compileIntegModules(type:Exec) {
   String dir = System.getProperty("user.dir");
-  commandLine 'docker', 'run', '--rm', '-v', "$dir/redis/:/tmp", '-w', '/tmp/modules', 'jamespedwards42/alpine-gcc-make:latest', '/bin/sh', '-c', 'make'
+  commandLine 'docker', 'run', '--rm', '-v', "$dir/redis/:/tmp", 'jamespedwards42/alpine-gcc-make:latest', '/bin/sh', '-c', 'make -B -C /tmp/modules'
 }
 
 task makeClean(type:Exec) {
-  workingDir 'redis/modules'
-  commandLine 'make', 'clean'
+  String dir = System.getProperty("user.dir");
+  commandLine 'docker', 'run', '--rm', '-v', "$dir/redis/:/tmp", 'jamespedwards42/alpine-gcc-make:latest', '/bin/sh', '-c', 'make -C /tmp/modules clean'
 }
 
 compileIntegModules.dependsOn wgetRedisModule
@@ -134,9 +134,9 @@ bintray {
     repo = 'libs'
     name = project.name
     desc = 'Redis Java 8 Client & Executor.'
-    websiteUrl = 'https://github.com/jamespedwards42/jedipus'
-    vcsUrl = 'https://github.com/jamespedwards42/jedipus'
-    issueTrackerUrl = 'https://github.com/jamespedwards42/jedipus/issues'
+    websiteUrl = 'https://github.com/jamespedwards42/' + project.name
+    vcsUrl = 'https://github.com/jamespedwards42/' + project.name
+    issueTrackerUrl = 'https://github.com/jamespedwards42/' + project.name + '/issues'
     licenses = ["Apache-2.0"]
     publish = true
     version {
