@@ -5,8 +5,11 @@ import java.io.Serializable;
 public interface HostPort extends Serializable {
 
   public static HostPort create(final String hostPort) {
-    final String[] parts = hostPort.split(":");
-    return create(parts[0], parts[1]);
+    final int colon = hostPort.lastIndexOf(':');
+    if (colon < 0) {
+      throw new IllegalArgumentException("Port must be separated by a ':'.");
+    }
+    return create(hostPort.substring(0, colon), hostPort.substring(colon + 1));
   }
 
   public static HostPort create(final String host, final String port) {

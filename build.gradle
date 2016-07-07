@@ -86,7 +86,8 @@ task rmRedis(type:Exec) {
 }
 
 task wgetRedisModule(type:Exec) {
-  commandLine 'wget', '-N', '-O', 'redis/redismodule.h', 'https://raw.githubusercontent.com/antirez/redis/unstable/src/redismodule.h'
+  workingDir './redis'
+  commandLine 'wget', '-N', 'https://raw.githubusercontent.com/antirez/redis/unstable/src/redismodule.h'
 }
 
 task compileIntegModules(type:Exec) {
