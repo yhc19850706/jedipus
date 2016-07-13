@@ -7,3 +7,7 @@ build/
 /.project
 redis/modules/*.xo
 redis/modules/*.so
+.idea/
+*.ipr
+*.iws
+out/
