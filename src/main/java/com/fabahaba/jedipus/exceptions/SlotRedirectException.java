@@ -9,28 +9,10 @@ public class SlotRedirectException extends RedisException {
   private final Node targetNode;
   private final int slot;
 
-  public SlotRedirectException(final Node node, final String message, final Node targetNode,
+  SlotRedirectException(final Node node, final String message, final Node targetNode,
       final int slot) {
 
     super(node, message);
-
-    this.targetNode = targetNode;
-    this.slot = slot;
-  }
-
-  public SlotRedirectException(final Node node, final Throwable cause, final Node targetNode,
-      final int slot) {
-
-    super(node, cause);
-
-    this.targetNode = targetNode;
-    this.slot = slot;
-  }
-
-  public SlotRedirectException(final Node node, final String message, final Throwable cause,
-      final Node targetNode, final int slot) {
-
-    super(node, message, cause);
 
     this.targetNode = targetNode;
     this.slot = slot;

@@ -4,9 +4,9 @@ import java.time.Duration;
 
 public interface EvictionStrategy<T> {
 
-  public boolean evict(final PooledClient<T> underTest, final int idleCount);
+  boolean evict(final PooledClient<T> underTest, final int idleCount);
 
-  public static class DefaultEvictionStrategy<E> implements EvictionStrategy<E> {
+  class DefaultEvictionStrategy<E> implements EvictionStrategy<E> {
 
     private final long softIdleEvictionMillis;
     private final long idleEvictionMillis;
@@ -21,11 +21,9 @@ public interface EvictionStrategy<T> {
 
     @Override
     public boolean evict(final PooledClient<E> underTest, final int idleCount) {
-
       if (underTest.getIdleTimeMillis() > softIdleEvictionMillis && idleCount > minIdle) {
         return true;
       }
-
       return underTest.getIdleTimeMillis() > idleEvictionMillis;
     }
   }

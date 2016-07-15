@@ -1,5 +1,9 @@
 package com.fabahaba.jedipus.cluster;
 
+import com.fabahaba.jedipus.client.RedisClient;
+import com.fabahaba.jedipus.client.RedisPipeline;
+import com.fabahaba.jedipus.client.SerializableSupplier;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -8,45 +12,40 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import com.fabahaba.jedipus.client.RedisClient;
-import com.fabahaba.jedipus.client.RedisPipeline;
-import com.fabahaba.jedipus.client.SerializableSupplier;
-import com.fabahaba.jedipus.cluster.Jedipus.Builder;
-
 public interface RedisClusterExecutor extends PrimClusterExecutor, AutoCloseable {
 
-  public static enum ReadMode {
-    MASTER, SLAVES, MIXED, MIXED_SLAVES;
+  enum ReadMode {
+    MASTER, SLAVES, MIXED, MIXED_SLAVES
   }
 
-  public static Builder startBuilding() {
-    return new Jedipus.Builder(null);
+  static ClusterExecutorBuilder startBuilding() {
+    return new ClusterExecutorBuilder(null);
   }
 
-  public static Builder startBuilding(final Node... discoveryNodes) {
+  static ClusterExecutorBuilder startBuilding(final Node... discoveryNodes) {
     return startBuilding(Arrays.asList(discoveryNodes));
   }
 
-  public static Builder startBuilding(final Collection<Node> discoveryNodes) {
+  static ClusterExecutorBuilder startBuilding(final Collection<Node> discoveryNodes) {
     return startBuilding(() -> discoveryNodes);
   }
 
-  public static Builder startBuilding(final SerializableSupplier<Collection<Node>> discoveryNodes) {
-    return new Jedipus.Builder(discoveryNodes);
+  static ClusterExecutorBuilder startBuilding(final SerializableSupplier<Collection<Node>> discoveryNodes) {
+    return new ClusterExecutorBuilder(discoveryNodes);
   }
 
   @Override
-  public ReadMode getDefaultReadMode();
+  ReadMode getDefaultReadMode();
 
-  public int getMaxRedirections();
+  int getMaxRedirections();
 
   @Override
-  public int getMaxRetries();
+  int getMaxRetries();
 
   @Override
   void close();
 
-  public <R> R apply(final ReadMode readMode, final int slot,
+  <R> R apply(final ReadMode readMode, final int slot,
       final Function<RedisClient, R> clientConsumer, final int maxRetries);
 
   default void accept(final Consumer<RedisClient> clientConsumer) {
@@ -573,7 +572,7 @@ public interface RedisClusterExecutor extends PrimClusterExecutor, AutoCloseable
     }, maxRetries, executor);
   }
 
-  public <R> List<CompletableFuture<R>> applyAllMasters(
+  <R> List<CompletableFuture<R>> applyAllMasters(
       final Function<RedisClient, R> clientConsumer, final int maxRetries,
       final ExecutorService executor);
 
@@ -648,7 +647,7 @@ public interface RedisClusterExecutor extends PrimClusterExecutor, AutoCloseable
     }, maxRetries, executor);
   }
 
-  public <R> List<CompletableFuture<R>> applyAllSlaves(
+  <R> List<CompletableFuture<R>> applyAllSlaves(
       final Function<RedisClient, R> clientConsumer, final int maxRetries,
       final ExecutorService executor);
 
@@ -722,7 +721,7 @@ public interface RedisClusterExecutor extends PrimClusterExecutor, AutoCloseable
     }, maxRetries, executor);
   }
 
-  public <R> List<CompletableFuture<R>> applyAll(final Function<RedisClient, R> clientConsumer,
+  <R> List<CompletableFuture<R>> applyAll(final Function<RedisClient, R> clientConsumer,
       final int maxRetries, final ExecutorService executor);
 
   default void acceptAllPipelined(final Consumer<RedisPipeline> pipelineConsumer) {
@@ -850,7 +849,7 @@ public interface RedisClusterExecutor extends PrimClusterExecutor, AutoCloseable
     }, maxRetries);
   }
 
-  public <R> R applyIfPresent(final Node node, final Function<RedisClient, R> clientConsumer,
+  <R> R applyIfPresent(final Node node, final Function<RedisClient, R> clientConsumer,
       final int maxRetries);
 
   default void acceptUnknown(final Node node, final Consumer<RedisClient> clientConsumer) {
@@ -929,8 +928,8 @@ public interface RedisClusterExecutor extends PrimClusterExecutor, AutoCloseable
     }, maxRetries);
   }
 
-  public <R> R applyUnknown(final Node node, final Function<RedisClient, R> clientConsumer,
+  <R> R applyUnknown(final Node node, final Function<RedisClient, R> clientConsumer,
       final int maxRetries);
 
-  public void refreshSlotCache();
+  void refreshSlotCache();
 }

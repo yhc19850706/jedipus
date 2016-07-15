@@ -1,18 +1,19 @@
 package com.fabahaba.jedipus.cluster;
 
-import java.time.Duration;
-import java.util.Collection;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
+import com.fabahaba.jedipus.exceptions.SlotMovedException;
 import com.fabahaba.jedipus.pool.ClientPool;
+
+import java.time.Duration;
+import java.util.Collection;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 final class RedisClusterConnHandler implements AutoCloseable {
 
@@ -90,8 +91,8 @@ final class RedisClusterConnHandler implements AutoCloseable {
     slotPoolCache.discoverClusterSlots();
   }
 
-  void refreshSlotCache(final RedisClient client) {
-    slotPoolCache.discoverClusterSlots(client);
+  void refreshSlotCache(final SlotMovedException moveEx) {
+    slotPoolCache.discoverClusterSlots(moveEx);
   }
 
   @Override
