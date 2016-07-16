@@ -8,11 +8,11 @@ import java.util.function.ToLongFunction;
 
 public interface PrimClusterExecutor {
 
-  public ReadMode getDefaultReadMode();
+  ReadMode getDefaultReadMode();
 
-  public int getMaxRetries();
+  int getMaxRetries();
 
-  public long applyPrim(final ReadMode readMode, final int slot,
+  long applyPrim(final ReadMode readMode, final int slot,
       final ToLongFunction<RedisClient> clientConsumer, final int maxRetries);
 
   default long applyPrim(final ToLongFunction<RedisClient> clientConsumer) {

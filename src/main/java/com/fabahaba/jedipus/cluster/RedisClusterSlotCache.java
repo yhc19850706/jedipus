@@ -226,11 +226,11 @@ class RedisClusterSlotCache implements AutoCloseable {
       case MIXED:
       case MASTER:
         synchronized (masterPoolFactory) {
+          if (!lock.isWriteLocked()) {
+            ForkJoinPool.commonPool().execute(this::discoverClusterSlots);
+          }
           masterSlots[moveEx.getSlot()] = masterPools.computeIfAbsent(moveEx.getTargetNode(),
               masterPoolFactory);
-          if (!lock.isWriteLocked()) {
-            ForkJoinPool.commonPool().execute(() -> discoverClusterSlots());
-          }
         }
         return;
       case SLAVES:
@@ -325,8 +325,7 @@ class RedisClusterSlotCache implements AutoCloseable {
           final Node masterNode = nodeMapper.apply(slotNodes.getMaster());
           final ClientPool<RedisClient> masterPool = masterPoolFactory.apply(masterNode);
           masterPools.put(masterNode, masterPool);
-          Arrays.fill(masterSlots, slotNodes.getSlotBegin(), slotNodes
-                  .getSlotEndExclusive(),
+          Arrays.fill(masterSlots, slotNodes.getSlotBegin(), slotNodes.getSlotEndExclusive(),
               masterPool);
           break;
         case SLAVES:
@@ -575,28 +574,33 @@ class RedisClusterSlotCache implements AutoCloseable {
   }
 
   private void cacheClusterSlots(final ClusterSlotVotes clusterSlots) {
-
-    // otherwise allow dirty reads
-    if (!optimisticReads && maxAwaitCacheRefreshNanos == 0) {
-      Arrays.fill(masterSlots, null);
-      Arrays.fill(slaveSlots, null);
-    }
-
     final Set<Node> staleMasterPools = new HashSet<>(masterPools.keySet());
     final Set<Node> staleSlavePools = new HashSet<>(slavePools.keySet());
 
+    int expectedSlot = 0;
+
     for (final SlotNodes slotNodes : clusterSlots.getClusterSlots()) {
+      if (slotNodes.getSlotBegin() != expectedSlot) {
+        if (masterSlots.length > 0) {
+          Arrays.fill(masterSlots, expectedSlot, slotNodes.getSlotBegin(), null);
+        }
+        if (slaveSlots.length > 0) {
+          Arrays.fill(slaveSlots, expectedSlot, slotNodes.getSlotBegin(), null);
+        }
+      }
+      expectedSlot = slotNodes.getSlotEndExclusive();
+
       switch (defaultReadMode) {
         case MIXED_SLAVES:
         case MIXED:
         case MASTER:
           final Node masterNode = nodeMapper.apply(slotNodes.getMaster());
+          ClientPool<RedisClient> masterPool;
           synchronized (masterPoolFactory) {
-            final ClientPool<RedisClient> masterPool = masterPools.computeIfAbsent(masterNode,
-                masterPoolFactory);
-            Arrays.fill(masterSlots, slotNodes.getSlotBegin(), slotNodes.getSlotEndExclusive(),
-                masterPool);
+            masterPool = masterPools.computeIfAbsent(masterNode, masterPoolFactory);
           }
+          Arrays.fill(masterSlots, slotNodes.getSlotBegin(), slotNodes.getSlotEndExclusive(),
+              masterPool);
           staleMasterPools.remove(masterNode);
           break;
         case SLAVES:
@@ -619,8 +623,7 @@ class RedisClusterSlotCache implements AutoCloseable {
           case MIXED:
           case MIXED_SLAVES:
             staleSlavePools.remove(slaveNode);
-            slotSlavePools[poolIndex++] = slavePools.computeIfAbsent(slaveNode,
-                slavePoolFactory);
+            slotSlavePools[poolIndex++] = slavePools.computeIfAbsent(slaveNode, slavePoolFactory);
             break;
           case MASTER:
           default:
