@@ -31,17 +31,14 @@ public final class RedisOutputStream extends OutputStream {
           'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
 
   RedisOutputStream(final OutputStream out, final int size) {
-
     if (size <= 0) {
       throw new IllegalArgumentException("Buffer size <= 0");
     }
-
     this.out = out;
     buf = new byte[size];
   }
 
   private void flushBuffer() throws IOException {
-
     if (count > 0) {
       out.write(buf, 0, count);
       count = 0;
@@ -54,23 +51,19 @@ public final class RedisOutputStream extends OutputStream {
   }
 
   public void write(final byte data) throws IOException {
-
     if (count == buf.length) {
       flushBuffer();
     }
-
     buf[count++] = data;
   }
 
   @Override
   public void write(final byte[] data) throws IOException {
-
     write(data, 0, data.length);
   }
 
   @Override
   public void write(final byte[] data, final int off, final int len) throws IOException {
-
     if (len >= buf.length) {
       flushBuffer();
       out.write(data, off, len);
@@ -86,29 +79,24 @@ public final class RedisOutputStream extends OutputStream {
   }
 
   public void writeDirect(final byte[] data, final int off, final int len) throws IOException {
-
     flushBuffer();
     out.write(data, off, len);
     return;
   }
 
   public static boolean isSurrogate(final char ch) {
-
     return ch >= Character.MIN_SURROGATE && ch <= Character.MAX_SURROGATE;
   }
 
   public void writeCRLF() throws IOException {
-
     if (2 >= buf.length - count) {
       flushBuffer();
     }
-
     buf[count++] = '\r';
     buf[count++] = '\n';
   }
 
   public void writeIntCRLF(int value) throws IOException {
-
     if (value < 0) {
       write((byte) '-');
       value = -value;
@@ -151,7 +139,6 @@ public final class RedisOutputStream extends OutputStream {
   }
 
   public static byte[] createIntCRLF(final byte prefix, final int value) {
-
     int writeVal = value;
     int charPos = 1; // prefix
 
@@ -202,7 +189,6 @@ public final class RedisOutputStream extends OutputStream {
 
   @Override
   public void flush() throws IOException {
-
     flushBuffer();
     out.flush();
   }

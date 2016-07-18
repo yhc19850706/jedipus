@@ -4,9 +4,9 @@ import java.util.function.LongUnaryOperator;
 
 public interface PrimCmd extends LongUnaryOperator {
 
-  public String name();
+  String name();
 
-  public byte[] getCmdBytes();
+  byte[] getCmdBytes();
 
   @Override
   default long applyAsLong(final long operand) {

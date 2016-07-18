@@ -1,16 +1,5 @@
 package com.fabahaba.jedipus.lua;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import com.fabahaba.jedipus.client.FutureReply;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.client.RedisPipeline;
@@ -22,38 +11,49 @@ import com.fabahaba.jedipus.cmds.ScriptingCmds;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.params.LuaParams;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 public interface LuaScript {
 
-  public static LuaScript fromResourcePath(final String resourcePath) {
+  static LuaScript fromResourcePath(final String resourcePath) {
     return create(readFromResourcePath(resourcePath));
   }
 
-  public static LuaScript create(final String luaScript) {
+  static LuaScript create(final String luaScript) {
     return create(luaScript, sha1(luaScript));
   }
 
-  public static LuaScript create(final String luaScript, final String sha1Hex) {
+  static LuaScript create(final String luaScript, final String sha1Hex) {
     return new LuaScriptData(luaScript, sha1Hex);
   }
 
-  public static String sha1(final String script) {
+  static String sha1(final String script) {
     return Sha1Hex.sha1(script);
   }
 
-  public String getLuaScript();
+  String getLuaScript();
 
-  public String getSha1Hex();
+  String getSha1Hex();
 
-  public byte[] getSha1HexBytes();
+  byte[] getSha1HexBytes();
 
-  public static void loadMissingScripts(final RedisClusterExecutor rce,
+  static void loadMissingScripts(final RedisClusterExecutor rce,
       final LuaScript... luaScripts) {
     final byte[][] scriptSha1Bytes =
         Stream.of(luaScripts).map(LuaScript::getSha1HexBytes).toArray(byte[][]::new);
     rce.acceptAllMasters(client -> loadIfNotExists(client, scriptSha1Bytes, luaScripts));
   }
 
-  public static void loadMissingScripts(final RedisClient client, final LuaScript... luaScripts) {
+  static void loadMissingScripts(final RedisClient client, final LuaScript... luaScripts) {
     final byte[][] scriptSha1Bytes =
         Stream.of(luaScripts).map(LuaScript::getSha1HexBytes).toArray(byte[][]::new);
     loadIfNotExists(client, scriptSha1Bytes, luaScripts);
@@ -134,7 +134,7 @@ public interface LuaScript {
     return pipeline.sendDirect(cmdArgs);
   }
 
-  public static void loadIfNotExists(final RedisClient client, final byte[] scriptSha1HexBytes,
+  static void loadIfNotExists(final RedisClient client, final byte[] scriptSha1HexBytes,
       final LuaScript luaScript) {
     final long[] exists =
         client.sendCmd(Cmds.SCRIPT, Cmds.SCRIPT_EXISTS.primArray(), scriptSha1HexBytes);
@@ -143,7 +143,7 @@ public interface LuaScript {
     }
   }
 
-  public static void loadIfNotExists(final RedisClient client, final byte[][] scriptSha1HexBytes,
+  static void loadIfNotExists(final RedisClient client, final byte[][] scriptSha1HexBytes,
       final LuaScript[] luaScripts) {
     if (scriptSha1HexBytes.length == 1) {
       loadIfNotExists(client, scriptSha1HexBytes[0], luaScripts[0]);
@@ -162,7 +162,7 @@ public interface LuaScript {
     }
   }
 
-  public static String readFromResourcePath(final String resourcePath) {
+  static String readFromResourcePath(final String resourcePath) {
     try (final InputStream scriptInputStream = LuaScript.class.getResourceAsStream(resourcePath)) {
 
       if (scriptInputStream == null) {

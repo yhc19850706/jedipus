@@ -3,41 +3,41 @@ package com.fabahaba.jedipus.cmds;
 public interface ServerCmds extends DirectCmds {
 
   // http://redis.io/commands#server
-  static final Cmd<String> BGREWRITEAOF = Cmd.createStringReply("BGREWRITEAOF");
-  static final Cmd<String> BGSAVE = Cmd.createStringReply("BGSAVE");
+  Cmd<String> BGREWRITEAOF = Cmd.createStringReply("BGREWRITEAOF");
+  Cmd<String> BGSAVE = Cmd.createStringReply("BGSAVE");
 
-  static final Cmd<Object[]> COMMAND = Cmd.createCast("COMMAND");
-  static final Cmd<Long> COMMAND_COUNT = Cmd.createCast("COUNT");
-  static final Cmd<Object[]> COMMAND_GETKEYS = Cmd.createInPlaceStringArrayReply("GETKEYS");
-  static final Cmd<Object[]> COMMAND_INFO = Cmd.createCast("GETKEYS");
+  Cmd<Object[]> COMMAND = Cmd.createCast("COMMAND");
+  Cmd<Long> COMMAND_COUNT = Cmd.createCast("COUNT");
+  Cmd<Object[]> COMMAND_GETKEYS = Cmd.createInPlaceStringArrayReply("GETKEYS");
+  Cmd<Object[]> COMMAND_INFO = Cmd.createCast("GETKEYS");
 
-  static final Cmd<Object> CONFIG = Cmd.createCast("CONFIG");
-  static final Cmd<Object[]> CONFIG_GET = Cmd.createCast("GET");
-  static final Cmd<String> CONFIG_RESETSTAT = Cmd.createStringReply("RESETSTAT");
-  static final Cmd<String> CONFIG_REWRITE = Cmd.createStringReply("REWRITE");
-  static final Cmd<String> CONFIG_SET = Cmd.createStringReply("SET");
+  Cmd<Object> CONFIG = Cmd.createCast("CONFIG");
+  Cmd<Object[]> CONFIG_GET = Cmd.createCast("GET");
+  Cmd<String> CONFIG_RESETSTAT = Cmd.createStringReply("RESETSTAT");
+  Cmd<String> CONFIG_REWRITE = Cmd.createStringReply("REWRITE");
+  Cmd<String> CONFIG_SET = Cmd.createStringReply("SET");
 
-  static final Cmd<Long> DBSIZE = Cmd.createCast("DBSIZE");
+  Cmd<Long> DBSIZE = Cmd.createCast("DBSIZE");
 
-  static final Cmd<Object> DEBUG = Cmd.createCast("DEBUG");
-  static final Cmd<String> DEBUG_OBJECT = Cmd.createStringReply("OBJECT");
-  static final Cmd<String> DEBUG_SEGFAULT = Cmd.createStringReply("SEGFAULT");
+  Cmd<Object> DEBUG = Cmd.createCast("DEBUG");
+  Cmd<String> DEBUG_OBJECT = Cmd.createStringReply("OBJECT");
+  Cmd<String> DEBUG_SEGFAULT = Cmd.createStringReply("SEGFAULT");
 
-  static final Cmd<String> FLUSHALL = Cmd.createStringReply("FLUSHALL");
-  static final Cmd<String> FLUSHDB = Cmd.createStringReply("FLUSHDB");
+  Cmd<String> FLUSHALL = Cmd.createStringReply("FLUSHALL");
+  Cmd<String> FLUSHDB = Cmd.createStringReply("FLUSHDB");
 
-  static final Cmd<String> INFO = Cmd.createStringReply("INFO");
-  static final Cmd<Long> LASTSAVE = Cmd.createCast("LASTSAVE");
-  static final Cmd<Object[]> ROLE = Cmd.createCast("ROLE");
+  Cmd<String> INFO = Cmd.createStringReply("INFO");
+  Cmd<Long> LASTSAVE = Cmd.createCast("LASTSAVE");
+  Cmd<Object[]> ROLE = Cmd.createCast("ROLE");
 
-  static final Cmd<String> SAVE = Cmd.createStringReply("SAVE");
-  static final Cmd<String> SHUTDOWN = Cmd.createStringReply("SHUTDOWN");
-  static final Cmd<String> NOSAVE = Cmd.createStringReply("NOSAVE");
+  Cmd<String> SAVE = Cmd.createStringReply("SAVE");
+  Cmd<String> SHUTDOWN = Cmd.createStringReply("SHUTDOWN");
+  Cmd<String> NOSAVE = Cmd.createStringReply("NOSAVE");
 
-  static final Cmd<Object> SLOWLOG = Cmd.createCast("SLOWLOG");
-  static final Cmd<Object[]> SLOWLOG_GET = Cmd.createCast("GET");
-  static final Cmd<Long> SLOWLOG_LEN = Cmd.createCast("LEN");
-  static final Cmd<String> SLOWLOG_RESET = Cmd.createStringReply("RESET");
+  Cmd<Object> SLOWLOG = Cmd.createCast("SLOWLOG");
+  Cmd<Object[]> SLOWLOG_GET = Cmd.createCast("GET");
+  Cmd<Long> SLOWLOG_LEN = Cmd.createCast("LEN");
+  Cmd<String> SLOWLOG_RESET = Cmd.createStringReply("RESET");
 
-  static final Cmd<Object[]> TIME = Cmd.createInPlaceStringArrayReply("TIME");
+  Cmd<Object[]> TIME = Cmd.createInPlaceStringArrayReply("TIME");
 }

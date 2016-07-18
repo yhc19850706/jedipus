@@ -4,22 +4,22 @@ import java.util.function.Function;
 
 public interface Cmd<R> extends Function<Object, R> {
 
-  static final Function<Object, Object[]> CAST_OBJECT_ARRAY_REPLY = reply -> (Object[]) reply;
+  Function<Object, Object[]> CAST_OBJECT_ARRAY_REPLY = reply -> (Object[]) reply;
 
-  static final Function<Object, String> STRING_REPLY = RESP::toString;
+  Function<Object, String> STRING_REPLY = RESP::toString;
 
-  static final Function<Object, Object[]> IN_PLACE_STRING_ARRAY_REPLY = obj -> {
+  Function<Object, Object[]> IN_PLACE_STRING_ARRAY_REPLY = obj -> {
     final Object[] array = (Object[]) obj;
-    for (int i = 0; i < array.length; i++) {
+    for (int i = 0;i < array.length;i++) {
       array[i] = RESP.toString(array[i]);
     }
     return array;
   };
 
-  static final Function<Object, String[]> STRING_ARRAY_REPLY = obj -> {
+  Function<Object, String[]> STRING_ARRAY_REPLY = obj -> {
     final Object[] array = (Object[]) obj;
     final String[] stringArray = new String[array.length];
-    for (int i = 0; i < array.length; i++) {
+    for (int i = 0;i < array.length;i++) {
       stringArray[i] = RESP.toString(array[i]);
     }
     return stringArray;
@@ -29,31 +29,31 @@ public interface Cmd<R> extends Function<Object, R> {
     return new HandledReplyCmd<>(name(), replyHandler);
   }
 
-  public static <R> Cmd<R> create(final String name, final Function<Object, R> replyHandler) {
+  static <R> Cmd<R> create(final String name, final Function<Object, R> replyHandler) {
     return new HandledReplyCmd<>(name, replyHandler);
   }
 
-  public static Cmd<String> createStringReply(final String name) {
+  static Cmd<String> createStringReply(final String name) {
     return new HandledReplyCmd<>(name, STRING_REPLY);
   }
 
-  public static Cmd<String[]> createStringArrayReply(final String name) {
+  static Cmd<String[]> createStringArrayReply(final String name) {
     return new HandledReplyCmd<>(name, STRING_ARRAY_REPLY);
   }
 
-  public static Cmd<Object[]> createInPlaceStringArrayReply(final String name) {
+  static Cmd<Object[]> createInPlaceStringArrayReply(final String name) {
     return new HandledReplyCmd<>(name, IN_PLACE_STRING_ARRAY_REPLY);
   }
 
-  public static Cmd<Object> create(final String name) {
+  static Cmd<Object> create(final String name) {
     return new RawCmd(name);
   }
 
-  public static <R> Cmd<R> createCast(final String name) {
+  static <R> Cmd<R> createCast(final String name) {
     return new DirectReplyCmd<>(name);
   }
 
-  public Cmd<Object> raw();
+  Cmd<Object> raw();
 
   default PrimCmd prim() {
     return raw().prim();

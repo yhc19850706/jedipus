@@ -1,11 +1,11 @@
 package com.fabahaba.jedipus.cmds;
 
+import com.fabahaba.jedipus.cluster.CRC16;
+import com.fabahaba.jedipus.primitive.RedisOutputStream;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import com.fabahaba.jedipus.cluster.CRC16;
-import com.fabahaba.jedipus.primitive.RedisOutputStream;
 
 public class CmdByteArray<R> {
 
@@ -14,7 +14,6 @@ public class CmdByteArray<R> {
   private final int slot;
 
   private CmdByteArray(final Cmd<R> cmd, final byte[] cmdArgs, final int slot) {
-
     this.cmd = cmd;
     this.cmdArgs = cmdArgs;
     this.slot = slot;
@@ -42,7 +41,7 @@ public class CmdByteArray<R> {
 
   private static final byte DOLLAR_BYTE = '$';
   private static final byte ASTERISK_BYTE = '*';
-  private static final byte[] CRLF = new byte[] {'\r', '\n'};
+  private static final byte[] CRLF = new byte[]{'\r', '\n'};
 
   public abstract static class Builder<R> {
 
@@ -71,7 +70,6 @@ public class CmdByteArray<R> {
     public abstract Builder<R> reset();
 
     protected byte[] createArray() {
-
       final byte[] asteriskLengthCRLF = RedisOutputStream.createIntCRLF(ASTERISK_BYTE, numArgs);
       offset = asteriskLengthCRLF.length;
       final byte[] cmdArgsBytes = new byte[numArgBytes + offset];
@@ -125,7 +123,6 @@ public class CmdByteArray<R> {
     }
 
     public Builder<R> addArgs(final boolean... args) {
-
       for (final boolean arg : args) {
         addArg(RESP.toBytes(arg));
       }
@@ -137,7 +134,6 @@ public class CmdByteArray<R> {
     }
 
     public Builder<R> addArgs(final long... args) {
-
       for (final long arg : args) {
         addArg(RESP.toBytes(arg));
       }
@@ -149,7 +145,6 @@ public class CmdByteArray<R> {
     }
 
     public Builder<R> addArgs(final int... args) {
-
       for (final int arg : args) {
         addArg(RESP.toBytes(arg));
       }
@@ -161,7 +156,6 @@ public class CmdByteArray<R> {
     }
 
     public Builder<R> addArgs(final double... args) {
-
       for (final double arg : args) {
         addArg(RESP.toBytes(arg));
       }
@@ -192,12 +186,10 @@ public class CmdByteArray<R> {
     private final List<byte[]> cmdArgs;
 
     private ArrayListBuilder(final Cmd<R> cmd) {
-
       this(cmd, 4);
     }
 
     private ArrayListBuilder(final Cmd<R> cmd, final int expectedCmdArgs) {
-
       super(cmd);
       this.cmdArgs = new ArrayList<>(expectedCmdArgs * 3);
       addArg(cmd.getCmdBytes());
@@ -205,7 +197,6 @@ public class CmdByteArray<R> {
 
     @Override
     public <O> CmdByteArray<O> create(final Cmd<O> overrideReturnTypeCmd) {
-
       final byte[] cmdArgsBytes = createArray();
 
       for (final byte[] cmdArg : cmdArgs) {
@@ -226,9 +217,7 @@ public class CmdByteArray<R> {
     }
 
     @Override
-    public Builder<R> addArg(final byte[] arg) {
-
-      final byte[] argBytes = arg;
+    public Builder<R> addArg(final byte[] argBytes) {
       final byte[] dollarLengthCRLF = RedisOutputStream.createIntCRLF(DOLLAR_BYTE, argBytes.length);
 
       cmdArgs.add(dollarLengthCRLF);
@@ -252,7 +241,6 @@ public class CmdByteArray<R> {
     private int index;
 
     private ArrayBuilder(final Cmd<R> cmd, final int numCmdAndArgs) {
-
       super(cmd);
       this.numArgs = numCmdAndArgs;
       this.cmdArgs = new byte[numArgs * 3][];
@@ -262,7 +250,6 @@ public class CmdByteArray<R> {
 
     @Override
     public <O> CmdByteArray<O> create(final Cmd<O> overrideReturnTypeCmd) {
-
       final byte[] cmdArgsBytes = createArray();
 
       for (final byte[] cmdArg : cmdArgs) {
@@ -283,9 +270,7 @@ public class CmdByteArray<R> {
     }
 
     @Override
-    public Builder<R> addArg(final byte[] arg) {
-
-      final byte[] argBytes = arg;
+    public Builder<R> addArg(final byte[] argBytes) {
       final byte[] dollarLengthCRLF = RedisOutputStream.createIntCRLF(DOLLAR_BYTE, argBytes.length);
 
       cmdArgs[index++] = dollarLengthCRLF;

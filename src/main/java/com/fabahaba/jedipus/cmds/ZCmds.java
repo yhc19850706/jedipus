@@ -3,31 +3,30 @@ package com.fabahaba.jedipus.cmds;
 public interface ZCmds extends DirectCmds {
 
   // http://redis.io/commands#sorted_set
-  static final Cmd<Long> ZADD = Cmd.createCast("ZADD");
-  static final Cmd<Long> ZADD_NX = Cmd.createCast("NX");
-  static final Cmd<Long> ZADD_XX = Cmd.createCast("XX");
-  static final Cmd<Long> ZADD_CH = Cmd.createCast("CH");
-  static final Cmd<String> ZADD_INCR = Cmd.createStringReply("ZADD");
-  static final Cmd<Long> ZCARD = Cmd.createCast("ZCARD");
-  static final Cmd<Long> ZCOUNT = Cmd.createCast("ZCOUNT");
-  static final Cmd<Long> ZINTERSTORE = Cmd.createCast("ZINTERSTORE");
-  static final Cmd<Long> ZLEXCOUNT = Cmd.createCast("ZLEXCOUNT");
-  static final Cmd<Object[]> ZRANGE = Cmd.createInPlaceStringArrayReply("ZRANGE");
-  static final Cmd<Object[]> ZRANGE_WITHSCORES = Cmd.createCast("ZRANGE");
-  static final Cmd<Object[]> ZRANGEBYLEX = Cmd.createInPlaceStringArrayReply("ZRANGEBYLEX");
-  static final Cmd<Object[]> ZRANGEBYSCORE = Cmd.createInPlaceStringArrayReply("ZRANGEBYSCORE");
-  static final Cmd<Long> ZRANK = Cmd.createCast("ZRANK");
-  static final Cmd<Long> ZREM = Cmd.createCast("ZREM");
-  static final Cmd<Long> ZREMRANGEBYLEX = Cmd.createCast("ZREMRANGEBYLEX");
-  static final Cmd<Long> ZREMRANGEBYRANK = Cmd.createCast("ZREMRANGEBYRANK");
-  static final Cmd<Long> ZREMRANGEBYSCORE = Cmd.createCast("ZREMRANGEBYSCORE");
-  static final Cmd<Object[]> ZREVRANGE = Cmd.createInPlaceStringArrayReply("ZREVRANGE");
-  static final Cmd<Object[]> ZREVRANGE_WITHSCORES = Cmd.createCast("ZRANGE");
-  static final Cmd<Object[]> ZREVRANGEBYLEX = Cmd.createInPlaceStringArrayReply("ZREVRANGEBYLEX");
-  static final Cmd<Object[]> ZREVRANGEBYSCORE =
-      Cmd.createInPlaceStringArrayReply("ZREVRANGEBYSCORE");
-  static final Cmd<Long> ZREVRANK = Cmd.createCast("ZREVRANK");
-  static final Cmd<Object[]> ZSCAN = Cmd.createCast("ZSCAN");
-  static final Cmd<String> ZSCORE = Cmd.createStringReply("ZSCORE");
-  static final Cmd<Long> ZUNIONSTORE = Cmd.createCast("ZUNIONSTORE");
+  Cmd<Long> ZADD = Cmd.createCast("ZADD");
+  Cmd<Long> ZADD_NX = Cmd.createCast("NX");
+  Cmd<Long> ZADD_XX = Cmd.createCast("XX");
+  Cmd<Long> ZADD_CH = Cmd.createCast("CH");
+  Cmd<String> ZADD_INCR = Cmd.createStringReply("ZADD");
+  Cmd<Long> ZCARD = Cmd.createCast("ZCARD");
+  Cmd<Long> ZCOUNT = Cmd.createCast("ZCOUNT");
+  Cmd<Long> ZINTERSTORE = Cmd.createCast("ZINTERSTORE");
+  Cmd<Long> ZLEXCOUNT = Cmd.createCast("ZLEXCOUNT");
+  Cmd<Object[]> ZRANGE = Cmd.createInPlaceStringArrayReply("ZRANGE");
+  Cmd<Object[]> ZRANGE_WITHSCORES = Cmd.createCast("ZRANGE");
+  Cmd<Object[]> ZRANGEBYLEX = Cmd.createInPlaceStringArrayReply("ZRANGEBYLEX");
+  Cmd<Object[]> ZRANGEBYSCORE = Cmd.createInPlaceStringArrayReply("ZRANGEBYSCORE");
+  Cmd<Long> ZRANK = Cmd.createCast("ZRANK");
+  Cmd<Long> ZREM = Cmd.createCast("ZREM");
+  Cmd<Long> ZREMRANGEBYLEX = Cmd.createCast("ZREMRANGEBYLEX");
+  Cmd<Long> ZREMRANGEBYRANK = Cmd.createCast("ZREMRANGEBYRANK");
+  Cmd<Long> ZREMRANGEBYSCORE = Cmd.createCast("ZREMRANGEBYSCORE");
+  Cmd<Object[]> ZREVRANGE = Cmd.createInPlaceStringArrayReply("ZREVRANGE");
+  Cmd<Object[]> ZREVRANGE_WITHSCORES = Cmd.createCast("ZRANGE");
+  Cmd<Object[]> ZREVRANGEBYLEX = Cmd.createInPlaceStringArrayReply("ZREVRANGEBYLEX");
+  Cmd<Object[]> ZREVRANGEBYSCORE = Cmd.createInPlaceStringArrayReply("ZREVRANGEBYSCORE");
+  Cmd<Long> ZREVRANK = Cmd.createCast("ZREVRANK");
+  Cmd<Object[]> ZSCAN = Cmd.createCast("ZSCAN");
+  Cmd<String> ZSCORE = Cmd.createStringReply("ZSCORE");
+  Cmd<Long> ZUNIONSTORE = Cmd.createCast("ZUNIONSTORE");
 }

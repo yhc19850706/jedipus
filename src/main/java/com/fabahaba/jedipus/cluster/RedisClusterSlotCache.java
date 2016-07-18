@@ -595,12 +595,12 @@ class RedisClusterSlotCache implements AutoCloseable {
         case MIXED:
         case MASTER:
           final Node masterNode = nodeMapper.apply(slotNodes.getMaster());
-          ClientPool<RedisClient> masterPool;
           synchronized (masterPoolFactory) {
-            masterPool = masterPools.computeIfAbsent(masterNode, masterPoolFactory);
+            final ClientPool<RedisClient> masterPool = masterPools.computeIfAbsent(masterNode,
+                masterPoolFactory);
+            Arrays.fill(masterSlots, slotNodes.getSlotBegin(), slotNodes.getSlotEndExclusive(),
+                masterPool);
           }
-          Arrays.fill(masterSlots, slotNodes.getSlotBegin(), slotNodes.getSlotEndExclusive(),
-              masterPool);
           staleMasterPools.remove(masterNode);
           break;
         case SLAVES:

@@ -10,7 +10,6 @@ class RawCmd implements Cmd<Object> {
   private final PrimArrayWrapper primArray;
 
   RawCmd(final String cmd) {
-
     this.cmd = cmd.toLowerCase(Locale.ENGLISH);
     this.bytes = RESP.toBytes(this.cmd);
     this.prim = new PrimWrapper();
@@ -19,19 +18,16 @@ class RawCmd implements Cmd<Object> {
 
   @Override
   public Cmd<Object> raw() {
-
     return this;
   }
 
   @Override
   public String name() {
-
     return cmd;
   }
 
   @Override
   public byte[] getCmdBytes() {
-
     return bytes;
   }
 

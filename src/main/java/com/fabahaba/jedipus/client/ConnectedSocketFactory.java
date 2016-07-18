@@ -15,15 +15,11 @@ public interface ConnectedSocketFactory<S extends Socket> extends Serializable {
     return initSocket(socket, getSoTimeoutMillis());
   }
 
-  public static <S extends Socket> S initSocket(final S socket, final int soTimeoutMillis)
+  static <S extends Socket> S initSocket(final S socket, final int soTimeoutMillis)
       throws SocketException {
-
-    socket.setReuseAddress(true);
     socket.setKeepAlive(true);
     socket.setTcpNoDelay(true);
-    socket.setSoLinger(true, 0);
     socket.setSoTimeout(soTimeoutMillis);
-
     return socket;
   }
 }

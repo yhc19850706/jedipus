@@ -20,14 +20,12 @@ final class Sha1Hex {
   private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
 
   static String hexBinaryToString(final byte[] data) {
-
     final char[] shaHex = new char[data.length * 2];
     int index = 0;
     for (final byte b : data) {
       shaHex[index++] = HEX_CHARS[(b >> 4) & 0xF];
       shaHex[index++] = HEX_CHARS[(b & 0xF)];
     }
-
     return new String(shaHex);
   }
 }

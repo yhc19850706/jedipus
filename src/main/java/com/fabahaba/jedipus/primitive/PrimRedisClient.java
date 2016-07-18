@@ -1,11 +1,11 @@
 package com.fabahaba.jedipus.primitive;
 
-import java.net.Socket;
-
 import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.client.RedisPipeline;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.Cmd;
+
+import java.net.Socket;
 
 class PrimRedisClient extends BaseRedisClient {
 
@@ -40,11 +40,9 @@ class PrimRedisClient extends BaseRedisClient {
 
   @Override
   public RedisPipeline pipeline() {
-
     if (pipeline != null) {
       return pipeline;
     }
-
     return pipeline = new PrimPipeline(this);
   }
 
@@ -52,7 +50,6 @@ class PrimRedisClient extends BaseRedisClient {
 
   @Override
   public void asking() {
-
     sendCmd(ASKING);
   }
 

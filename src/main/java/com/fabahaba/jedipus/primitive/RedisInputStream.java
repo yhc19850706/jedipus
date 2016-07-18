@@ -1,10 +1,10 @@
 package com.fabahaba.jedipus.primitive;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 public final class RedisInputStream extends InputStream {
 

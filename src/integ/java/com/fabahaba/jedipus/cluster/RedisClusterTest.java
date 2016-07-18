@@ -1,10 +1,28 @@
 package com.fabahaba.jedipus.cluster;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import com.fabahaba.jedipus.client.BaseRedisClientTest;
+import com.fabahaba.jedipus.client.FutureLongReply;
+import com.fabahaba.jedipus.client.FutureReply;
+import com.fabahaba.jedipus.client.HostPort;
+import com.fabahaba.jedipus.client.RedisClient;
+import com.fabahaba.jedipus.client.SerializableFunction;
+import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
+import com.fabahaba.jedipus.cmds.Cmd;
+import com.fabahaba.jedipus.cmds.Cmds;
+import com.fabahaba.jedipus.cmds.RESP;
+import com.fabahaba.jedipus.exceptions.AskNodeException;
+import com.fabahaba.jedipus.exceptions.RedisClusterDownException;
+import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
+import com.fabahaba.jedipus.exceptions.SlotMovedException;
+import com.fabahaba.jedipus.exceptions.UnhandledAskNodeException;
+import com.fabahaba.jedipus.pool.ClientPool;
+import com.fabahaba.jedipus.primitive.RedisClientFactory;
+
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.time.Duration;
 import java.util.ArrayDeque;
@@ -25,29 +43,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import com.fabahaba.jedipus.client.BaseRedisClientTest;
-import com.fabahaba.jedipus.client.FutureLongReply;
-import com.fabahaba.jedipus.client.FutureReply;
-import com.fabahaba.jedipus.client.HostPort;
-import com.fabahaba.jedipus.client.RedisClient;
-import com.fabahaba.jedipus.client.SerializableFunction;
-import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
-import com.fabahaba.jedipus.cmds.Cmd;
-import com.fabahaba.jedipus.cmds.Cmds;
-import com.fabahaba.jedipus.cmds.RESP;
-import com.fabahaba.jedipus.exceptions.AskNodeException;
-import com.fabahaba.jedipus.exceptions.RedisClusterDownException;
-import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
-import com.fabahaba.jedipus.exceptions.SlotMovedException;
-import com.fabahaba.jedipus.exceptions.UnhandledAskNodeException;
-import com.fabahaba.jedipus.pool.ClientPool;
-import com.fabahaba.jedipus.primitive.RedisClientFactory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class RedisClusterTest extends BaseRedisClientTest {
 
@@ -465,7 +465,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create()) {
       final String exporting = rce.apply(slot, RedisClient::getNodeId);
       final String importing = rce.apply(importingNodeSlot, client -> {
         client.clusterSetSlotImporting(slot, exporting);
@@ -508,7 +508,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create()) {
       final String importing = rce.apply(importingNodeSlot, RedisClient::getNodeId);
       rce.accept(slot, exporting -> exporting.clusterSetSlotMigrating(slot, importing));
       rce.accept(slot, client -> client.sendCmd(Cmds.SET, key, new byte[0]));
@@ -539,7 +539,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
         .withReadMode(ReadMode.MIXED)
-        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create()) {
       final Node node = rce.apply(ReadMode.MASTER, slot, client -> {
         client.clusterFlushSlots();
         return client.getNode();
@@ -559,7 +559,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
   @Test
   public void testClusterKeySlot() {
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create()) {
       rce.accept(client -> {
         assertEquals(client.clusterKeySlot("foo{bar}zap}"), CRC16.getSlot("foo{bar}zap"));
         assertEquals(client.clusterKeySlot("{user1000}.following"),
@@ -572,7 +572,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
   public void testClusterCountKeysInSlot() {
     final int slot = CRC16.getSlot("foo{bar}");
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create()) {
       rce.accept(slot, client -> {
         IntStream.range(0, 5).forEach(index -> client.sendCmd(Cmds.SET, "foo{bar}" + index, "v"));
         assertEquals(5, client.clusterCountKeysInSlot(slot));
@@ -588,7 +588,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create()) {
       final String exporting = rce.apply(slot, client -> {
         client.skip().sendCmd(Cmds.SET, keyString, "107.6");
         return client.getNodeId();
@@ -618,7 +618,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
         .withMasterPoolFactory(poolFactory)
-        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create()) {
       rce.accept(client -> client.sendCmd(Cmds.SET, "42", "107.6"));
     }
   }
@@ -626,7 +626,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
   @Test
   public void testCloseable() {
     final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create();
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create();
     try {
       rce.acceptAll(client -> assertEquals("PONG", client.sendCmd(Cmds.PING)),
           ForkJoinPool.commonPool()).forEach(CompletableFuture::join);
@@ -740,7 +740,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
     final int importingNodeSlot = rotateSlotNode(slot);
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor.startBuilding(discoveryNodes)
-        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create()) {
       final String importing = rce.apply(importingNodeSlot, RedisClient::getNodeId);
       rce.accept(slot, client -> client.clusterSetSlotMigrating(slot, importing));
       rce.accept(slot, client -> client.sendCmd(Cmds.GET, key));
@@ -785,7 +785,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
 
     try (final RedisClusterExecutor rce = RedisClusterExecutor
         .startBuilding(Node.create("localhost", STARTING_PORT))
-        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.MAJORITY.create()).create()) {
+        .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create()) {
 
       final String[] bitfieldOverflowExample = new String[] {key, Cmds.BITFIELD_INCRBY.name(), "u2",
           "100", "1", Cmds.BITFIELD_OVERFLOW.name(), Cmds.BITFIELD_SAT.name(),

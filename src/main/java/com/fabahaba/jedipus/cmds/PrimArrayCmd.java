@@ -4,9 +4,9 @@ import java.util.function.Function;
 
 public interface PrimArrayCmd extends Function<long[], long[]> {
 
-  public String name();
+  String name();
 
-  public byte[] getCmdBytes();
+  byte[] getCmdBytes();
 
   @Override
   default long[] apply(final long[] longArray) {
