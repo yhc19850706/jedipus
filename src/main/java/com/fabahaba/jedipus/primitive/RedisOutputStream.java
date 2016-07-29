@@ -2,6 +2,7 @@ package com.fabahaba.jedipus.primitive;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 public final class RedisOutputStream extends OutputStream {
 
@@ -185,6 +186,34 @@ public final class RedisOutputStream extends OutputStream {
     intCRLF[intCRLF.length - 1] = '\n';
 
     return intCRLF;
+  }
+
+  public static void putIntString(final ByteBuffer outputBuffer, int value) {
+    if (value < 0) {
+      outputBuffer.put((byte) '-');
+      value = -value;
+    }
+
+    int q1;
+    int r1;
+
+    while (value >= 65536) {
+      q1 = value / 100;
+      r1 = value - ((q1 << 6) + (q1 << 5) + (q1 << 2));
+      value = q1;
+      outputBuffer.put( DigitOnes[r1]);
+      outputBuffer.put(DigitTens[r1]);
+    }
+
+    for (;;) {
+      q1 = (value * 52429) >>> (16 + 3);
+      r1 = value - ((q1 << 3) + (q1 << 1));
+      outputBuffer.put(digits[r1]);
+      value = q1;
+      if (value == 0) {
+        break;
+      }
+    }
   }
 
   @Override

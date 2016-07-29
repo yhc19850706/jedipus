@@ -21,21 +21,17 @@ public class RedisException extends RuntimeException {
 
   public RedisException(final Node clusterNode, final String message) {
     super(message);
-
     this.node = clusterNode;
   }
 
   public RedisException(final Node clusterNode, final Throwable ex) {
     super(ex);
-
     this.node = clusterNode;
   }
 
   public RedisException(final Node clusterNode, final String message,
       final Throwable cause) {
-
     super(message, cause);
-
     this.node = clusterNode;
   }
 

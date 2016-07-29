@@ -1,8 +1,5 @@
 package com.fabahaba.jedipus.primitive;
 
-import java.io.IOException;
-import java.util.Collection;
-
 import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.RESP;
@@ -13,6 +10,9 @@ import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.exceptions.SlotMovedException;
 import com.fabahaba.jedipus.pubsub.RedisSubscriber;
+
+import java.io.IOException;
+import java.util.Collection;
 
 final class RESProtocol {
 
@@ -136,21 +136,16 @@ final class RESProtocol {
   }
 
   private static RuntimeException processError(final Node node, final NodeMapper nodeMapper,
-      final RedisInputStream is) {
-
-    final String message = is.readLine();
-
+      final String message) {
     if (message.startsWith(MOVED_RESPONSE)) {
       final String[] movedInfo = parseTargetHostAndSlot(message, 6);
       final Node targetNode = nodeMapper.apply(Node.create(movedInfo[1], movedInfo[2]));
-
       return new SlotMovedException(node, message, targetNode, Integer.parseInt(movedInfo[0]));
     }
 
     if (message.startsWith(ASK_RESPONSE)) {
       final String[] askInfo = parseTargetHostAndSlot(message, 4);
       final Node targetNode = nodeMapper.apply(Node.create(askInfo[1], askInfo[2]));
-
       return new AskNodeException(node, message, targetNode, Integer.parseInt(askInfo[0]));
     }
 
@@ -180,9 +175,7 @@ final class RESProtocol {
   }
 
   static Object read(final Node node, final NodeMapper nodeMapper, final RedisInputStream is) {
-
     final byte bite = is.readByte();
-
     switch (bite) {
       case PLUS_BYTE:
         return is.readLineBytes();
@@ -193,7 +186,7 @@ final class RESProtocol {
       case COLON_BYTE:
         return is.readLongCRLF();
       case MINUS_BYTE:
-        throw processError(node, nodeMapper, is);
+        throw processError(node, nodeMapper, is.readLine());
       default:
         final String msg = String.format(
             "Unknown reply where data type expected. Recieved '%s'. Supported types are '+', '-', ':', '$' and '*'.",
@@ -203,14 +196,12 @@ final class RESProtocol {
   }
 
   static long readLong(final Node node, final NodeMapper nodeMapper, final RedisInputStream is) {
-
     final byte bite = is.readByte();
-
     switch (bite) {
       case COLON_BYTE:
         return is.readLongCRLF();
       case MINUS_BYTE:
-        throw processError(node, nodeMapper, is);
+        throw processError(node, nodeMapper, is.readLine());
       case PLUS_BYTE:
         is.drain();
         throw new RedisUnhandledException(null,
@@ -232,7 +223,6 @@ final class RESProtocol {
   }
 
   private static byte[] readBulkReply(final Node node, final RedisInputStream is) {
-
     final int len = is.readIntCRLF();
     if (len == -1) {
       // http://redis.io/topics/protocol
@@ -260,13 +250,12 @@ final class RESProtocol {
 
   private static Object[] readMultiBulkReply(final Node node, final NodeMapper nodeMapper,
       final RedisInputStream is) {
-
     final int num = is.readIntCRLF();
     if (num == -1) {
       // http://redis.io/topics/protocol
       // Returning a null array is part of the Redis Protocol, do NOT change.
-      // It is neccessary to determine the difference between an empty Redis List and for example a
-      // timeout of a command like BLPOP.
+      // It is neccessary to determine the difference between an empty Redis List and, for example,
+      // a timeout of a command like BLPOP.
       return null;
     }
 
@@ -279,15 +268,11 @@ final class RESProtocol {
 
   static void consumePubSub(final RedisSubscriber subscriber, final Node node,
       final NodeMapper nodeMapper, final RedisInputStream is) {
-
     final byte bite = is.readByte();
-
     switch (bite) {
       case ASTERISK_BYTE:
-
         is.readIntCRLF();
         final String msgType = RESP.toString(read(node, nodeMapper, is));
-
         switch (msgType) {
           case "message":
             String channel = RESP.toString(read(node, nodeMapper, is));
@@ -315,7 +300,7 @@ final class RESProtocol {
             throw new RedisConnectionException(node, msg);
         }
       case MINUS_BYTE:
-        throw processError(node, nodeMapper, is);
+        throw processError(node, nodeMapper, is.readLine());
       case PLUS_BYTE:
         is.drain();
         throw new RedisUnhandledException(null,
@@ -338,9 +323,7 @@ final class RESProtocol {
 
   static long[] readLongArray(final Node node, final NodeMapper nodeMapper,
       final RedisInputStream is) {
-
     final byte bite = is.readByte();
-
     switch (bite) {
       case ASTERISK_BYTE:
         final int num = is.readIntCRLF();
@@ -358,7 +341,7 @@ final class RESProtocol {
         }
         return reply;
       case MINUS_BYTE:
-        throw processError(node, nodeMapper, is);
+        throw processError(node, nodeMapper, is.readLine());
       case COLON_BYTE:
         is.drain();
         throw new RedisUnhandledException(null,
@@ -381,9 +364,7 @@ final class RESProtocol {
 
   static long[][] readLong2DArray(final Node node, final NodeMapper nodeMapper,
       final RedisInputStream is) {
-
     final byte bite = is.readByte();
-
     switch (bite) {
       case ASTERISK_BYTE:
         final int num = is.readIntCRLF();
@@ -401,7 +382,7 @@ final class RESProtocol {
         }
         return reply;
       case MINUS_BYTE:
-        throw processError(node, nodeMapper, is);
+        throw processError(node, nodeMapper, is.readLine());
       case COLON_BYTE:
         is.drain();
         throw new RedisUnhandledException(null,

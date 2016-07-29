@@ -8,17 +8,13 @@ public class UnhandledAskNodeException extends RedisUnhandledException {
   private final AskNodeException askEx;
 
   public UnhandledAskNodeException(final Node node, final AskNodeException askEx) {
-
     super(node, askEx.getCause());
-
     this.askEx = askEx;
   }
 
   public UnhandledAskNodeException(final Node node, final String message,
       final AskNodeException askEx) {
-
     super(node, message, askEx.getCause());
-
     this.askEx = askEx;
   }
 

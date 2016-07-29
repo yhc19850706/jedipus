@@ -18,6 +18,7 @@ public interface Cmds extends LCmds, SCmds, HCmds, ZCmds, PFCmds, GeoCmds, Clust
   Cmd<Long> REFCOUNT = Cmd.createCast("REFCOUNT");
   Cmd<String> ENCODING = Cmd.createStringReply("ENCODING");
   Cmd<Long> IDLETIME = Cmd.createCast("IDLETIME");
+  Cmd<Long> FREQ = Cmd.createCast("FREQ");
   Cmd<Long> PERSIST = Cmd.createCast("PERSIST");
   Cmd<Long> PEXPIRE = Cmd.createCast("PEXPIRE");
   Cmd<Long> PEXPIREAT = Cmd.createCast("PEXPIREAT");
