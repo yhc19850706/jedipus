@@ -5,7 +5,7 @@ import com.fabahaba.jedipus.cmds.RESP;
 
 public interface RedisClient extends Cmds, AutoCloseable {
 
-  public static enum ReplyMode {
+  enum ReplyMode {
     ON, OFF, SKIP
   }
 

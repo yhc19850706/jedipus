@@ -1,17 +1,5 @@
 package com.fabahaba.jedipus.pool;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.time.Duration;
-import java.util.NoSuchElementException;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.junit.Test;
-
 import com.fabahaba.jedipus.client.BaseRedisClientTest;
 import com.fabahaba.jedipus.client.MockRedisClient;
 import com.fabahaba.jedipus.client.RedisClient;
@@ -23,6 +11,18 @@ import com.fabahaba.jedipus.exceptions.RedisException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
+import org.junit.Test;
+
+import java.time.Duration;
+import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 public class RedisClientPoolTest {
 
   static final PooledClientFactory<RedisClient> DEFAULT_POOLED_CLIENT_FACTORY =
@@ -32,7 +32,6 @@ public class RedisClientPoolTest {
   static final ClientPool.Builder DEFAULT_POOL_BUILDER =
       ClientPool.startBuilding().withTestWhileIdle(true).withBlockWhenExhausted(true)
           .withBorrowTimeout(Duration.ofMillis(200));
-
 
   @Test
   public void checkCloseableConnections() {
@@ -118,7 +117,6 @@ public class RedisClientPoolTest {
   @Test
   public void customClientName() {
     final String clientName = "test_name";
-
     try (final ClientPool<RedisClient> pool = DEFAULT_POOL_BUILDER.create(RedisClientFactory
         .startBuilding().withClientName(clientName).withAuth(BaseRedisClientTest.REDIS_PASS)
         .createPooled(BaseRedisClientTest.DEFAULT_NODE))) {

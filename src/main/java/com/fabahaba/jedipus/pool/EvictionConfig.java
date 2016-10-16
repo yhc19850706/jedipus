@@ -10,7 +10,6 @@ public class EvictionConfig {
 
   public EvictionConfig(final Duration poolIdleEvictTime, final Duration poolIdleSoftEvictTime,
       final int minIdle) {
-
     this.idleEvictTime = poolIdleEvictTime;
     this.idleSoftEvictTime = poolIdleSoftEvictTime;
     this.minIdle = minIdle;

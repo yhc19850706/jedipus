@@ -1,9 +1,5 @@
 package com.fabahaba.jedipus.executor;
 
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.function.ToLongFunction;
-
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
@@ -11,6 +7,10 @@ import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.pool.ClientPool;
 import com.fabahaba.jedipus.pool.RedisClientPool;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
+
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.function.ToLongFunction;
 
 final class RedisClientPoolExecutor implements RedisClientExecutor {
 
@@ -24,7 +24,6 @@ final class RedisClientPoolExecutor implements RedisClientExecutor {
   RedisClientPoolExecutor(final Supplier<Node> nodeSupplier,
       final RedisClientFactory.Builder clientFactory, final ClientPool.Builder poolFactory,
       final ElementRetryDelay<Node> retryDelay, final int maxRetries) {
-
     this.nodeSupplier = nodeSupplier;
     this.clientFactory = clientFactory;
     this.poolFactory = poolFactory;
@@ -71,20 +70,16 @@ final class RedisClientPoolExecutor implements RedisClientExecutor {
 
   private void handleRCE(final int maxRetries, final Node failedNode,
       final RedisConnectionException rce) {
-
     final Node node = nodeSupplier.get();
     if (node.equals(failedNode)) {
       retryDelay.markFailure(node, maxRetries, rce);
       return;
     }
-
     synchronized (clientFactory) {
       retryDelay.clear(failedNode);
-
       if (clientPool.isClosed() || node.equals(clientPool.getNode())) {
         return;
       }
-
       clientPool = poolFactory.create(clientFactory.createPooled(node));
     }
   }
@@ -94,7 +89,6 @@ final class RedisClientPoolExecutor implements RedisClientExecutor {
     if (clientPool.isClosed()) {
       return;
     }
-
     synchronized (clientFactory) {
       if (!clientPool.isClosed()) {
         clientPool.close();

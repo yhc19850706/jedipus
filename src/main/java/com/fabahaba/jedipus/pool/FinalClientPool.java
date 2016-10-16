@@ -1,5 +1,7 @@
 package com.fabahaba.jedipus.pool;
 
+import com.fabahaba.jedipus.cluster.Node;
+
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.IdentityHashMap;
@@ -13,8 +15,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.StampedLock;
-
-import com.fabahaba.jedipus.cluster.Node;
 
 final class FinalClientPool<C> implements ClientPool<C> {
 
@@ -191,16 +191,13 @@ final class FinalClientPool<C> implements ClientPool<C> {
   public C borrowIfCapacity() {
     for (;;) {
       assertOpen();
-
       final PooledClient<C> pooledClient = pollOrCreatePooledClient();
       if (pooledClient == null) {
         return null;
       }
-
       if (activate(pooledClient, true)) {
         return pooledClient.getClient();
       }
-      continue;
     }
   }
 
@@ -208,16 +205,13 @@ final class FinalClientPool<C> implements ClientPool<C> {
   public C borrowIfPresent() {
     for (;;) {
       assertOpen();
-
       final PooledClient<C> pooledClient = pollClient();
       if (pooledClient == null) {
         return null;
       }
-
       if (activate(pooledClient, true)) {
         return pooledClient.getClient();
       }
-      continue;
     }
   }
 

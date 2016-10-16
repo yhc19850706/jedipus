@@ -3,6 +3,7 @@ package com.fabahaba.jedipus.primitive;
 import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.client.RedisPipeline;
 import com.fabahaba.jedipus.cluster.Node;
+import com.fabahaba.jedipus.cmds.ClientCmds;
 import com.fabahaba.jedipus.cmds.Cmd;
 
 import java.net.Socket;

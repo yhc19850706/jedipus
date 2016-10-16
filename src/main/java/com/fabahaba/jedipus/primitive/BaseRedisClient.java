@@ -1,16 +1,17 @@
 package com.fabahaba.jedipus.primitive;
 
-import java.util.Collection;
-
 import com.fabahaba.jedipus.client.HostPort;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.Cmds;
+import com.fabahaba.jedipus.cmds.MultiCmds;
 import com.fabahaba.jedipus.cmds.PrimArrayCmd;
 import com.fabahaba.jedipus.cmds.PrimCmd;
 import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.pubsub.RedisSubscriber;
+
+import java.util.Collection;
 
 abstract class BaseRedisClient implements RedisClient {
 

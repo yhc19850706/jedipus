@@ -1,15 +1,10 @@
 package com.fabahaba.jedipus.primitive;
 
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Queue;
-import java.util.function.Function;
-import java.util.function.LongUnaryOperator;
-
 import com.fabahaba.jedipus.client.FutureLongReply;
 import com.fabahaba.jedipus.client.FutureReply;
 import com.fabahaba.jedipus.client.RedisClient.ReplyMode;
 import com.fabahaba.jedipus.client.RedisPipeline;
+import com.fabahaba.jedipus.cmds.ClientCmds;
 import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.PrimArrayCmd;
 import com.fabahaba.jedipus.cmds.PrimCmd;
@@ -17,6 +12,12 @@ import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.AskNodeException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.exceptions.UnhandledAskNodeException;
+
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Queue;
+import java.util.function.Function;
+import java.util.function.LongUnaryOperator;
 
 final class PrimPipeline implements RedisPipeline {
 

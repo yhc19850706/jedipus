@@ -1,10 +1,5 @@
 package com.fabahaba.jedipus.primitive;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.net.Socket;
-import java.util.Arrays;
-
 import com.fabahaba.jedipus.client.BaseConnectedSocketFactory;
 import com.fabahaba.jedipus.client.ConnectedSocketFactory;
 import com.fabahaba.jedipus.client.IOFactory;
@@ -12,11 +7,17 @@ import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.client.RedisClient.ReplyMode;
 import com.fabahaba.jedipus.cluster.Node;
+import com.fabahaba.jedipus.cmds.ClientCmds;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.pool.PooledClient;
 import com.fabahaba.jedipus.pool.PooledClientFactory;
+
+import java.io.IOException;
+import java.io.Serializable;
+import java.net.Socket;
+import java.util.Arrays;
 
 public class RedisClientFactory implements PooledClientFactory<RedisClient>, Serializable {
 

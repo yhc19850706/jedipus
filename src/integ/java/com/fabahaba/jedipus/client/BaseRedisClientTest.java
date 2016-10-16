@@ -1,14 +1,14 @@
 package com.fabahaba.jedipus.client;
 
-import java.util.Optional;
-import java.util.logging.Logger;
+import com.fabahaba.jedipus.cluster.Node;
+import com.fabahaba.jedipus.cmds.Cmds;
+import com.fabahaba.jedipus.primitive.RedisClientFactory;
 
 import org.junit.After;
 import org.junit.Before;
 
-import com.fabahaba.jedipus.cluster.Node;
-import com.fabahaba.jedipus.cmds.Cmds;
-import com.fabahaba.jedipus.primitive.RedisClientFactory;
+import java.util.Optional;
+import java.util.logging.Logger;
 
 public class BaseRedisClientTest {
 
@@ -40,6 +40,7 @@ public class BaseRedisClientTest {
     if (client == null || client.isBroken()) {
       return;
     }
+    client.sendCmd(Cmds.FLUSHALL.raw());
     client.close();
   }
 }

@@ -1,13 +1,13 @@
 package com.fabahaba.jedipus.primitive;
 
-import java.net.Socket;
-import java.util.Deque;
-
 import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.pool.PooledClient;
 import com.fabahaba.jedipus.pool.PooledClientState;
+
+import java.net.Socket;
+import java.util.Deque;
 
 final class PooledRedisClient extends PrimRedisClient implements PooledClient<RedisClient> {
 
@@ -20,7 +20,6 @@ final class PooledRedisClient extends PrimRedisClient implements PooledClient<Re
   PooledRedisClient(final Node node, final ReplyMode replyMode, final NodeMapper nodeMapper,
       final Socket socket, final int soTimeoutMillis, final int outputBufferSize,
       final int inputBufferSize) {
-
     super(node, replyMode, nodeMapper, socket, soTimeoutMillis, outputBufferSize,
         inputBufferSize);
   }
@@ -52,7 +51,6 @@ final class PooledRedisClient extends PrimRedisClient implements PooledClient<Re
 
   @Override
   public boolean startEvictionTest() {
-
     synchronized (this) {
       if (state == PooledClientState.IDLE) {
         state = PooledClientState.TESTING;
@@ -64,7 +62,6 @@ final class PooledRedisClient extends PrimRedisClient implements PooledClient<Re
 
   @Override
   public boolean endEvictionTest(final Deque<PooledClient<RedisClient>> idleQueue) {
-
     synchronized (this) {
       if (state == PooledClientState.TESTING) {
         state = PooledClientState.IDLE;
@@ -76,14 +73,12 @@ final class PooledRedisClient extends PrimRedisClient implements PooledClient<Re
 
   @Override
   public boolean allocate() {
-
     synchronized (this) {
       if (state != PooledClientState.IDLE && state != PooledClientState.TESTING) {
         return false;
       }
       state = PooledClientState.ALLOCATED;
     }
-
     lastBorrowTime = System.currentTimeMillis();
     lastUseTime = lastBorrowTime;
     return true;
@@ -91,21 +86,18 @@ final class PooledRedisClient extends PrimRedisClient implements PooledClient<Re
 
   @Override
   public boolean deallocate() {
-
     synchronized (this) {
       if (state != PooledClientState.ALLOCATED && state != PooledClientState.RETURNING) {
         return false;
       }
       state = PooledClientState.IDLE;
     }
-
     lastReturnTime = System.currentTimeMillis();
     return true;
   }
 
   @Override
   public boolean invalidate() {
-
     synchronized (this) {
       if (state != PooledClientState.INVALID) {
         state = PooledClientState.INVALID;
@@ -117,7 +109,6 @@ final class PooledRedisClient extends PrimRedisClient implements PooledClient<Re
 
   @Override
   public void markReturning() {
-
     synchronized (this) {
       if (state != PooledClientState.ALLOCATED) {
         throw new IllegalStateException(

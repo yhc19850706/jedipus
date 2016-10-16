@@ -12,5 +12,4 @@ redis/modules/*.so
 *.iws
 *.iml
 out/
-/src/main/java/com/fabahaba/jedipus/nio/
 

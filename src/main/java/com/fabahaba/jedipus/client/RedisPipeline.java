@@ -10,11 +10,11 @@ public interface RedisPipeline extends PipelineCmds, AutoCloseable {
 
   FutureReply<String> replyOn();
 
-  public FutureReply<String> multi();
+  FutureReply<String> multi();
 
-  public FutureReply<String> discard();
+  FutureReply<String> discard();
 
-  public FutureReply<Object[]> exec();
+  FutureReply<Object[]> exec();
 
   default void syncThrow() {
     sync(true);
@@ -24,7 +24,7 @@ public interface RedisPipeline extends PipelineCmds, AutoCloseable {
     sync(false);
   }
 
-  public void sync(final boolean throwUnhandled);
+  void sync(final boolean throwUnhandled);
 
   default FutureReply<Object[]> execSync() {
     return execSync(false);
@@ -40,7 +40,7 @@ public interface RedisPipeline extends PipelineCmds, AutoCloseable {
     return execReply;
   }
 
-  public FutureReply<long[]> primExec();
+  FutureReply<long[]> primExec();
 
   default long[] primExecSyncThrow() {
     return primExecSync(true).get();
@@ -56,7 +56,7 @@ public interface RedisPipeline extends PipelineCmds, AutoCloseable {
     return execReply;
   }
 
-  public FutureReply<long[][]> primArrayExec();
+  FutureReply<long[][]> primArrayExec();
 
   default void primArraySyncThrow() {
     primArraySync(true);
@@ -66,7 +66,7 @@ public interface RedisPipeline extends PipelineCmds, AutoCloseable {
     primArraySync(false);
   }
 
-  public void primArraySync(final boolean throwUnhandled);
+  void primArraySync(final boolean throwUnhandled);
 
   default long[][] primArrayExecSyncThrow() {
     return primArrayExecSync(true).get();
@@ -83,5 +83,5 @@ public interface RedisPipeline extends PipelineCmds, AutoCloseable {
   }
 
   @Override
-  public void close();
+  void close();
 }

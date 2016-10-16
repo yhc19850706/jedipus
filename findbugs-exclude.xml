@@ -13,7 +13,7 @@
 		<Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS" />
 	</Match>
 	<Match>
-		<Class name="com.fabahaba.jedipus.nio.RedisChannelHandler" />
+		<Class name="com.fabahaba.jedipus.nbio.RedisChannelHandler" />
 		<Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS" />
 	</Match>
 	<Match>

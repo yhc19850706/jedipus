@@ -1,14 +1,16 @@
 package com.fabahaba.jedipus.primitive;
 
-import java.net.Socket;
-import java.util.function.Function;
-import java.util.function.LongUnaryOperator;
-
 import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.client.RedisClient.ReplyMode;
 import com.fabahaba.jedipus.cluster.Node;
+import com.fabahaba.jedipus.cmds.ClientCmds;
+import com.fabahaba.jedipus.cmds.MultiCmds;
 import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
+
+import java.net.Socket;
+import java.util.function.Function;
+import java.util.function.LongUnaryOperator;
 
 final class PrimRedisConn extends RedisConn {
 
