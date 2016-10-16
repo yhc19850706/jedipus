@@ -7,14 +7,8 @@ services:
       - "9736:9736"
     volumes:
       - ./redis/modules:/redis/modules
-    image: jamespedwards42/alpine-redis-testing:unstable
-    command: 9736 1 \
-              --requirepass "42" \
-              --protected-mode no \
-              --save '''' \
-              --repl-diskless-sync yes \
-              --appendfsync no \
-              --activerehashing no
+    image: jamespedwards42/alpine-redis:unstable
+    command: ['--port', '9736', '--requirepass', '42', '--protected-mode', 'no', '--save', '''', '--repl-diskless-sync', 'yes', '--appendfsync', 'no', '--activerehashing', 'no']
 
   stunnel:
     links:
