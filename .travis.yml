@@ -25,7 +25,7 @@ branches:
     - /^jedipus-.*$/
 
 env:
-  DOCKER_COMPOSE_VERSION: 1.7.1
+  DOCKER_COMPOSE_VERSION: 1.8.1
 
 before_install:
   - sudo DEBIAN_FRONTEND=noninteractive apt-get --yes --force-yes -o Dpkg::Options::="--force-confnew" install docker-engine
@@ -37,13 +37,14 @@ before_install:
 
 before_cache:
   - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
 
 cache:
   directories:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
 
-install: /bin/true
+install: ./gradlew -version
 
 script: if [ ! -z "$TRAVIS_TAG" ] || [[ "$COMMIT_MSG" != 'Release jedipus'* ]] ; then ./gradlew check; fi
 
