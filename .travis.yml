@@ -25,7 +25,7 @@ branches:
     - /^jedipus-.*$/
 
 env:
-  DOCKER_COMPOSE_VERSION: 1.9.1
+  DOCKER_COMPOSE_VERSION: 1.8.1
 
 before_install:
   - sudo DEBIAN_FRONTEND=noninteractive apt-get --yes --force-yes -o Dpkg::Options::="--force-confnew" install docker-engine
