@@ -22,14 +22,5 @@ services:
   redis_cluster:
     ports:
       - "7379-7384:7379-7384"
-    image: jamespedwards42/alpine-redis-testing:unstable
-    command: 7379 6 \
-              --cluster-enabled yes \
-              --cluster-node-timeout 200 \
-              --cluster-require-full-coverage yes \
-              --cluster-announce-ip "127.0.0.1" \
-              --repl-diskless-sync yes \
-              --appendfsync no \
-              --save '''' \
-              --protected-mode no \
-              --activerehashing no
+    image: jamespedwards42/alpine-redis-testing:integ-unstable
+    command: ['7379', '6', '--cluster-enabled', 'yes', '--cluster-node-timeout', '200', '--cluster-require-full-coverage', 'yes', '--cluster-announce-ip', '127.0.0.1', '--repl-diskless-sync', 'yes', '--appendfsync', 'no', '--save', '''', '--protected-mode', 'no', '--activerehashing', 'no']
