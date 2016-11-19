@@ -3,7 +3,7 @@ plugins {
   id 'java'
   id 'pl.allegro.tech.build.axion-release' version '1.4.1'
   id 'maven-publish'
-  id 'com.jfrog.bintray' version '1.7.2'
+  id 'com.jfrog.bintray' version '1.7.3'
   id 'findbugs'
   id 'checkstyle'
 }
@@ -12,15 +12,13 @@ scmVersion {
   tag {
     prefix = project.name
   }
-
   repository {
-    customUsername = "$System.env.AXION_RELEASE_GITHUB_TOKEN"
-    customPassword = ""
+    if (project.hasProperty("AXION_RELEASE_GITHUB_TOKEN")) {
+      customUsername = "$AXION_RELEASE_GITHUB_TOKEN"
+    }
   }
-
   createReleaseCommit true
   releaseCommitMessage { version, position -> "Release $project.name-$version" }
-
   checks {
     uncommittedChanges = false
   }
@@ -86,12 +84,12 @@ task wgetRedisModule(type:Exec) {
 
 task compileIntegModules(type:Exec) {
   String dir = System.getProperty("user.dir");
-  commandLine 'docker', 'run', '--rm', '-v', "$dir/redis/:/tmp", 'jamespedwards42/alpine-gcc-make:latest', '/bin/sh', '-c', 'make -B -C /tmp/modules'
+  commandLine 'docker', 'run', '--rm', '-v', "$dir/redis/:/tmp", 'comodal/alpine-gcc-make:latest', '/bin/sh', '-c', 'make -B -C /tmp/modules'
 }
 
 task makeClean(type:Exec) {
   String dir = System.getProperty("user.dir");
-  commandLine 'docker', 'run', '--rm', '-v', "$dir/redis/:/tmp", 'jamespedwards42/alpine-gcc-make:latest', '/bin/sh', '-c', 'make -C /tmp/modules clean'
+  commandLine 'docker', 'run', '--rm', '-v', "$dir/redis/:/tmp", 'comodal/alpine-gcc-make:latest', '/bin/sh', '-c', 'make -C /tmp/modules clean'
 }
 
 compileIntegModules.dependsOn wgetRedisModule
@@ -120,15 +118,13 @@ artifacts {
 }
 
 bintray {
-  user = "$System.env.BINTRAY_USER"
-  key = "$System.env.BINTRAY_API_KEY"
-
+  user = System.getenv('BINTRAY_USER')
+  key = System.getenv('BINTRAY_API_KEY')
   publications = ['mavenJava']
-
   pkg {
     repo = 'libs'
     name = project.name
-    desc = 'Redis Java 8 Client & Executor.'
+    desc = 'Redis Java 8 Client & Executor'
     websiteUrl = 'https://github.com/jamespedwards42/' + project.name
     vcsUrl = 'https://github.com/jamespedwards42/' + project.name
     issueTrackerUrl = 'https://github.com/jamespedwards42/' + project.name + '/issues'
@@ -139,7 +135,7 @@ bintray {
        vcsTag = scmVersion.tag.prefix + '-' + project.version
        gpg {
           sign = true
-          passphrase = "$System.env.BINTRAY_GPG_PASSPHRASE"
+          passphrase = System.getenv('BINTRAY_GPG_PASSPHRASE')
        }
     }
   }

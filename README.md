@@ -1,4 +1,4 @@
-##Jedipus [![Build Status](https://img.shields.io/travis/jamespedwards42/jedipus.svg?branch=master)](https://travis-ci.org/jamespedwards42/jedipus) [![Bintray](https://img.shields.io/bintray/v/jamespedwards42/libs/jedipus.svg)](https://bintray.com/jamespedwards42/libs/jedipus/_latestVersion) [![license](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://raw.githubusercontent.com/jamespedwards42/jedipus/master/LICENSE) [![Gitter Chat](https://badges.gitter.im/jamespedwards42/jedipus.svg)](https://gitter.im/jamespedwards42/jedipus?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Codewake](https://www.codewake.com/badges/ask_question.svg)](https://www.codewake.com/p/jedipus)
+## Jedipus [![Build Status](https://img.shields.io/travis/jamespedwards42/jedipus.svg?branch=master)](https://travis-ci.org/jamespedwards42/jedipus) [![Bintray](https://img.shields.io/bintray/v/jamespedwards42/libs/jedipus.svg)](https://bintray.com/jamespedwards42/libs/jedipus/_latestVersion) [![license](https://img.shields.io/badge/license-Apache%202-blue.svg)](https://raw.githubusercontent.com/jamespedwards42/jedipus/master/LICENSE) [![Gitter Chat](https://badges.gitter.im/jamespedwards42/jedipus.svg)](https://gitter.im/jamespedwards42/jedipus?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Codewake](https://www.codewake.com/badges/ask_question.svg)](https://www.codewake.com/p/jedipus)
 
 >Jedipus is a Redis 3.2+ Java 8 client that manages client object pools and command execution.
 
@@ -16,7 +16,7 @@ if (temp.equals("107.6")) {
 rce.close();
 ```
 
-######Features
+###### Features
 * Executes `Consumer<RedisClient>` and `Function<RedisClient, R>` lambdas.
 * Flexible generic or primitive return types to match the dynamic return type design of Redis.
 * Flexible command interface allows for [calling Modules](src/integ/java/com/fabahaba/jedipus/client/ModuleTest.java#L17).
@@ -39,7 +39,7 @@ rce.close();
 * [Pub/Sub support](https://gist.github.com/jamespedwards42/5d2d77da970854fb40af707cc44dc3cd).
 * [Cluster partition handling](src/main/java/com/fabahaba/jedipus/cluster/PartitionedStrategyConfig.java#L5) on slot cache discovery.
 
-######Read Modes
+###### Read Modes
 >Read modes control how pools to master and slave nodes are managed.
 
 * MASTER: Only pools to master nodes are maintained.
@@ -47,12 +47,12 @@ rce.close();
 * MIXED_SLAVES: Pools are managed for both masters and slave nodes.  Calls are only load balanced across slave pools. Individual calls can be overridden with `ReadMode.MASTER` or `ReadMode.MIXED`.  When no slave pools are available the master pool is used.
 * MIXED: Pools are managed for both masters and slave nodes.  Calls are load balanced across both master and slave pools. Individual calls can be overridden with `ReadMode.MASTER` or `ReadMode.SLAVES`.  When overriding with `ReadMode.SLAVES` and no slave pools are available the master pool is used.
 
-######Gotchas
+###### Gotchas
 * All commands issued within a single lambda should be idempotent.  If they are not, split them into separate calls, use a pipelined transaction, use a Lua script, or compile a C Module.
 * ASK redirects within pipelines are not supported, instead an `UnhandledAskNodeException` is thrown.  The reason for this is that even if all of the keys point to the same slot Redis requires a new ASKING request in front of each command.  It is cleaner to let the user handle recovery rather than injecting ASKING requests internally.  See this [integration test](src/integ/java/com/fabahaba/jedipus/cluster/RedisClusterTest.java#L486) for an example of how to recover.  MOVE redirects are supported within pipelines.
 * If only using CLIENT REPLY OFF your client will be oblivious to slot migrations.  If you want to be resilient to re-partitioning, refresh the slot cache at a frequency you can tolerate.
 
-######Dependency Management
+###### Dependency Management
 ```groovy
 repositories {
    jcenter()
@@ -63,7 +63,7 @@ dependencies {
 }
 ```
 
-######Basic Usage Demos
+###### Basic Usage Demos
 
 >Note: The examples auto close the `RedisClusterExecutor` but you probably want it to be a long lived object.
 
