@@ -77,9 +77,10 @@ task rmRedis(type:Exec) {
   commandLine 'docker-compose', 'down'
 }
 
-task wgetRedisModule(type:Exec) {
-  workingDir './redis'
-  commandLine 'wget', '-N', 'https://raw.githubusercontent.com/antirez/redis/unstable/src/redismodule.h'
+task getRedisModule() {
+  OutputStream moduleHeaderFile = new File('./redis/redismodule.h').newOutputStream()
+  moduleHeaderFile << new URL('https://raw.githubusercontent.com/antirez/redis/unstable/src/redismodule.h').openStream()
+  moduleHeaderFile.close()
 }
 
 task compileIntegModules(type:Exec) {
@@ -92,7 +93,7 @@ task makeClean(type:Exec) {
   commandLine 'docker', 'run', '--rm', '-v', "$dir/redis/:/tmp", 'comodal/alpine-gcc-make:latest', '/bin/sh', '-c', 'make -C /tmp/modules clean'
 }
 
-compileIntegModules.dependsOn wgetRedisModule
+compileIntegModules.dependsOn getRedisModule
 startRedis.dependsOn compileIntegModules
 test.dependsOn startRedis
 test.finalizedBy rmRedis
