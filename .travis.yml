@@ -1,7 +1,6 @@
 sudo: required
 dist: trusty
-services:
-  - docker
+services: docker
 
 notifications:
   email:
@@ -19,13 +18,8 @@ language: java
 jdk:
   - oraclejdk8
 
-branches:
-  only:
-    - master
-    - /^jedipus-.*$/
-
 env:
-  DOCKER_COMPOSE_VERSION: 1.9.0
+  DOCKER_COMPOSE_VERSION: 1.10.1
 
 before_install:
   - sudo DEBIAN_FRONTEND=noninteractive apt-get --yes --force-yes -o Dpkg::Options::="--force-confnew" install docker-engine
@@ -33,7 +27,6 @@ before_install:
   - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
   - chmod +x docker-compose
   - sudo mv docker-compose /usr/local/bin
-  - "export COMMIT_MSG=\"$(git log --format=%B --no-merges -n 1)\""
 
 before_cache:
   - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
@@ -46,6 +39,6 @@ cache:
 
 install: ./gradlew -version
 
-script: if [ ! -z "$TRAVIS_TAG" ] || [[ "$COMMIT_MSG" != 'Release jedipus'* ]] ; then ./gradlew check; fi
+script: ./gradlew chec
 
 after_success: if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ ! -z "$TRAVIS_TAG" ] ; then ./gradlew bintrayUpload; fi
