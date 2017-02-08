@@ -1,7 +1,6 @@
 package com.fabahaba.jedipus.pool;
 
 import com.fabahaba.jedipus.cluster.Node;
-
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.IdentityHashMap;
@@ -189,7 +188,7 @@ final class FinalClientPool<C> implements ClientPool<C> {
 
   @Override
   public C borrowIfCapacity() {
-    for (;;) {
+    for (; ; ) {
       assertOpen();
       final PooledClient<C> pooledClient = pollOrCreatePooledClient();
       if (pooledClient == null) {
@@ -203,7 +202,7 @@ final class FinalClientPool<C> implements ClientPool<C> {
 
   @Override
   public C borrowIfPresent() {
-    for (;;) {
+    for (; ; ) {
       assertOpen();
       final PooledClient<C> pooledClient = pollClient();
       if (pooledClient == null) {
@@ -234,7 +233,8 @@ final class FinalClientPool<C> implements ClientPool<C> {
 
     long timeoutNanos = TimeUnit.NANOSECONDS.convert(timeout, unit);
 
-    CREATE: for (;;) {
+    CREATE:
+    for (; ; ) {
       assertOpen();
 
       PooledClient<C> pooledClient = pollOrCreatePooledClient();
@@ -251,7 +251,7 @@ final class FinalClientPool<C> implements ClientPool<C> {
 
       idleClientsLock.lock();
       try {
-        for (;;) {
+        for (; ; ) {
           if (idleClients.peek() != null) {
             pooledClient = idleClients.pollFirst();
             break;
@@ -307,7 +307,8 @@ final class FinalClientPool<C> implements ClientPool<C> {
 
   C pollOrCreateClient() {
 
-    CREATE: for (;;) {
+    CREATE:
+    for (; ; ) {
       assertOpen();
 
       PooledClient<C> pooledClient = pollOrCreatePooledClient();
@@ -324,7 +325,7 @@ final class FinalClientPool<C> implements ClientPool<C> {
 
       idleClientsLock.lock();
       try {
-        for (;;) {
+        for (; ; ) {
           if (idleClients.peek() != null) {
             pooledClient = idleClients.pollFirst();
             break;
@@ -560,7 +561,7 @@ final class FinalClientPool<C> implements ClientPool<C> {
       final Iterator<PooledClient<C>> evictionIterator =
           lifo ? idleClients.descendingIterator() : idleClients.iterator();
 
-      for (int numTested = 0, maxTests = getNumTests(); numTested < maxTests;) {
+      for (int numTested = 0, maxTests = getNumTests(); numTested < maxTests; ) {
         final PooledClient<C> underTest = evictionIterator.next();
         if (underTest == null) {
           continue;

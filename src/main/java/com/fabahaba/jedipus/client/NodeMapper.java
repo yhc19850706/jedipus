@@ -1,9 +1,8 @@
 package com.fabahaba.jedipus.client;
 
+import com.fabahaba.jedipus.cluster.Node;
 import java.io.Serializable;
 import java.util.function.Function;
-
-import com.fabahaba.jedipus.cluster.Node;
 
 public interface NodeMapper extends Function<Node, Node>, Serializable {
 

@@ -1,13 +1,12 @@
 package com.fabahaba.jedipus.concurrent;
 
+import com.fabahaba.jedipus.client.SerializableFunction;
+import com.fabahaba.jedipus.client.SerializableLongFunction;
 import java.io.Serializable;
 import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.LongAdder;
-
-import com.fabahaba.jedipus.client.SerializableFunction;
-import com.fabahaba.jedipus.client.SerializableLongFunction;
 
 final class SemaphoredRetryDelay<E> implements ElementRetryDelay<E>, Serializable {
 
@@ -89,6 +88,12 @@ final class SemaphoredRetryDelay<E> implements ElementRetryDelay<E>, Serializabl
     return retrySemaphore.failureAdder.sum();
   }
 
+  @Override
+  public String toString() {
+    return new StringBuilder("SemaphoredRetryDelay [retrySemaphores=").append(retrySemaphores)
+        .append("]").toString();
+  }
+
   private static class RetrySemaphore implements Serializable {
 
     private static final long serialVersionUID = 9011659754883428661L;
@@ -111,11 +116,5 @@ final class SemaphoredRetryDelay<E> implements ElementRetryDelay<E>, Serializabl
       return new StringBuilder("RetrySemaphore [failureAdder=").append(failureAdder)
           .append(", semaphore=").append(semaphore).append("]").toString();
     }
-  }
-
-  @Override
-  public String toString() {
-    return new StringBuilder("SemaphoredRetryDelay [retrySemaphores=").append(retrySemaphores)
-        .append("]").toString();
   }
 }

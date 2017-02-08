@@ -2,7 +2,6 @@ package com.fabahaba.jedipus.primitive;
 
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
-
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -33,7 +32,7 @@ public final class RedisInputStream extends InputStream {
   }
 
   public String readLine() {
-    for (final StringBuilder sb = new StringBuilder();;) {
+    for (final StringBuilder sb = new StringBuilder(); ; ) {
       ensureFill();
 
       final byte bite = buf[pos++];
@@ -63,7 +62,7 @@ public final class RedisInputStream extends InputStream {
   public byte[] readLineBytes() {
     ensureFill();
 
-    for (int lookAhead = pos;;) {
+    for (int lookAhead = pos; ; ) {
       if (buf[lookAhead++] == '\r') {
         if (lookAhead == limit) {
           grow(lookAhead);
@@ -110,7 +109,7 @@ public final class RedisInputStream extends InputStream {
   }
 
   private long readUnsignedLongCRLF() {
-    for (long value = 0;;) {
+    for (long value = 0; ; ) {
       ensureFill();
 
       final int b = buf[pos++];

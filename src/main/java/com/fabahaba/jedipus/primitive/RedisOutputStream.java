@@ -6,30 +6,26 @@ import java.nio.ByteBuffer;
 
 public final class RedisOutputStream extends OutputStream {
 
-  private final OutputStream out;
-  private final byte[] buf;
-  private int count;
-
   private static final int[] sizeTable =
       {9, 99, 999, 9999, 99999, 999999, 9999999, 99999999, 999999999, Integer.MAX_VALUE};
-
   private static final byte[] DigitTens = {'0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1',
       '1', '1', '1', '1', '1', '1', '1', '1', '1', '2', '2', '2', '2', '2', '2', '2', '2', '2', '2',
       '3', '3', '3', '3', '3', '3', '3', '3', '3', '3', '4', '4', '4', '4', '4', '4', '4', '4', '4',
       '4', '5', '5', '5', '5', '5', '5', '5', '5', '5', '5', '6', '6', '6', '6', '6', '6', '6', '6',
       '6', '6', '7', '7', '7', '7', '7', '7', '7', '7', '7', '7', '8', '8', '8', '8', '8', '8', '8',
       '8', '8', '8', '9', '9', '9', '9', '9', '9', '9', '9', '9', '9',};
-
   private static final byte[] DigitOnes = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
       '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
       '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8',
       '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7',
       '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6',
       '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',};
-
   private static final byte[] digits =
       {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
           'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
+  private final OutputStream out;
+  private final byte[] buf;
+  private int count;
 
   RedisOutputStream(final OutputStream out, final int size) {
     if (size <= 0) {
@@ -37,6 +33,87 @@ public final class RedisOutputStream extends OutputStream {
     }
     this.out = out;
     buf = new byte[size];
+  }
+
+  public static boolean isSurrogate(final char ch) {
+    return ch >= Character.MIN_SURROGATE && ch <= Character.MAX_SURROGATE;
+  }
+
+  public static byte[] createIntCRLF(final byte prefix, final int value) {
+    int writeVal = value;
+    int charPos = 1; // prefix
+
+    if (value < 0) {
+      writeVal = -value;
+      charPos = 2; // '-' sign
+    }
+
+    int size = 0;
+    while (writeVal > sizeTable[size]) {
+      size++;
+    }
+    size++;
+
+    charPos += size;
+    final byte[] intCRLF = new byte[charPos + 2];
+    intCRLF[0] = prefix;
+    if (value < 0) {
+      intCRLF[1] = '-';
+    }
+
+    int q1;
+    int r1;
+
+    while (writeVal >= 65536) {
+      q1 = writeVal / 100;
+      r1 = writeVal - ((q1 << 6) + (q1 << 5) + (q1 << 2));
+      writeVal = q1;
+      intCRLF[--charPos] = DigitOnes[r1];
+      intCRLF[--charPos] = DigitTens[r1];
+    }
+
+    for (; ; ) {
+      q1 = (writeVal * 52429) >>> (16 + 3);
+      r1 = writeVal - ((q1 << 3) + (q1 << 1));
+      intCRLF[--charPos] = digits[r1];
+      writeVal = q1;
+      if (writeVal == 0) {
+        break;
+      }
+    }
+
+    intCRLF[intCRLF.length - 2] = '\r';
+    intCRLF[intCRLF.length - 1] = '\n';
+
+    return intCRLF;
+  }
+
+  public static void putIntString(final ByteBuffer outputBuffer, int value) {
+    if (value < 0) {
+      outputBuffer.put((byte) '-');
+      value = -value;
+    }
+
+    int q1;
+    int r1;
+
+    while (value >= 65536) {
+      q1 = value / 100;
+      r1 = value - ((q1 << 6) + (q1 << 5) + (q1 << 2));
+      value = q1;
+      outputBuffer.put(DigitOnes[r1]);
+      outputBuffer.put(DigitTens[r1]);
+    }
+
+    for (; ; ) {
+      q1 = (value * 52429) >>> (16 + 3);
+      r1 = value - ((q1 << 3) + (q1 << 1));
+      outputBuffer.put(digits[r1]);
+      value = q1;
+      if (value == 0) {
+        break;
+      }
+    }
   }
 
   private void flushBuffer() throws IOException {
@@ -85,10 +162,6 @@ public final class RedisOutputStream extends OutputStream {
     return;
   }
 
-  public static boolean isSurrogate(final char ch) {
-    return ch >= Character.MIN_SURROGATE && ch <= Character.MAX_SURROGATE;
-  }
-
   public void writeCRLF() throws IOException {
     if (2 >= buf.length - count) {
       flushBuffer();
@@ -125,7 +198,7 @@ public final class RedisOutputStream extends OutputStream {
       buf[--charPos] = DigitTens[r1];
     }
 
-    for (;;) {
+    for (; ; ) {
       q1 = (value * 52429) >>> (16 + 3);
       r1 = value - ((q1 << 3) + (q1 << 1));
       buf[--charPos] = digits[r1];
@@ -137,83 +210,6 @@ public final class RedisOutputStream extends OutputStream {
     count += size;
 
     writeCRLF();
-  }
-
-  public static byte[] createIntCRLF(final byte prefix, final int value) {
-    int writeVal = value;
-    int charPos = 1; // prefix
-
-    if (value < 0) {
-      writeVal = -value;
-      charPos = 2; // '-' sign
-    }
-
-    int size = 0;
-    while (writeVal > sizeTable[size]) {
-      size++;
-    }
-    size++;
-
-    charPos += size;
-    final byte[] intCRLF = new byte[charPos + 2];
-    intCRLF[0] = prefix;
-    if (value < 0) {
-      intCRLF[1] = '-';
-    }
-
-    int q1;
-    int r1;
-
-    while (writeVal >= 65536) {
-      q1 = writeVal / 100;
-      r1 = writeVal - ((q1 << 6) + (q1 << 5) + (q1 << 2));
-      writeVal = q1;
-      intCRLF[--charPos] = DigitOnes[r1];
-      intCRLF[--charPos] = DigitTens[r1];
-    }
-
-    for (;;) {
-      q1 = (writeVal * 52429) >>> (16 + 3);
-      r1 = writeVal - ((q1 << 3) + (q1 << 1));
-      intCRLF[--charPos] = digits[r1];
-      writeVal = q1;
-      if (writeVal == 0) {
-        break;
-      }
-    }
-
-    intCRLF[intCRLF.length - 2] = '\r';
-    intCRLF[intCRLF.length - 1] = '\n';
-
-    return intCRLF;
-  }
-
-  public static void putIntString(final ByteBuffer outputBuffer, int value) {
-    if (value < 0) {
-      outputBuffer.put((byte) '-');
-      value = -value;
-    }
-
-    int q1;
-    int r1;
-
-    while (value >= 65536) {
-      q1 = value / 100;
-      r1 = value - ((q1 << 6) + (q1 << 5) + (q1 << 2));
-      value = q1;
-      outputBuffer.put( DigitOnes[r1]);
-      outputBuffer.put(DigitTens[r1]);
-    }
-
-    for (;;) {
-      q1 = (value * 52429) >>> (16 + 3);
-      r1 = value - ((q1 << 3) + (q1 << 1));
-      outputBuffer.put(digits[r1]);
-      value = q1;
-      if (value == 0) {
-        break;
-      }
-    }
   }
 
   @Override

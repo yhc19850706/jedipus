@@ -2,13 +2,15 @@ package com.fabahaba.jedipus.cmds;
 
 import com.fabahaba.jedipus.cluster.CRC16;
 import com.fabahaba.jedipus.primitive.RedisOutputStream;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class CmdByteArray<R> {
 
+  private static final byte DOLLAR_BYTE = '$';
+  private static final byte ASTERISK_BYTE = '*';
+  private static final byte[] CRLF = new byte[]{'\r', '\n'};
   private final Cmd<R> cmd;
   private final byte[] cmdArgs;
   private final int slot;
@@ -17,6 +19,14 @@ public class CmdByteArray<R> {
     this.cmd = cmd;
     this.cmdArgs = cmdArgs;
     this.slot = slot;
+  }
+
+  public static <R> Builder<R> startBuilding(final Cmd<R> cmd) {
+    return new ArrayListBuilder<>(cmd);
+  }
+
+  public static <R> Builder<R> startBuilding(final Cmd<R> cmd, final int numCmdAndArgs) {
+    return new ArrayBuilder<>(cmd, numCmdAndArgs);
   }
 
   public Cmd<R> getCmd() {
@@ -30,18 +40,6 @@ public class CmdByteArray<R> {
   public int getSlot() {
     return slot;
   }
-
-  public static <R> Builder<R> startBuilding(final Cmd<R> cmd) {
-    return new ArrayListBuilder<>(cmd);
-  }
-
-  public static <R> Builder<R> startBuilding(final Cmd<R> cmd, final int numCmdAndArgs) {
-    return new ArrayBuilder<>(cmd, numCmdAndArgs);
-  }
-
-  private static final byte DOLLAR_BYTE = '$';
-  private static final byte ASTERISK_BYTE = '*';
-  private static final byte[] CRLF = new byte[]{'\r', '\n'};
 
   public abstract static class Builder<R> {
 

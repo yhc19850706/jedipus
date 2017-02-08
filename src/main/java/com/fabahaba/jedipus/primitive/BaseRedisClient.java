@@ -10,7 +10,6 @@ import com.fabahaba.jedipus.cmds.PrimArrayCmd;
 import com.fabahaba.jedipus.cmds.PrimCmd;
 import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.pubsub.RedisSubscriber;
-
 import java.util.Collection;
 
 abstract class BaseRedisClient implements RedisClient {
@@ -52,11 +51,6 @@ abstract class BaseRedisClient implements RedisClient {
   }
 
   @Override
-  public void setSoTimeout(final int soTimeoutMillis) {
-    conn.setSoTimeout(soTimeoutMillis);
-  }
-
-  @Override
   public void setInfinitSoTimeout() {
     conn.setInfinitSoTimeout();
   }
@@ -69,6 +63,11 @@ abstract class BaseRedisClient implements RedisClient {
   @Override
   public int getSoTimeout() {
     return conn.getSoTimeout();
+  }
+
+  @Override
+  public void setSoTimeout(final int soTimeoutMillis) {
+    conn.setSoTimeout(soTimeoutMillis);
   }
 
   @Override

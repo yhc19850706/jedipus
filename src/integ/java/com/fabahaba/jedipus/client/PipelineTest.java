@@ -4,14 +4,12 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-import java.util.UUID;
-
-import org.junit.Test;
-
 import com.fabahaba.jedipus.cmds.CmdByteArray;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
+import java.util.UUID;
+import org.junit.Test;
 
 public class PipelineTest extends BaseRedisClientTest {
 
@@ -61,11 +59,11 @@ public class PipelineTest extends BaseRedisClientTest {
       assertEquals(2.0, Double.parseDouble(zincrby.get()), 0.0);
       assertEquals(1L, zcard.getAsLong());
       assertEquals(1, lrange.get().length);
-      assertArrayEquals(new String[] {"foo", "bar"}, hgetAll.get());
+      assertArrayEquals(new String[]{"foo", "bar"}, hgetAll.get());
       assertEquals(1, smembers.get().length);
-      assertArrayEquals(new String[] {"foo", "2"}, zrangeWithScores.get());
+      assertArrayEquals(new String[]{"foo", "2"}, zrangeWithScores.get());
       assertEquals("123", getrange.get());
-      assertArrayEquals(new byte[] {6, 7, 8}, (byte[]) getrangeBytes.get());
+      assertArrayEquals(new byte[]{6, 7, 8}, (byte[]) getrangeBytes.get());
     }
   }
 

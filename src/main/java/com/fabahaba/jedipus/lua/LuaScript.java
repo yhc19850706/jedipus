@@ -10,7 +10,6 @@ import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.cmds.ScriptingCmds;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.params.LuaParams;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,12 +39,6 @@ public interface LuaScript {
     return Sha1Hex.sha1(script);
   }
 
-  String getLuaScript();
-
-  String getSha1Hex();
-
-  byte[] getSha1HexBytes();
-
   static void loadMissingScripts(final RedisClusterExecutor rce,
       final LuaScript... luaScripts) {
     final byte[][] scriptSha1Bytes =
@@ -58,6 +51,62 @@ public interface LuaScript {
         Stream.of(luaScripts).map(LuaScript::getSha1HexBytes).toArray(byte[][]::new);
     loadIfNotExists(client, scriptSha1Bytes, luaScripts);
   }
+
+  static void loadIfNotExists(final RedisClient client, final byte[] scriptSha1HexBytes,
+      final LuaScript luaScript) {
+    final long[] exists =
+        client.sendCmd(Cmds.SCRIPT, Cmds.SCRIPT_EXISTS.primArray(), scriptSha1HexBytes);
+    if (exists[0] == 0) {
+      client.scriptLoad(RESP.toBytes(luaScript.getLuaScript()));
+    }
+  }
+
+  static void loadIfNotExists(final RedisClient client, final byte[][] scriptSha1HexBytes,
+      final LuaScript[] luaScripts) {
+    if (scriptSha1HexBytes.length == 1) {
+      loadIfNotExists(client, scriptSha1HexBytes[0], luaScripts[0]);
+      return;
+    }
+
+    final long[] existResults =
+        client.sendCmd(Cmds.SCRIPT, Cmds.SCRIPT_EXISTS.primArray(), scriptSha1HexBytes);
+
+    int index = 0;
+    for (final long exists : existResults) {
+      if (exists == 0) {
+        client.skip().scriptLoad(RESP.toBytes(luaScripts[index].getLuaScript()));
+      }
+      index++;
+    }
+  }
+
+  static String readFromResourcePath(final String resourcePath) {
+    try (final InputStream scriptInputStream = LuaScript.class.getResourceAsStream(resourcePath)) {
+
+      if (scriptInputStream == null) {
+        throw new IllegalStateException("No script found on resource path at " + resourcePath);
+      }
+
+      try (final BufferedReader reader =
+          new BufferedReader(new InputStreamReader(scriptInputStream, StandardCharsets.UTF_8))) {
+
+        final String newline = System.getProperty("line.separator");
+
+        return reader.lines()
+            .map(line -> line.trim().replaceFirst("^\\s+", "").replaceFirst("--.*", "")
+                .replaceAll("\\s+", " "))
+            .filter(line -> !line.isEmpty()).collect(Collectors.joining(newline));
+      }
+    } catch (final IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  String getLuaScript();
+
+  String getSha1Hex();
+
+  byte[] getSha1HexBytes();
 
   default <R> R eval(final RedisClient client, final int keyCount, final String param) {
     return eval(client, keyCount, RESP.toBytes(param));
@@ -132,55 +181,5 @@ public interface LuaScript {
 
   default <R> FutureReply<R> eval(final RedisPipeline pipeline, final CmdByteArray<R> cmdArgs) {
     return pipeline.sendDirect(cmdArgs);
-  }
-
-  static void loadIfNotExists(final RedisClient client, final byte[] scriptSha1HexBytes,
-      final LuaScript luaScript) {
-    final long[] exists =
-        client.sendCmd(Cmds.SCRIPT, Cmds.SCRIPT_EXISTS.primArray(), scriptSha1HexBytes);
-    if (exists[0] == 0) {
-      client.scriptLoad(RESP.toBytes(luaScript.getLuaScript()));
-    }
-  }
-
-  static void loadIfNotExists(final RedisClient client, final byte[][] scriptSha1HexBytes,
-      final LuaScript[] luaScripts) {
-    if (scriptSha1HexBytes.length == 1) {
-      loadIfNotExists(client, scriptSha1HexBytes[0], luaScripts[0]);
-      return;
-    }
-
-    final long[] existResults =
-        client.sendCmd(Cmds.SCRIPT, Cmds.SCRIPT_EXISTS.primArray(), scriptSha1HexBytes);
-
-    int index = 0;
-    for (final long exists : existResults) {
-      if (exists == 0) {
-        client.skip().scriptLoad(RESP.toBytes(luaScripts[index].getLuaScript()));
-      }
-      index++;
-    }
-  }
-
-  static String readFromResourcePath(final String resourcePath) {
-    try (final InputStream scriptInputStream = LuaScript.class.getResourceAsStream(resourcePath)) {
-
-      if (scriptInputStream == null) {
-        throw new IllegalStateException("No script found on resource path at " + resourcePath);
-      }
-
-      try (final BufferedReader reader =
-          new BufferedReader(new InputStreamReader(scriptInputStream, StandardCharsets.UTF_8))) {
-
-        final String newline = System.getProperty("line.separator");
-
-        return reader.lines()
-            .map(line -> line.trim().replaceFirst("^\\s+", "").replaceFirst("--.*", "")
-                .replaceAll("\\s+", " "))
-            .filter(line -> !line.isEmpty()).collect(Collectors.joining(newline));
-      }
-    } catch (final IOException e) {
-      throw new UncheckedIOException(e);
-    }
   }
 }

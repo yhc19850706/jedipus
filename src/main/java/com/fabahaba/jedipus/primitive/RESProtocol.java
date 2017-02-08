@@ -10,28 +10,25 @@ import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.exceptions.SlotMovedException;
 import com.fabahaba.jedipus.pubsub.RedisSubscriber;
-
 import java.io.IOException;
 import java.util.Collection;
 
 final class RESProtocol {
 
-  private RESProtocol() {}
-
   private static final String ASK_RESPONSE = "ASK";
   private static final String MOVED_RESPONSE = "MOVED";
   private static final String CLUSTERDOWN_RESPONSE = "CLUSTERDOWN";
   private static final String BUSY_RESPONSE = "BUSY";
-
   private static final byte DOLLAR_BYTE = '$';
   private static final byte ASTERISK_BYTE = '*';
   private static final byte PLUS_BYTE = '+';
   private static final byte MINUS_BYTE = '-';
   private static final byte COLON_BYTE = ':';
-
   private static final byte[] ONE_CMD = RedisOutputStream.createIntCRLF(ASTERISK_BYTE, 1);
   private static final byte[] TWO_CMD = RedisOutputStream.createIntCRLF(ASTERISK_BYTE, 2);
   private static final byte[] THREE_CMD = RedisOutputStream.createIntCRLF(ASTERISK_BYTE, 3);
+  private RESProtocol() {
+  }
 
   static void sendDirect(final RedisOutputStream os, final byte[] data) throws IOException {
     os.writeDirect(data, 0, data.length);
@@ -234,7 +231,7 @@ final class RESProtocol {
 
     final byte[] read = new byte[len];
 
-    for (int offset = 0; offset < len;) {
+    for (int offset = 0; offset < len; ) {
       final int size = is.read(read, offset, (len - offset));
       if (size == -1) {
         throw new RedisConnectionException(node, "Unexpected end of input stream.");

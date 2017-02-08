@@ -5,7 +5,8 @@ import com.fabahaba.jedipus.cmds.Cmds;
 public final class ZAddParams {
 
   // http://redis.io/commands/zadd
-  private ZAddParams() {}
+  private ZAddParams() {
+  }
 
   public static byte[][] fillNX(final byte[][] args) {
 

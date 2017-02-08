@@ -1,11 +1,10 @@
 package com.fabahaba.jedipus.pubsub;
 
+import com.fabahaba.jedipus.executor.RedisClientExecutor;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
-
-import com.fabahaba.jedipus.executor.RedisClientExecutor;
 
 final class MultiMappedSubscriber extends SingleSubscriber {
 

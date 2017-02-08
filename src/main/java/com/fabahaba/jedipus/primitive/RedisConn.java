@@ -1,16 +1,15 @@
 package com.fabahaba.jedipus.primitive;
 
-import java.io.IOException;
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
-import java.util.Collection;
-
 import com.fabahaba.jedipus.client.NodeMapper;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.pubsub.RedisSubscriber;
+import java.io.IOException;
+import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.util.Collection;
 
 abstract class RedisConn implements AutoCloseable {
 
@@ -64,18 +63,18 @@ abstract class RedisConn implements AutoCloseable {
     }
   }
 
-  public void setInfinitSoTimeout() {
+  public void setSoTimeout(final int soTimeoutMillis) {
     try {
-      socket.setSoTimeout(0);
+      socket.setSoTimeout(soTimeoutMillis);
     } catch (final SocketException ex) {
       broken = true;
       throw new RedisConnectionException(getNode(), ex);
     }
   }
 
-  public void setSoTimeout(final int soTimeoutMillis) {
+  public void setInfinitSoTimeout() {
     try {
-      socket.setSoTimeout(soTimeoutMillis);
+      socket.setSoTimeout(0);
     } catch (final SocketException ex) {
       broken = true;
       throw new RedisConnectionException(getNode(), ex);

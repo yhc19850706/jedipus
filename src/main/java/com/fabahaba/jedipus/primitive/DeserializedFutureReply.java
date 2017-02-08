@@ -4,8 +4,8 @@ import java.util.function.Function;
 
 final class DeserializedFutureReply<T> extends StatefulFutureReply<T> {
 
-  private Object reply;
   private final Function<Object, T> deserializer;
+  private Object reply;
   private T deserialized = null;
 
   DeserializedFutureReply(final Function<Object, T> deserializer) {

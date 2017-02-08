@@ -32,12 +32,15 @@ final class LuaScriptData implements LuaScript {
 
   @Override
   public boolean equals(final Object other) {
-    if (this == other)
+    if (this == other) {
       return true;
-    if (other == null)
+    }
+    if (other == null) {
       return false;
-    if (!getClass().equals(other.getClass()))
+    }
+    if (!getClass().equals(other.getClass())) {
       return false;
+    }
     final LuaScriptData castOther = LuaScriptData.class.cast(other);
     return Arrays.equals(sha1HexBytes, castOther.sha1HexBytes);
   }

@@ -2,7 +2,6 @@ package com.fabahaba.jedipus.pool;
 
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.pool.EvictionStrategy.DefaultEvictionStrategy;
-
 import java.io.Serializable;
 import java.time.Duration;
 import java.util.NoSuchElementException;
@@ -10,6 +9,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public interface ClientPool<C> extends AutoCloseable {
+
+  Duration DEFAULT_MIN_EVICTABLE_IDLE_DURATION = Duration.ofMinutes(1);
+  Duration DEFAULT_SOFT_MIN_EVICTABLE_IDLE_DURATION = Duration.ofSeconds(30);
+  int MAX_IDLE = Runtime.getRuntime().availableProcessors();
+
+  static Builder startBuilding() {
+
+    return new Builder();
+  }
 
   Node getNode();
 
@@ -36,15 +44,6 @@ public interface ClientPool<C> extends AutoCloseable {
 
   boolean isClosed();
 
-  static Builder startBuilding() {
-
-    return new Builder();
-  }
-
-  Duration DEFAULT_MIN_EVICTABLE_IDLE_DURATION = Duration.ofMinutes(1);
-  Duration DEFAULT_SOFT_MIN_EVICTABLE_IDLE_DURATION = Duration.ofSeconds(30);
-  int MAX_IDLE = Runtime.getRuntime().availableProcessors();
-
   class Builder implements Serializable {
 
     private static final long serialVersionUID = 244281637319519560L;
@@ -70,7 +69,8 @@ public interface ClientPool<C> extends AutoCloseable {
     private int maxIdle = maxTotal;
     private int minIdle = 0;
 
-    private Builder() {}
+    private Builder() {
+    }
 
     public <C> ClientPool<C> create(final PooledClientFactory<C> clientFactory) {
       return create(null, clientFactory);

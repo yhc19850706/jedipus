@@ -6,6 +6,8 @@ import com.fabahaba.jedipus.cmds.RESP;
 
 public interface Node extends HostPort {
 
+  public static final NodeMapper DEFAULT_NODE_MAPPER = node -> node;
+
   public static Node create(final HostPort hostPort) {
     return new ClusterNode(hostPort, null);
   }
@@ -25,8 +27,6 @@ public interface Node extends HostPort {
   public static Node create(final String host, final int port, final String nodeId) {
     return create(HostPort.create(host, port), nodeId);
   }
-
-  public static final NodeMapper DEFAULT_NODE_MAPPER = node -> node;
 
   static Node create(final Object[] hostInfos) {
     return create(DEFAULT_NODE_MAPPER, hostInfos);

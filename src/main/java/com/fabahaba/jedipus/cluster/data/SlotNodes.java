@@ -1,9 +1,8 @@
 package com.fabahaba.jedipus.cluster.data;
 
+import com.fabahaba.jedipus.cluster.Node;
 import java.io.Serializable;
 import java.util.Arrays;
-
-import com.fabahaba.jedipus.cluster.Node;
 
 public final class SlotNodes implements Comparable<SlotNodes>, Serializable {
 
@@ -51,21 +50,28 @@ public final class SlotNodes implements Comparable<SlotNodes>, Serializable {
 
   @Override
   public boolean equals(final Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (obj == null)
+    }
+    if (obj == null) {
       return false;
-    if (getClass() != obj.getClass())
+    }
+    if (getClass() != obj.getClass()) {
       return false;
+    }
     final SlotNodes other = (SlotNodes) obj;
-    if (slotBegin != other.slotBegin)
+    if (slotBegin != other.slotBegin) {
       return false;
-    if (slotEndExclusive != other.slotEndExclusive)
+    }
+    if (slotEndExclusive != other.slotEndExclusive) {
       return false;
-    if (nodes.length == 0)
+    }
+    if (nodes.length == 0) {
       return other.nodes.length == 0;
-    if (other.nodes.length == 0)
+    }
+    if (other.nodes.length == 0) {
       return false;
+    }
 
     return nodes[0].equals(other.nodes[0]);
   }

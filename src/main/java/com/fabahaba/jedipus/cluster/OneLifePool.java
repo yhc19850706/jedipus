@@ -1,10 +1,9 @@
 package com.fabahaba.jedipus.cluster;
 
-import java.util.NoSuchElementException;
-import java.util.concurrent.TimeUnit;
-
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.pool.ClientPool;
+import java.util.NoSuchElementException;
+import java.util.concurrent.TimeUnit;
 
 final class OneLifePool implements ClientPool<RedisClient> {
 

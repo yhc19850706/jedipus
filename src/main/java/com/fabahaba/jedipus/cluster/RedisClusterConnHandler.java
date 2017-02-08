@@ -8,7 +8,6 @@ import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.exceptions.SlotMovedException;
 import com.fabahaba.jedipus.pool.ClientPool;
-
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;

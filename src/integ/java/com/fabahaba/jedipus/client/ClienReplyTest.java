@@ -3,10 +3,9 @@ package com.fabahaba.jedipus.client;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-import org.junit.Test;
-
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.RESP;
+import org.junit.Test;
 
 public class ClienReplyTest extends BaseRedisClientTest {
 

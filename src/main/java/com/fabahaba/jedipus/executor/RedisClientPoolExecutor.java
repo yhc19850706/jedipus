@@ -7,7 +7,6 @@ import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.pool.ClientPool;
 import com.fabahaba.jedipus.pool.RedisClientPool;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
-
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
@@ -17,9 +16,9 @@ final class RedisClientPoolExecutor implements RedisClientExecutor {
   private final Supplier<Node> nodeSupplier;
   private final RedisClientFactory.Builder clientFactory;
   private final ClientPool.Builder poolFactory;
-  private volatile ClientPool<RedisClient> clientPool;
   private final ElementRetryDelay<Node> retryDelay;
   private final int maxRetries;
+  private volatile ClientPool<RedisClient> clientPool;
 
   RedisClientPoolExecutor(final Supplier<Node> nodeSupplier,
       final RedisClientFactory.Builder clientFactory, final ClientPool.Builder poolFactory,
@@ -34,7 +33,7 @@ final class RedisClientPoolExecutor implements RedisClientExecutor {
 
   @Override
   public long applyPrim(final ToLongFunction<RedisClient> clientConsumer, final int maxRetries) {
-    for (;;) {
+    for (; ; ) {
       final ClientPool<RedisClient> clientPool = this.clientPool;
       RedisClient client = null;
       try {
@@ -52,7 +51,7 @@ final class RedisClientPoolExecutor implements RedisClientExecutor {
 
   @Override
   public <R> R apply(final Function<RedisClient, R> clientConsumer, final int maxRetries) {
-    for (;;) {
+    for (; ; ) {
       final ClientPool<RedisClient> clientPool = this.clientPool;
       RedisClient client = null;
       try {

@@ -13,7 +13,6 @@ import com.fabahaba.jedipus.exceptions.RedisRetryableUnhandledException;
 import com.fabahaba.jedipus.exceptions.SlotMovedException;
 import com.fabahaba.jedipus.pool.ClientPool;
 import com.fabahaba.jedipus.pool.RedisClientPool;
-
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,31 +35,26 @@ import java.util.function.Supplier;
 
 class RedisClusterSlotCache implements AutoCloseable {
 
+  final Map<Node, ClientPool<RedisClient>> masterPools;
+  final Map<Node, ClientPool<RedisClient>> slavePools;
+  final Function<Node, RedisClient> nodeUnknownFactory;
   private final ReadMode defaultReadMode;
-
-  private volatile Supplier<Collection<Node>> discoveryNodeSupplier;
   private final PartitionedStrategyConfig partitionedStrategyConfig;
   private final NodeMapper nodeMapper;
-
-  final Map<Node, ClientPool<RedisClient>> masterPools;
   private final ClientPool<RedisClient>[] masterSlots;
-
   private final Function<ClientPool<RedisClient>[], LoadBalancedPools<RedisClient, ReadMode>>
       lbFactory;
-  final Map<Node, ClientPool<RedisClient>> slavePools;
   private final LoadBalancedPools<RedisClient, ReadMode>[] slaveSlots;
 
   private final boolean optimisticReads;
   private final long maxAwaitCacheRefreshNanos;
   private final StampedLock lock;
   private final long millisBetweenSlotCacheRefresh;
-  private volatile long refreshStamp = 0;
-
   private final Function<Node, ClientPool<RedisClient>> masterPoolFactory;
   private final Function<Node, ClientPool<RedisClient>> slavePoolFactory;
-  final Function<Node, RedisClient> nodeUnknownFactory;
-
   private final ElementRetryDelay<Node> clusterNodeRetryDelay;
+  private volatile Supplier<Collection<Node>> discoveryNodeSupplier;
+  private volatile long refreshStamp = 0;
 
   RedisClusterSlotCache(final ReadMode defaultReadMode,
       final boolean optimisticReads,
@@ -103,18 +97,6 @@ class RedisClusterSlotCache implements AutoCloseable {
     this.lbFactory = lbFactory;
 
     this.clusterNodeRetryDelay = clusterNodeRetryDelay;
-  }
-
-  ReadMode getDefaultReadMode() {
-    return defaultReadMode;
-  }
-
-  Function<Node, RedisClient> getNodeUnknownFactory() {
-    return nodeUnknownFactory;
-  }
-
-  ElementRetryDelay<Node> getClusterNodeRetryDelay() {
-    return clusterNodeRetryDelay;
   }
 
   @SuppressWarnings("unchecked")
@@ -220,93 +202,6 @@ class RedisClusterSlotCache implements AutoCloseable {
         nodeUnknownFactory, lbFactory, clusterNodeRetryDelay);
   }
 
-  void discoverClusterSlots(final SlotMovedException moveEx) {
-    switch (defaultReadMode) {
-      case MIXED_SLAVES:
-      case MIXED:
-      case MASTER:
-        synchronized (masterPoolFactory) {
-          if (!lock.isWriteLocked()) {
-            ForkJoinPool.commonPool().execute(this::discoverClusterSlots);
-          }
-          masterSlots[moveEx.getSlot()] = masterPools.computeIfAbsent(moveEx.getTargetNode(),
-              masterPoolFactory);
-        }
-        return;
-      case SLAVES:
-      default:
-        discoverClusterSlots();
-        return;
-    }
-  }
-
-  void discoverClusterSlots() {
-    final long dedupeDiscovery = refreshStamp;
-    long writeStamp;
-
-    try {
-      if (maxAwaitCacheRefreshNanos == 0) {
-        writeStamp = lock.writeLock();
-      } else {
-        writeStamp = lock.tryWriteLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
-        if (writeStamp == 0) {
-          // allow dirty retry
-          return;
-        }
-      }
-    } catch (final InterruptedException ie) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException(ie);
-    }
-
-    if (dedupeDiscovery != refreshStamp) {
-      return;
-    }
-
-    try {
-      final ClusterSlotVotes[] slotNodesCandidates = getSlotNodesVotes();
-      if (slotNodesCandidates.length == 0) {
-        return;
-      }
-
-      switch (partitionedStrategyConfig.getStrategy()) {
-        case TOP:
-          cacheClusterSlots(slotNodesCandidates[0]);
-          return;
-        case MAJORITY:
-          if (slotNodesCandidates.length > 1) {
-            final int numWinningVotes = slotNodesCandidates[0].getNodeVotes().size();
-            double numVotes = 0;
-            for (final ClusterSlotVotes vote : slotNodesCandidates) {
-              numVotes += vote.getNodeVotes().size();
-            }
-
-            if (numWinningVotes / numVotes <= partitionedStrategyConfig
-                .getMinMajorityPercentExclusive()) {
-              throw new RedisClusterPartitionedException(slotNodesCandidates);
-            }
-          }
-
-          cacheClusterSlots(slotNodesCandidates[0]);
-          return;
-        case THROW:
-          if (slotNodesCandidates.length > 1) {
-            throw new RedisClusterPartitionedException(slotNodesCandidates);
-          }
-          cacheClusterSlots(slotNodesCandidates[0]);
-          return;
-        default:
-          return;
-      }
-    } finally {
-      try {
-        refreshStamp = System.currentTimeMillis();
-      } finally {
-        lock.unlockWrite(writeStamp);
-      }
-    }
-  }
-
   private static void initSlotCache(final ClusterSlotVotes clusterSlots,
       final ReadMode defaultReadMode, final NodeMapper nodeMapper,
       final Function<Node, ClientPool<RedisClient>> masterPoolFactory,
@@ -337,11 +232,10 @@ class RedisClusterSlotCache implements AutoCloseable {
         continue;
       }
 
-      @SuppressWarnings("unchecked")
-      final ClientPool<RedisClient>[] slotSlavePools =
+      @SuppressWarnings("unchecked") final ClientPool<RedisClient>[] slotSlavePools =
           new ClientPool[slotNodes.getNumNodesServingSlots() - 1];
 
-      for (int i = 1, poolIndex = 0;i < slotNodes.getNumNodesServingSlots();i++) {
+      for (int i = 1, poolIndex = 0; i < slotNodes.getNumNodesServingSlots(); i++) {
         final Node slaveNode = nodeMapper.apply(slotNodes.getNode(i));
         switch (defaultReadMode) {
           case SLAVES:
@@ -360,79 +254,6 @@ class RedisClusterSlotCache implements AutoCloseable {
       final LoadBalancedPools<RedisClient, ReadMode> lbPools = lbFactory.apply(slotSlavePools);
       Arrays.fill(slaveSlots, slotNodes.getSlotBegin(), slotNodes.getSlotEndExclusive(), lbPools);
     }
-  }
-
-  private void slotCacheRefreshDelay() {
-    if (millisBetweenSlotCacheRefresh <= 0) {
-      return;
-    }
-
-    final long delayMillis =
-        (refreshStamp + millisBetweenSlotCacheRefresh) - System.currentTimeMillis();
-
-    if (delayMillis > 0) {
-      try {
-        Thread.sleep(delayMillis);
-      } catch (final InterruptedException ie) {
-        Thread.currentThread().interrupt();
-        throw new IllegalStateException(ie);
-      }
-    }
-  }
-
-  private ClusterSlotVotes[] getSlotNodesVotes() {
-    slotCacheRefreshDelay();
-
-    final AtomicInteger maxVotes = new AtomicInteger(partitionedStrategyConfig.getMaxVotes());
-
-    switch (defaultReadMode) {
-      case MASTER:
-      case MIXED:
-      case MIXED_SLAVES:
-        final Map<ClusterSlotVotes, ClusterSlotVotes> clusterSlots = new
-            ConcurrentHashMap<>(4);
-        final Queue<ForkJoinTask<?>> voteFutures = new ConcurrentLinkedQueue<>();
-        final ForkJoinPool forkJoinPool = ForkJoinPool.commonPool();
-
-        final Set<Node> knownMasters =
-            Collections.newSetFromMap(new ConcurrentHashMap<>(masterPools.size()));
-        knownMasters.addAll(masterPools.keySet());
-
-        for (final Entry<Node, ClientPool<RedisClient>> pool : masterPools.entrySet()) {
-          if (maxVotes.getAndUpdate(i -> --i < 0 ? 0 : i) == 0) {
-            if (voteFutures.isEmpty()) {
-              break;
-            }
-
-            for (;;) {
-              final ForkJoinTask<?> voteFuture = voteFutures.poll();
-              if (voteFuture == null) {
-                break;
-              }
-              voteFuture.join();
-            }
-
-            if (maxVotes.get() == 0) {
-              break;
-            }
-          }
-
-          voteFutures.add(forkJoinPool.submit(() -> getSlotNodesVotes(knownMasters, nodeMapper,
-              nodeUnknownFactory, clusterSlots, pool, voteFutures, maxVotes)));
-        }
-
-        final ClusterSlotVotes[] sortedClusterNodes = awaitAndSortVotes(voteFutures,
-            clusterSlots);
-        if (sortedClusterNodes.length == 0) {
-          break;
-        }
-        return sortedClusterNodes;
-      case SLAVES:
-      default:
-        break;
-    }
-
-    return getSlotNodesVotes(discoveryNodeSupplier.get(), nodeMapper, nodeUnknownFactory, maxVotes);
   }
 
   private static ClusterSlotVotes[] getSlotNodesVotes(final Collection<Node> nodes,
@@ -455,7 +276,7 @@ class RedisClusterSlotCache implements AutoCloseable {
           break;
         }
 
-        for (;;) {
+        for (; ; ) {
           final ForkJoinTask<?> voteFuture = voteFutures.poll();
           if (voteFuture == null) {
             break;
@@ -485,7 +306,7 @@ class RedisClusterSlotCache implements AutoCloseable {
   private static ClusterSlotVotes[] awaitAndSortVotes(final Queue<ForkJoinTask<?>> voteFutures,
       final Map<ClusterSlotVotes, ClusterSlotVotes> clusterSlots) {
 
-    for (;;) {
+    for (; ; ) {
       final ForkJoinTask<?> voteFuture = voteFutures.poll();
       if (voteFuture == null) {
         break;
@@ -573,6 +394,178 @@ class RedisClusterSlotCache implements AutoCloseable {
     }
   }
 
+  ReadMode getDefaultReadMode() {
+    return defaultReadMode;
+  }
+
+  Function<Node, RedisClient> getNodeUnknownFactory() {
+    return nodeUnknownFactory;
+  }
+
+  ElementRetryDelay<Node> getClusterNodeRetryDelay() {
+    return clusterNodeRetryDelay;
+  }
+
+  void discoverClusterSlots(final SlotMovedException moveEx) {
+    switch (defaultReadMode) {
+      case MIXED_SLAVES:
+      case MIXED:
+      case MASTER:
+        synchronized (masterPoolFactory) {
+          if (!lock.isWriteLocked()) {
+            ForkJoinPool.commonPool().execute(this::discoverClusterSlots);
+          }
+          masterSlots[moveEx.getSlot()] = masterPools.computeIfAbsent(moveEx.getTargetNode(),
+              masterPoolFactory);
+        }
+        return;
+      case SLAVES:
+      default:
+        discoverClusterSlots();
+        return;
+    }
+  }
+
+  void discoverClusterSlots() {
+    final long dedupeDiscovery = refreshStamp;
+    long writeStamp;
+
+    try {
+      if (maxAwaitCacheRefreshNanos == 0) {
+        writeStamp = lock.writeLock();
+      } else {
+        writeStamp = lock.tryWriteLock(maxAwaitCacheRefreshNanos, TimeUnit.NANOSECONDS);
+        if (writeStamp == 0) {
+          // allow dirty retry
+          return;
+        }
+      }
+    } catch (final InterruptedException ie) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(ie);
+    }
+
+    if (dedupeDiscovery != refreshStamp) {
+      return;
+    }
+
+    try {
+      final ClusterSlotVotes[] slotNodesCandidates = getSlotNodesVotes();
+      if (slotNodesCandidates.length == 0) {
+        return;
+      }
+
+      switch (partitionedStrategyConfig.getStrategy()) {
+        case TOP:
+          cacheClusterSlots(slotNodesCandidates[0]);
+          return;
+        case MAJORITY:
+          if (slotNodesCandidates.length > 1) {
+            final int numWinningVotes = slotNodesCandidates[0].getNodeVotes().size();
+            double numVotes = 0;
+            for (final ClusterSlotVotes vote : slotNodesCandidates) {
+              numVotes += vote.getNodeVotes().size();
+            }
+
+            if (numWinningVotes / numVotes <= partitionedStrategyConfig
+                .getMinMajorityPercentExclusive()) {
+              throw new RedisClusterPartitionedException(slotNodesCandidates);
+            }
+          }
+
+          cacheClusterSlots(slotNodesCandidates[0]);
+          return;
+        case THROW:
+          if (slotNodesCandidates.length > 1) {
+            throw new RedisClusterPartitionedException(slotNodesCandidates);
+          }
+          cacheClusterSlots(slotNodesCandidates[0]);
+          return;
+        default:
+          return;
+      }
+    } finally {
+      try {
+        refreshStamp = System.currentTimeMillis();
+      } finally {
+        lock.unlockWrite(writeStamp);
+      }
+    }
+  }
+
+  private void slotCacheRefreshDelay() {
+    if (millisBetweenSlotCacheRefresh <= 0) {
+      return;
+    }
+
+    final long delayMillis =
+        (refreshStamp + millisBetweenSlotCacheRefresh) - System.currentTimeMillis();
+
+    if (delayMillis > 0) {
+      try {
+        Thread.sleep(delayMillis);
+      } catch (final InterruptedException ie) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException(ie);
+      }
+    }
+  }
+
+  private ClusterSlotVotes[] getSlotNodesVotes() {
+    slotCacheRefreshDelay();
+
+    final AtomicInteger maxVotes = new AtomicInteger(partitionedStrategyConfig.getMaxVotes());
+
+    switch (defaultReadMode) {
+      case MASTER:
+      case MIXED:
+      case MIXED_SLAVES:
+        final Map<ClusterSlotVotes, ClusterSlotVotes> clusterSlots = new
+            ConcurrentHashMap<>(4);
+        final Queue<ForkJoinTask<?>> voteFutures = new ConcurrentLinkedQueue<>();
+        final ForkJoinPool forkJoinPool = ForkJoinPool.commonPool();
+
+        final Set<Node> knownMasters =
+            Collections.newSetFromMap(new ConcurrentHashMap<>(masterPools.size()));
+        knownMasters.addAll(masterPools.keySet());
+
+        for (final Entry<Node, ClientPool<RedisClient>> pool : masterPools.entrySet()) {
+          if (maxVotes.getAndUpdate(i -> --i < 0 ? 0 : i) == 0) {
+            if (voteFutures.isEmpty()) {
+              break;
+            }
+
+            for (; ; ) {
+              final ForkJoinTask<?> voteFuture = voteFutures.poll();
+              if (voteFuture == null) {
+                break;
+              }
+              voteFuture.join();
+            }
+
+            if (maxVotes.get() == 0) {
+              break;
+            }
+          }
+
+          voteFutures.add(forkJoinPool.submit(() -> getSlotNodesVotes(knownMasters, nodeMapper,
+              nodeUnknownFactory, clusterSlots, pool, voteFutures, maxVotes)));
+        }
+
+        final ClusterSlotVotes[] sortedClusterNodes = awaitAndSortVotes(voteFutures,
+            clusterSlots);
+        if (sortedClusterNodes.length == 0) {
+          break;
+        }
+        return sortedClusterNodes;
+      case SLAVES:
+      default:
+        break;
+    }
+
+    return getSlotNodesVotes(discoveryNodeSupplier.get(), nodeMapper, nodeUnknownFactory, maxVotes);
+  }
+
   private void cacheClusterSlots(final ClusterSlotVotes clusterSlots) {
     final Set<Node> staleMasterPools = new HashSet<>(masterPools.keySet());
     final Set<Node> staleSlavePools = new HashSet<>(slavePools.keySet());
@@ -612,11 +605,10 @@ class RedisClusterSlotCache implements AutoCloseable {
         continue;
       }
 
-      @SuppressWarnings("unchecked")
-      final ClientPool<RedisClient>[] slotSlavePools =
+      @SuppressWarnings("unchecked") final ClientPool<RedisClient>[] slotSlavePools =
           new ClientPool[slotNodes.getNumNodesServingSlots() - 1];
 
-      for (int i = 1, poolIndex = 0;i < slotNodes.getNumNodesServingSlots();i++) {
+      for (int i = 1, poolIndex = 0; i < slotNodes.getNumNodesServingSlots(); i++) {
         final Node slaveNode = nodeMapper.apply(slotNodes.getNode(i));
         switch (defaultReadMode) {
           case SLAVES:

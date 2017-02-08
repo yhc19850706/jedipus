@@ -1,5 +1,11 @@
 package com.fabahaba.jedipus.cluster;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import com.fabahaba.jedipus.client.BaseRedisClientTest;
 import com.fabahaba.jedipus.client.FutureLongReply;
 import com.fabahaba.jedipus.client.FutureReply;
@@ -17,13 +23,6 @@ import com.fabahaba.jedipus.exceptions.SlotMovedException;
 import com.fabahaba.jedipus.exceptions.UnhandledAskNodeException;
 import com.fabahaba.jedipus.pool.ClientPool;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
-
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -42,45 +41,38 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class RedisClusterTest extends BaseRedisClientTest {
 
+  static final Cmd<Object> CLIENT = Cmd.createCast("CLIENT");
+  static final Cmd<String> CLIENT_KILL = Cmd.createStringReply("KILL");
   private static final int MAX_WAIT_CLUSTER_READY = 1000;
-
   private static final String ANNOUNCE_IP = Optional
       .ofNullable(System.getProperty("jedipus.redis.cluster.announceip")).orElse("127.0.0.1");
-
   private static final int STARTING_PORT =
       Optional.ofNullable(System.getProperty("jedipus.redis.cluster.startingport"))
           .map(Integer::parseInt).orElse(7379);
-
   private static final int NUM_MASTERS =
       Optional.ofNullable(System.getProperty("jedipus.redis.cluster.nummasters"))
           .map(Integer::parseInt).orElse(3);
-
+  static final RedisClient[] masterClients = new RedisClient[NUM_MASTERS];
   private static final int NUM_SLAVES_EACH =
       Optional.ofNullable(System.getProperty("jedipus.redis.cluster.numslaveseach"))
           .map(Integer::parseInt).orElse(1);
-
   private static final int NUM_SLAVES = NUM_MASTERS * NUM_SLAVES_EACH;
   private static final RedisClientFactory.Builder REDIS_CLIENT_BUILDER =
       RedisClientFactory.startBuilding();
-
   private static final Node[] masters = new Node[NUM_MASTERS];
   private static final Node[] slaves = new Node[NUM_SLAVES];
   private static final int MAX_SLOT_RANGE = (int) Math.ceil(CRC16.NUM_SLOTS / (double) NUM_MASTERS);
   private static final int[][] slots = new int[NUM_MASTERS][];
-
-  private static Set<Node> discoveryNodes;
   private static final Queue<Node> pendingReset = new ArrayDeque<>(NUM_SLAVES);
-
-  static final RedisClient[] masterClients = new RedisClient[NUM_MASTERS];
+  private static Set<Node> discoveryNodes;
 
   @BeforeClass
   public static void beforeClass() {
@@ -99,53 +91,6 @@ public class RedisClusterTest extends BaseRedisClientTest {
     discoveryNodes = Collections.singleton(masters[0]);
     for (int i = 0; i < NUM_SLAVES; i++, port++) {
       slaves[i] = Node.create(ANNOUNCE_IP, port);
-    }
-  }
-
-  @Override
-  @Before
-  public void before() {
-    for (;;) {
-      for (final RedisClient client : masterClients) {
-        client.skip().sendCmd(Cmds.FLUSHALL);
-        client.skip().clusterReset(Cmds.SOFT);
-      }
-
-      for (int i = 0; i < NUM_MASTERS; i++) {
-        final RedisClient client = masterClients[i];
-        client.clusterAddSlots(slots[i]);
-        for (final Node meetNode : slaves) {
-          client.skip().clusterMeet(meetNode.getHost(), meetNode.getPort());
-        }
-        masterClients[(i == 0 ? NUM_MASTERS : i) - 1].skip().clusterMeet(client.getHost(),
-            client.getPort());
-      }
-
-      if (waitForClusterReady(masterClients)) {
-        return;
-      }
-
-      log.warning("Timed out setting up cluster for test, trying again...");
-      for (final Node node : slaves) {
-        try (final RedisClient client = REDIS_CLIENT_BUILDER.create(node)) {
-          client.clusterReset(Cmds.SOFT);
-        }
-      }
-    }
-  }
-
-  @Override
-  @After
-  public void after() {
-    for (;;) {
-      final Node node = pendingReset.poll();
-      if (node == null) {
-        break;
-      }
-      try (final RedisClient client = RedisClientFactory.startBuilding().create(node)) {
-        client.skip().sendCmd(Cmds.FLUSHALL);
-        client.clusterReset(Cmds.SOFT);
-      }
     }
   }
 
@@ -210,6 +155,53 @@ public class RedisClusterTest extends BaseRedisClientTest {
 
   private static int rotateSlotNode(final int slot) {
     return (slot + MAX_SLOT_RANGE) % CRC16.NUM_SLOTS;
+  }
+
+  @Override
+  @Before
+  public void before() {
+    for (; ; ) {
+      for (final RedisClient client : masterClients) {
+        client.skip().sendCmd(Cmds.FLUSHALL);
+        client.skip().clusterReset(Cmds.SOFT);
+      }
+
+      for (int i = 0; i < NUM_MASTERS; i++) {
+        final RedisClient client = masterClients[i];
+        client.clusterAddSlots(slots[i]);
+        for (final Node meetNode : slaves) {
+          client.skip().clusterMeet(meetNode.getHost(), meetNode.getPort());
+        }
+        masterClients[(i == 0 ? NUM_MASTERS : i) - 1].skip().clusterMeet(client.getHost(),
+            client.getPort());
+      }
+
+      if (waitForClusterReady(masterClients)) {
+        return;
+      }
+
+      log.warning("Timed out setting up cluster for test, trying again...");
+      for (final Node node : slaves) {
+        try (final RedisClient client = REDIS_CLIENT_BUILDER.create(node)) {
+          client.clusterReset(Cmds.SOFT);
+        }
+      }
+    }
+  }
+
+  @Override
+  @After
+  public void after() {
+    for (; ; ) {
+      final Node node = pendingReset.poll();
+      if (node == null) {
+        break;
+      }
+      try (final RedisClient client = RedisClientFactory.startBuilding().create(node)) {
+        client.skip().sendCmd(Cmds.FLUSHALL);
+        client.clusterReset(Cmds.SOFT);
+      }
+    }
   }
 
   @Test
@@ -698,9 +690,6 @@ public class RedisClusterTest extends BaseRedisClientTest {
     }
   }
 
-  static final Cmd<Object> CLIENT = Cmd.createCast("CLIENT");
-  static final Cmd<String> CLIENT_KILL = Cmd.createStringReply("KILL");
-
   @Test
   public void testReturnConnectionOnRedisConnectionException() {
     final String keyString = "42";
@@ -787,7 +776,7 @@ public class RedisClusterTest extends BaseRedisClientTest {
         .startBuilding(Node.create("localhost", STARTING_PORT))
         .withPartitionedStrategy(PartitionedStrategyConfig.Strategy.TOP.create()).create()) {
 
-      final String[] bitfieldOverflowExample = new String[] {key, Cmds.BITFIELD_INCRBY.name(), "u2",
+      final String[] bitfieldOverflowExample = new String[]{key, Cmds.BITFIELD_INCRBY.name(), "u2",
           "100", "1", Cmds.BITFIELD_OVERFLOW.name(), Cmds.BITFIELD_SAT.name(),
           Cmds.BITFIELD_INCRBY.name(), "u2", "102", "1"};
 

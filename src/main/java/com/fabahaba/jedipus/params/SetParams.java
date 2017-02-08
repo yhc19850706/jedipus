@@ -6,7 +6,8 @@ import com.fabahaba.jedipus.cmds.RESP;
 public final class SetParams {
 
   // http://redis.io/commands/set
-  private SetParams() {}
+  private SetParams() {
+  }
 
   public static byte[][] createPX(final String key, final String value, final long millis) {
 
@@ -15,7 +16,7 @@ public final class SetParams {
 
   public static byte[][] createPX(final byte[] key, final byte[] value, final byte[] millis) {
 
-    return new byte[][] {key, value, Cmds.PX.getCmdBytes(), millis};
+    return new byte[][]{key, value, Cmds.PX.getCmdBytes(), millis};
   }
 
   public static byte[][] createXX(final String key, final String value) {
@@ -25,7 +26,7 @@ public final class SetParams {
 
   public static byte[][] createXX(final byte[] key, final byte[] value) {
 
-    return new byte[][] {key, value, Cmds.XX.getCmdBytes()};
+    return new byte[][]{key, value, Cmds.XX.getCmdBytes()};
   }
 
   public static byte[][] createNX(final String key, final String value) {
@@ -35,7 +36,7 @@ public final class SetParams {
 
   public static byte[][] createNX(final byte[] key, final byte[] value) {
 
-    return new byte[][] {key, value, Cmds.NX.getCmdBytes()};
+    return new byte[][]{key, value, Cmds.NX.getCmdBytes()};
   }
 
   public static byte[][] createPXXX(final String key, final String value, final long millis) {
@@ -45,7 +46,7 @@ public final class SetParams {
 
   public static byte[][] createPXXX(final byte[] key, final byte[] value, final byte[] millis) {
 
-    return new byte[][] {key, value, Cmds.PX.getCmdBytes(), millis, Cmds.XX.getCmdBytes()};
+    return new byte[][]{key, value, Cmds.PX.getCmdBytes(), millis, Cmds.XX.getCmdBytes()};
   }
 
   public static byte[][] createPXNX(final String key, final String value, final long millis) {
@@ -55,7 +56,7 @@ public final class SetParams {
 
   public static byte[][] createPXNX(final byte[] key, final byte[] value, final byte[] millis) {
 
-    return new byte[][] {key, value, Cmds.PX.getCmdBytes(), millis, Cmds.NX.getCmdBytes()};
+    return new byte[][]{key, value, Cmds.PX.getCmdBytes(), millis, Cmds.NX.getCmdBytes()};
   }
 
   public static byte[][] createPX(final String key, final String value, final long millis,
@@ -68,7 +69,7 @@ public final class SetParams {
   public static byte[][] createPX(final byte[] key, final byte[] value, final byte[] millis,
       final byte[] nxxx) {
 
-    return new byte[][] {key, value, Cmds.PX.getCmdBytes(), millis, nxxx};
+    return new byte[][]{key, value, Cmds.PX.getCmdBytes(), millis, nxxx};
   }
 
   public static byte[][] createEX(final String key, final String value, final int seconds) {
@@ -78,7 +79,7 @@ public final class SetParams {
 
   public static byte[][] createEX(final byte[] key, final byte[] value, final byte[] seconds) {
 
-    return new byte[][] {key, value, Cmds.EX.getCmdBytes(), seconds};
+    return new byte[][]{key, value, Cmds.EX.getCmdBytes(), seconds};
   }
 
   public static byte[][] createEXXX(final String key, final String value, final int seconds) {
@@ -88,7 +89,7 @@ public final class SetParams {
 
   public static byte[][] createEXXX(final byte[] key, final byte[] value, final byte[] seconds) {
 
-    return new byte[][] {key, value, Cmds.EX.getCmdBytes(), seconds, Cmds.XX.getCmdBytes()};
+    return new byte[][]{key, value, Cmds.EX.getCmdBytes(), seconds, Cmds.XX.getCmdBytes()};
   }
 
   public static byte[][] createEXNX(final String key, final String value, final int seconds) {
@@ -98,7 +99,7 @@ public final class SetParams {
 
   public static byte[][] createEXNX(final byte[] key, final byte[] value, final byte[] seconds) {
 
-    return new byte[][] {key, value, Cmds.EX.getCmdBytes(), seconds, Cmds.NX.getCmdBytes()};
+    return new byte[][]{key, value, Cmds.EX.getCmdBytes(), seconds, Cmds.NX.getCmdBytes()};
   }
 
   public static byte[][] createEX(final String key, final String value, final int seconds,
@@ -111,7 +112,7 @@ public final class SetParams {
   public static byte[][] createEX(final byte[] key, final byte[] value, final byte[] seconds,
       final byte[] nxxx) {
 
-    return new byte[][] {key, value, Cmds.EX.getCmdBytes(), seconds, nxxx};
+    return new byte[][]{key, value, Cmds.EX.getCmdBytes(), seconds, nxxx};
   }
 
   public static byte[][] fillPX(final byte[][] args, final byte[] millis) {

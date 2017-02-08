@@ -5,10 +5,6 @@ import com.fabahaba.jedipus.cmds.RESP;
 
 public interface RedisClient extends Cmds, AutoCloseable {
 
-  enum ReplyMode {
-    ON, OFF, SKIP
-  }
-
   void asking();
 
   String replyOn();
@@ -17,13 +13,13 @@ public interface RedisClient extends Cmds, AutoCloseable {
 
   RedisClient skip();
 
-  void setSoTimeout(final int soTimeoutMillis);
-
   void setInfinitSoTimeout();
 
   void resetSoTimeout();
 
   int getSoTimeout();
+
+  void setSoTimeout(final int soTimeoutMillis);
 
   boolean isBroken();
 
@@ -65,4 +61,8 @@ public interface RedisClient extends Cmds, AutoCloseable {
   String unwatch();
 
   void flush();
+
+  enum ReplyMode {
+    ON, OFF, SKIP
+  }
 }

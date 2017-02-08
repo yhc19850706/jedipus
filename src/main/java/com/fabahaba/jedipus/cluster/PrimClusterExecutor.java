@@ -3,7 +3,6 @@ package com.fabahaba.jedipus.cluster;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.client.RedisPipeline;
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
-
 import java.util.function.ToLongFunction;
 
 public interface PrimClusterExecutor {

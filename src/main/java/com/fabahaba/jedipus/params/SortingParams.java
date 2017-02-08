@@ -6,7 +6,8 @@ import com.fabahaba.jedipus.cmds.RESP;
 public final class SortingParams {
 
   // http://redis.io/commands/sort
-  private SortingParams() {}
+  private SortingParams() {
+  }
 
   public static Builder build() {
 
@@ -15,11 +16,14 @@ public final class SortingParams {
 
   public static class Builder {
 
+    private static final byte[] NOSORT = RESP.toBytes("nosort");
+    private static final byte[] STORE = RESP.toBytes("store");
     // _0_____1_______2______3______4________5________6_______7________8
     // [BY pattern] [LIMIT offset count] [ASC|DESC] [ALPHA] [STORE destination] [GET pattern...]
     private final byte[][] ops = new byte[9][];
 
-    private Builder() {}
+    private Builder() {
+    }
 
     private static int getOpsCount(final byte[][] ops) {
 
@@ -107,8 +111,6 @@ public final class SortingParams {
       return by(RESP.toBytes(by));
     }
 
-    private static final byte[] NOSORT = RESP.toBytes("nosort");
-
     public Builder nosort() {
 
       return by(NOSORT);
@@ -156,8 +158,6 @@ public final class SortingParams {
 
       return setStore(RESP.toBytes(destination));
     }
-
-    private static final byte[] STORE = RESP.toBytes("store");
 
     public Builder setStore(final byte[] destination) {
 

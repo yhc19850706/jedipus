@@ -1,7 +1,6 @@
 package com.fabahaba.jedipus.cmds;
 
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
-
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
@@ -10,11 +9,10 @@ public final class RESP {
   public static final String OK = "OK";
 
   public static final String CRLF_REGEX = "\\r?\\n+";
-
-  private RESP() {}
-
   private static final byte[] BYTES_TRUE = RESP.toBytes(1);
   private static final byte[] BYTES_FALSE = RESP.toBytes(0);
+  private RESP() {
+  }
 
   public static byte[] toBytes(final boolean bool) {
     return bool ? BYTES_TRUE : BYTES_FALSE;

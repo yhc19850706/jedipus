@@ -3,7 +3,6 @@ package com.fabahaba.jedipus.cluster;
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.client.RedisPipeline;
 import com.fabahaba.jedipus.client.SerializableSupplier;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -13,10 +12,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public interface RedisClusterExecutor extends PrimClusterExecutor, AutoCloseable {
-
-  enum ReadMode {
-    MASTER, SLAVES, MIXED, MIXED_SLAVES
-  }
 
   static ClusterExecutorBuilder startBuilding() {
     return new ClusterExecutorBuilder(null);
@@ -30,7 +25,8 @@ public interface RedisClusterExecutor extends PrimClusterExecutor, AutoCloseable
     return startBuilding(() -> discoveryNodes);
   }
 
-  static ClusterExecutorBuilder startBuilding(final SerializableSupplier<Collection<Node>> discoveryNodes) {
+  static ClusterExecutorBuilder startBuilding(
+      final SerializableSupplier<Collection<Node>> discoveryNodes) {
     return new ClusterExecutorBuilder(discoveryNodes);
   }
 
@@ -932,4 +928,8 @@ public interface RedisClusterExecutor extends PrimClusterExecutor, AutoCloseable
       final int maxRetries);
 
   void refreshSlotCache();
+
+  enum ReadMode {
+    MASTER, SLAVES, MIXED, MIXED_SLAVES
+  }
 }

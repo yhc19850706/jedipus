@@ -10,7 +10,7 @@ public interface Cmd<R> extends Function<Object, R> {
 
   Function<Object, Object[]> IN_PLACE_STRING_ARRAY_REPLY = obj -> {
     final Object[] array = (Object[]) obj;
-    for (int i = 0;i < array.length;i++) {
+    for (int i = 0; i < array.length; i++) {
       array[i] = RESP.toString(array[i]);
     }
     return array;
@@ -19,15 +19,11 @@ public interface Cmd<R> extends Function<Object, R> {
   Function<Object, String[]> STRING_ARRAY_REPLY = obj -> {
     final Object[] array = (Object[]) obj;
     final String[] stringArray = new String[array.length];
-    for (int i = 0;i < array.length;i++) {
+    for (int i = 0; i < array.length; i++) {
       stringArray[i] = RESP.toString(array[i]);
     }
     return stringArray;
   };
-
-  default <A> Cmd<A> adapt(final Function<Object, A> replyHandler) {
-    return new HandledReplyCmd<>(name(), replyHandler);
-  }
 
   static <R> Cmd<R> create(final String name, final Function<Object, R> replyHandler) {
     return new HandledReplyCmd<>(name, replyHandler);
@@ -51,6 +47,10 @@ public interface Cmd<R> extends Function<Object, R> {
 
   static <R> Cmd<R> createCast(final String name) {
     return new DirectReplyCmd<>(name);
+  }
+
+  default <A> Cmd<A> adapt(final Function<Object, A> replyHandler) {
+    return new HandledReplyCmd<>(name(), replyHandler);
   }
 
   Cmd<Object> raw();

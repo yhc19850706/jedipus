@@ -2,7 +2,6 @@ package com.fabahaba.jedipus.concurrent;
 
 import com.fabahaba.jedipus.client.SerializableLongFunction;
 import com.fabahaba.jedipus.cluster.Node;
-
 import java.io.Serializable;
 import java.time.Duration;
 import java.util.function.LongFunction;
@@ -10,14 +9,72 @@ import java.util.function.LongFunction;
 public interface ElementRetryDelay<E> {
 
   /**
+   * @param baseFactor used as {@code Math.exp(x) * baseFactor}.
+   * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
+   * multiplies it by the {@code baseFactor}.
+   */
+  static LongFunction<Duration> exponentialBackoff(final Duration baseFactor) {
+    return exponentialBackoff(baseFactor.toMillis());
+  }
+
+  /**
+   * @param baseDelayMillis used as {@code Math.exp(x) * baseFactorMillis}.
+   * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
+   * multiplies it by the {@code baseFactorMillis}.
+   */
+  static LongFunction<Duration> exponentialBackoff(final double baseDelayMillis) {
+    return exponentialBackoff(baseDelayMillis, Long.MAX_VALUE);
+  }
+
+  /**
+   * @param baseDelayMillis used as {@code Math.exp(x) * baseFactorMillis}.
+   * @param maxDelayMillis the maximum delay duration this function may return.
+   * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
+   * multiplies it by the {@code baseFactorMillis}.
+   */
+  static LongFunction<Duration> exponentialBackoff(final double baseDelayMillis,
+      final long maxDelayMillis) {
+    final long maxX = (long) Math.log(maxDelayMillis / baseDelayMillis);
+    return exponentialBackoff(baseDelayMillis, maxX, Duration.ofMillis(maxDelayMillis));
+  }
+
+  /**
+   * @param baseDelayMillis used as {@code Math.exp(x) * baseFactorMillis}.
+   * @param maxDelay the maximum delay duration this function may return.
+   * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
+   * multiplies it by the {@code baseFactorMillis}.
+   */
+  static LongFunction<Duration> exponentialBackoff(final double baseDelayMillis,
+      final Duration maxDelay) {
+    final long maxX = (long) Math.log(maxDelay.toMillis() / baseDelayMillis);
+    return exponentialBackoff(baseDelayMillis, maxX, maxDelay);
+  }
+
+  /**
+   * @param baseDelayMillis used as {@code Math.exp(x) * baseFactorMillis}.
+   * @param maxX the number of retries that will exceed the maximum delay.
+   * @param maxDelay the maximum delay duration this function may return.
+   * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
+   * multiplies it by the {@code baseFactorMillis}.
+   */
+  static LongFunction<Duration> exponentialBackoff(final double baseDelayMillis, final long maxX,
+      final Duration maxDelay) {
+    return x -> x > maxX ? maxDelay : Duration.ofMillis((long) (Math.exp(x) * baseDelayMillis));
+  }
+
+  static Builder startBuilding() {
+    return new Builder();
+  }
+
+  /**
    * This method may block until the next request to this element should be applied.
    *
    * Note: Internal to this implementation subclass, a global retry count should be tracked as
    * concurrent requests can be made against a node.
    *
-   * @param element    The element for the current failed request.
+   * @param element The element for the current failed request.
    * @param maxRetries The maximum number of retries before the given exception is thrown.
-   * @param cause      The current failure cause.
+   * @param cause The current failure cause.
    * @return The retry value that should be used in the next execution loop.
    */
   default long markFailure(final E element, final long maxRetries, final RuntimeException cause) {
@@ -30,11 +87,11 @@ public interface ElementRetryDelay<E> {
    * Note: Internal to this implementation subclass, a global retry count should be tracked as
    * concurrent requests can be made against a node.
    *
-   * @param element    The element for the current failed request.
+   * @param element The element for the current failed request.
    * @param maxRetries The maximum number of retries before the given exception is thrown.
-   * @param cause      The current failure cause.
-   * @param retry      The current requests' retry count, starting at zero, against this element.
-   *                   This is used as a back up in case the delay has no record of this element.
+   * @param cause The current failure cause.
+   * @param retry The current requests' retry count, starting at zero, against this element. This is
+   * used as a back up in case the delay has no record of this element.
    * @return The retry value that should be used in the next execution loop.
    */
   long markFailure(final E element, final long maxRetries, final RuntimeException cause,
@@ -60,64 +117,6 @@ public interface ElementRetryDelay<E> {
    */
   long getNumFailures(final E element);
 
-  /**
-   * @param baseFactor used as {@code Math.exp(x) * baseFactor}.
-   * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
-   * multiplies it by the {@code baseFactor}.
-   */
-  static LongFunction<Duration> exponentialBackoff(final Duration baseFactor) {
-    return exponentialBackoff(baseFactor.toMillis());
-  }
-
-  /**
-   * @param baseDelayMillis used as {@code Math.exp(x) * baseFactorMillis}.
-   * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
-   * multiplies it by the {@code baseFactorMillis}.
-   */
-  static LongFunction<Duration> exponentialBackoff(final double baseDelayMillis) {
-    return exponentialBackoff(baseDelayMillis, Long.MAX_VALUE);
-  }
-
-  /**
-   * @param baseDelayMillis used as {@code Math.exp(x) * baseFactorMillis}.
-   * @param maxDelayMillis  the maximum delay duration this function may return.
-   * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
-   * multiplies it by the {@code baseFactorMillis}.
-   */
-  static LongFunction<Duration> exponentialBackoff(final double baseDelayMillis,
-      final long maxDelayMillis) {
-    final long maxX = (long) Math.log(maxDelayMillis / baseDelayMillis);
-    return exponentialBackoff(baseDelayMillis, maxX, Duration.ofMillis(maxDelayMillis));
-  }
-
-  /**
-   * @param baseDelayMillis used as {@code Math.exp(x) * baseFactorMillis}.
-   * @param maxDelay        the maximum delay duration this function may return.
-   * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
-   * multiplies it by the {@code baseFactorMillis}.
-   */
-  static LongFunction<Duration> exponentialBackoff(final double baseDelayMillis,
-      final Duration maxDelay) {
-    final long maxX = (long) Math.log(maxDelay.toMillis() / baseDelayMillis);
-    return exponentialBackoff(baseDelayMillis, maxX, maxDelay);
-  }
-
-  /**
-   * @param baseDelayMillis used as {@code Math.exp(x) * baseFactorMillis}.
-   * @param maxX            the number of retries that will exceed the maximum delay.
-   * @param maxDelay        the maximum delay duration this function may return.
-   * @return A {@code LongFunction<Duration>} that applies an exponential function to the input and
-   * multiplies it by the {@code baseFactorMillis}.
-   */
-  static LongFunction<Duration> exponentialBackoff(final double baseDelayMillis, final long maxX,
-      final Duration maxDelay) {
-    return x -> x > maxX ? maxDelay : Duration.ofMillis((long) (Math.exp(x) * baseDelayMillis));
-  }
-
-  static Builder startBuilding() {
-    return new Builder();
-  }
-
   final class Builder implements Serializable {
 
     private static final long serialVersionUID = -1206437227491510129L;
@@ -127,7 +126,8 @@ public interface ElementRetryDelay<E> {
     private Duration maxDelay;
     private int numConurrentRetries = 1;
 
-    private Builder() {}
+    private Builder() {
+    }
 
     public ElementRetryDelay<Node> create() {
       if (maxDelay == null) {

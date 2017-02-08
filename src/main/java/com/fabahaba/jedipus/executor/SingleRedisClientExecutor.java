@@ -1,22 +1,21 @@
 package com.fabahaba.jedipus.executor;
 
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.function.ToLongFunction;
-
 import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.function.ToLongFunction;
 
 final class SingleRedisClientExecutor implements RedisClientExecutor {
 
   private final Supplier<Node> nodeSupplier;
   private final RedisClientFactory.Builder clientFactory;
-  private volatile RedisClient client;
   private final ElementRetryDelay<Node> retryDelay;
   private final int maxRetries;
+  private volatile RedisClient client;
 
   SingleRedisClientExecutor(final Supplier<Node> nodeSupplier,
       final RedisClientFactory.Builder clientFactory, final ElementRetryDelay<Node> retryDelay,
@@ -30,7 +29,7 @@ final class SingleRedisClientExecutor implements RedisClientExecutor {
 
   @Override
   public long applyPrim(final ToLongFunction<RedisClient> clientConsumer, final int maxRetries) {
-    for (RedisClient client = getClient(maxRetries);;) {
+    for (RedisClient client = getClient(maxRetries); ; ) {
       try {
         final long result = clientConsumer.applyAsLong(client);
         retryDelay.markSuccess(client.getNode());
@@ -43,7 +42,7 @@ final class SingleRedisClientExecutor implements RedisClientExecutor {
 
   @Override
   public <R> R apply(final Function<RedisClient, R> clientConsumer, final int maxRetries) {
-    for (RedisClient client = getClient(maxRetries);;) {
+    for (RedisClient client = getClient(maxRetries); ; ) {
       try {
         final R result = clientConsumer.apply(client);
         retryDelay.markSuccess(client.getNode());
@@ -71,7 +70,7 @@ final class SingleRedisClientExecutor implements RedisClientExecutor {
         return client;
       }
 
-      for (Node node = nodeSupplier.get(), previousNode = failedNode;;) {
+      for (Node node = nodeSupplier.get(), previousNode = failedNode; ; ) {
 
         if (previousNode != null && !node.equals(previousNode)) {
           retryDelay.clear(previousNode);

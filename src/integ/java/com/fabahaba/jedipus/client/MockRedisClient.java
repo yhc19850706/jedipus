@@ -1,19 +1,22 @@
 package com.fabahaba.jedipus.client;
 
-import java.util.Collection;
-
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.PrimArrayCmd;
 import com.fabahaba.jedipus.cmds.PrimCmd;
 import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.pubsub.RedisSubscriber;
+import java.util.Collection;
 
 public class MockRedisClient implements RedisClient {
 
   @Override
   public int getSoTimeout() {
     return 0;
+  }
+
+  @Override
+  public void setSoTimeout(final int soTimeoutMillis) {
   }
 
   @Override
@@ -27,7 +30,8 @@ public class MockRedisClient implements RedisClient {
   }
 
   @Override
-  public void close() {}
+  public void close() {
+  }
 
   @Override
   public Node getNode() {
@@ -80,7 +84,8 @@ public class MockRedisClient implements RedisClient {
   }
 
   @Override
-  public void resetState() {}
+  public void resetState() {
+  }
 
   @Override
   public <T> T sendCmd(final Cmd<?> cmd, final Cmd<T> subCmd, final byte[] args) {
@@ -188,86 +193,73 @@ public class MockRedisClient implements RedisClient {
   }
 
   @Override
-  public void asking() {}
-
+  public void asking() {
+  }
 
   @Override
   public String setClientName(final String clientName) {
     return null;
   }
 
-
   @Override
   public String getClientName() {
     return null;
   }
-
 
   @Override
   public String[] getClientList() {
     return null;
   }
 
-
   @Override
   public long[] sendCmd(final PrimArrayCmd cmd) {
     return null;
   }
-
 
   @Override
   public long[] sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd) {
     return null;
   }
 
-
   @Override
   public long[] sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd, final byte[] arg) {
     return null;
   }
-
 
   @Override
   public long[] sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd, final byte[]... args) {
     return null;
   }
 
-
   @Override
   public long[] sendCmd(final PrimArrayCmd cmd, final byte[] arg) {
     return null;
   }
-
 
   @Override
   public long[] sendCmd(final PrimArrayCmd cmd, final byte[]... args) {
     return null;
   }
 
-
   @Override
   public long[] sendCmd(final Cmd<?> cmd, final PrimArrayCmd subCmd, final String... args) {
     return null;
   }
-
 
   @Override
   public long[] sendCmd(final PrimArrayCmd cmd, final String... args) {
     return null;
   }
 
-
   @Override
   public long[] sendBlockingCmd(final PrimArrayCmd cmd) {
     return null;
   }
 
-
   @Override
   public long[] sendBlockingCmd(final PrimArrayCmd cmd, final byte[]... args) {
     return null;
   }
-
 
   @Override
   public long[] sendBlockingCmd(final PrimArrayCmd cmd, final String... args) {
@@ -310,7 +302,8 @@ public class MockRedisClient implements RedisClient {
   }
 
   @Override
-  public void flush() {}
+  public void flush() {
+  }
 
   @Override
   public <T> T sendCmd(final Cmd<T> cmd, final byte[] arg1, final byte[] arg2) {
@@ -374,13 +367,12 @@ public class MockRedisClient implements RedisClient {
   }
 
   @Override
-  public void setSoTimeout(final int soTimeoutMillis) {}
+  public void setInfinitSoTimeout() {
+  }
 
   @Override
-  public void setInfinitSoTimeout() {}
-
-  @Override
-  public void resetSoTimeout() {}
+  public void resetSoTimeout() {
+  }
 
   @Override
   public boolean consumePubSub(final int testSocketAliveMillis, final RedisSubscriber pubsub) {
@@ -393,22 +385,28 @@ public class MockRedisClient implements RedisClient {
   }
 
   @Override
-  public void subscribe(final String... channels) {}
+  public void subscribe(final String... channels) {
+  }
 
   @Override
-  public void psubscribe(final String... patterns) {}
+  public void psubscribe(final String... patterns) {
+  }
 
   @Override
-  public void unsubscribe(final String... channels) {}
+  public void unsubscribe(final String... channels) {
+  }
 
   @Override
-  public void punsubscribe(final String... patterns) {}
+  public void punsubscribe(final String... patterns) {
+  }
 
   @Override
-  public void pubsubPing() {}
+  public void pubsubPing() {
+  }
 
   @Override
-  public void pubsubPing(final String pong) {}
+  public void pubsubPing(final String pong) {
+  }
 
   @Override
   public <T> T sendBlockingCmd(final int timeoutMillis, final Cmd<T> cmd) {
@@ -476,14 +474,18 @@ public class MockRedisClient implements RedisClient {
   }
 
   @Override
-  public void subscribe(final Collection<String> channels) {}
+  public void subscribe(final Collection<String> channels) {
+  }
 
   @Override
-  public void psubscribe(final Collection<String> patterns) {}
+  public void psubscribe(final Collection<String> patterns) {
+  }
 
   @Override
-  public void unsubscribe(final Collection<String> channels) {}
+  public void unsubscribe(final Collection<String> channels) {
+  }
 
   @Override
-  public void punsubscribe(final Collection<String> patterns) {}
+  public void punsubscribe(final Collection<String> patterns) {
+  }
 }

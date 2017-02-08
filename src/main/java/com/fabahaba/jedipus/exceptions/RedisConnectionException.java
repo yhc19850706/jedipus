@@ -1,7 +1,6 @@
 package com.fabahaba.jedipus.exceptions;
 
 import com.fabahaba.jedipus.cluster.Node;
-
 import java.util.function.Function;
 
 @SuppressWarnings("serial")

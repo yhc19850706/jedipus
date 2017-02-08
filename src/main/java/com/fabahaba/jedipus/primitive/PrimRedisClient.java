@@ -5,11 +5,11 @@ import com.fabahaba.jedipus.client.RedisPipeline;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.ClientCmds;
 import com.fabahaba.jedipus.cmds.Cmd;
-
 import java.net.Socket;
 
 class PrimRedisClient extends BaseRedisClient {
 
+  static final Cmd<String> ASKING = Cmd.createStringReply("ASKING");
   private PrimPipeline pipeline;
 
   PrimRedisClient(final Node node, final ReplyMode replyMode, final NodeMapper nodeMapper,
@@ -46,8 +46,6 @@ class PrimRedisClient extends BaseRedisClient {
     }
     return pipeline = new PrimPipeline(this);
   }
-
-  static final Cmd<String> ASKING = Cmd.createStringReply("ASKING");
 
   @Override
   public void asking() {

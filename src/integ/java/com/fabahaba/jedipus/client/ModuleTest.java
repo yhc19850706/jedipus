@@ -3,12 +3,11 @@ package com.fabahaba.jedipus.client;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
-import org.junit.Test;
-
 import com.fabahaba.jedipus.cmds.Cmd;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.PrimCmd;
 import com.fabahaba.jedipus.cmds.RESP;
+import org.junit.Test;
 
 public class ModuleTest extends BaseRedisClientTest {
 
@@ -78,7 +77,7 @@ public class ModuleTest extends BaseRedisClientTest {
       assertEquals("foo", zrangeWithScores.get()[0]);
       assertEquals("2", zrangeWithScores.get()[1]);
       assertEquals("123", getrange.get());
-      assertArrayEquals(new byte[] {6, 7, 8}, (byte[]) getrangeBytes.get());
+      assertArrayEquals(new byte[]{6, 7, 8}, (byte[]) getrangeBytes.get());
     }
   }
 }

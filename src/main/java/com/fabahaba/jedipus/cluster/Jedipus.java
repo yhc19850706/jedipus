@@ -12,7 +12,6 @@ import com.fabahaba.jedipus.exceptions.SlotMovedException;
 import com.fabahaba.jedipus.exceptions.SlotRedirectException;
 import com.fabahaba.jedipus.pool.ClientPool;
 import com.fabahaba.jedipus.pool.RedisClientPool;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -140,7 +139,7 @@ final class Jedipus implements RedisClusterExecutor {
       client = null;
     }
 
-    for (;;) {
+    for (; ; ) {
       try {
         if (previousRedirectEx == null || !(previousRedirectEx instanceof AskNodeException)) {
           pool = connHandler.getSlotPool(readMode, slot);
@@ -282,7 +281,7 @@ final class Jedipus implements RedisClusterExecutor {
       client = null;
     }
 
-    for (;;) {
+    for (; ; ) {
       try {
         if (previousRedirectEx == null || !(previousRedirectEx instanceof AskNodeException)) {
           pool = connHandler.getSlotPool(readMode, slot);
@@ -358,7 +357,7 @@ final class Jedipus implements RedisClusterExecutor {
   public <R> R applyIfPresent(final Node node, final Function<RedisClient, R> clientConsumer,
       final int maxRetries) {
 
-    for (long retries = 0;;) {
+    for (long retries = 0; ; ) {
       ClientPool<RedisClient> pool = connHandler.getPoolIfPresent(node);
       if (pool == null) {
         connHandler.refreshSlotCache();
@@ -402,7 +401,7 @@ final class Jedipus implements RedisClusterExecutor {
   public <R> R applyUnknown(final Node node, final Function<RedisClient, R> clientConsumer,
       final int maxRetries) {
 
-    for (long retries = 0;;) {
+    for (long retries = 0; ; ) {
       try (final RedisClient client = connHandler.createUnknownNode(node)) {
         final R result = clientConsumer.apply(client);
         connHandler.getClusterNodeRetryDelay().markSuccess(node);
@@ -461,7 +460,7 @@ final class Jedipus implements RedisClusterExecutor {
       final Function<RedisClient, R> clientConsumer, final int
       maxRetries) {
 
-    for (long retries = 0;;) {
+    for (long retries = 0; ; ) {
       RedisClient client = null;
       try {
         client = RedisClientPool.borrowClient(pool);

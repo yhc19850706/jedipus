@@ -1,8 +1,7 @@
 package com.fabahaba.jedipus.pool;
 
-import java.util.Deque;
-
 import com.fabahaba.jedipus.cluster.Node;
+import java.util.Deque;
 
 public interface PooledClient<C> extends Comparable<PooledClient<? extends C>> {
 

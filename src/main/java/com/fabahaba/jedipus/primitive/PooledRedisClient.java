@@ -5,14 +5,13 @@ import com.fabahaba.jedipus.client.RedisClient;
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.pool.PooledClient;
 import com.fabahaba.jedipus.pool.PooledClientState;
-
 import java.net.Socket;
 import java.util.Deque;
 
 final class PooledRedisClient extends PrimRedisClient implements PooledClient<RedisClient> {
 
-  private PooledClientState state = PooledClientState.IDLE;
   private final long createTime = System.currentTimeMillis();
+  private PooledClientState state = PooledClientState.IDLE;
   private volatile long lastBorrowTime = createTime;
   private volatile long lastUseTime = createTime;
   private volatile long lastReturnTime = createTime;

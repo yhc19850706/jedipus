@@ -7,16 +7,14 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.net.SocketTimeoutException;
-
-import org.junit.Test;
-
 import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.cmds.Cmds;
 import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
+import java.net.SocketTimeoutException;
+import org.junit.Test;
 
 public class RedisClientTest extends BaseRedisClientTest {
 

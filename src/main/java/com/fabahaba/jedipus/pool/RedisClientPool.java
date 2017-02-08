@@ -5,7 +5,8 @@ import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 
 public final class RedisClientPool {
 
-  private RedisClientPool() {}
+  private RedisClientPool() {
+  }
 
   public static RedisClient borrowClient(final ClientPool<RedisClient> pool) {
     return pool.borrowClient();

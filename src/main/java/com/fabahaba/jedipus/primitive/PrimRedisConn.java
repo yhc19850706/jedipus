@@ -7,7 +7,6 @@ import com.fabahaba.jedipus.cmds.ClientCmds;
 import com.fabahaba.jedipus.cmds.MultiCmds;
 import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
-
 import java.net.Socket;
 import java.util.function.Function;
 import java.util.function.LongUnaryOperator;

@@ -1,8 +1,7 @@
 package com.fabahaba.jedipus.pubsub;
 
-import java.util.function.BiConsumer;
-
 import com.fabahaba.jedipus.cmds.RESP;
+import java.util.function.BiConsumer;
 
 public interface MsgConsumer extends BiConsumer<String, String> {
 
@@ -18,7 +17,9 @@ public interface MsgConsumer extends BiConsumer<String, String> {
     accept(channel, RESP.toString(payload));
   }
 
-  default void onSubscribed(final String channel) {}
+  default void onSubscribed(final String channel) {
+  }
 
-  default void onUnsubscribed(final String channel) {}
+  default void onUnsubscribed(final String channel) {
+  }
 }

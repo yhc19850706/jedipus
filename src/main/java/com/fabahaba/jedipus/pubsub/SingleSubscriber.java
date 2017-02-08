@@ -1,24 +1,24 @@
 package com.fabahaba.jedipus.pubsub;
 
+import com.fabahaba.jedipus.client.RedisClient;
+import com.fabahaba.jedipus.executor.RedisClientExecutor;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-import com.fabahaba.jedipus.client.RedisClient;
-import com.fabahaba.jedipus.executor.RedisClientExecutor;
-
 public class SingleSubscriber implements RedisSubscriber {
 
+  protected final MsgConsumer defaultConsumer;
   private final RedisClientExecutor clientExecutor;
   private final int soTimeoutMillis;
   private final Consumer<RedisSubscriber> onSocketTimeout;
-  private long subCount = Long.MAX_VALUE;
   private final Consumer<String> pongConsumer;
-  protected final MsgConsumer defaultConsumer;
   private final Set<String> subscriptions = Collections.newSetFromMap(new ConcurrentHashMap<>());
   private final Set<String> psubscriptions = Collections.newSetFromMap(new ConcurrentHashMap<>());
+  private long subCount = Long.MAX_VALUE;
+  private volatile RedisClient previousClient = null;
 
   protected SingleSubscriber(final RedisClientExecutor clientExecutor, final int soTimeoutMillis,
       final Consumer<RedisSubscriber> onSocketTimeout, final MsgConsumer defaultConsumer,
@@ -183,8 +183,6 @@ public class SingleSubscriber implements RedisSubscriber {
     });
   }
 
-  private volatile RedisClient previousClient = null;
-
   private void subscribeNewClient(final RedisClient client) {
 
     if (previousClient == null) {
@@ -264,15 +262,19 @@ public class SingleSubscriber implements RedisSubscriber {
   }
 
   @Override
-  public void registerConsumer(final MsgConsumer msgConsumer, final String... channels) {}
+  public void registerConsumer(final MsgConsumer msgConsumer, final String... channels) {
+  }
 
   @Override
-  public void unRegisterConsumer(final MsgConsumer msgConsumer, final String... channels) {}
+  public void unRegisterConsumer(final MsgConsumer msgConsumer, final String... channels) {
+  }
 
   @Override
-  public void registerConsumer(final MsgConsumer msgConsumer, final Collection<String> channels) {}
+  public void registerConsumer(final MsgConsumer msgConsumer, final Collection<String> channels) {
+  }
 
   @Override
   public void unRegisterConsumer(final MsgConsumer msgConsumer,
-      final Collection<String> channels) {}
+      final Collection<String> channels) {
+  }
 }

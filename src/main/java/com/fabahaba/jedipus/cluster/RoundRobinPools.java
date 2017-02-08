@@ -1,10 +1,9 @@
 package com.fabahaba.jedipus.cluster;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 import com.fabahaba.jedipus.pool.ClientPool;
+import java.util.concurrent.atomic.AtomicInteger;
 
 class RoundRobinPools<T> implements LoadBalancedPools<T, ReadMode> {
 

@@ -1,15 +1,14 @@
 package com.fabahaba.jedipus.pool;
 
-import java.util.Deque;
-
 import com.fabahaba.jedipus.cluster.Node;
+import java.util.Deque;
 
 public class DefaultPooledClient<C> implements PooledClient<C> {
 
   private final Node node;
   private final C object;
-  private volatile PooledClientState state = PooledClientState.IDLE;
   private final long createTime = System.currentTimeMillis();
+  private volatile PooledClientState state = PooledClientState.IDLE;
   private volatile long lastBorrowTime = createTime;
   private volatile long lastUseTime = createTime;
   private volatile long lastReturnTime = createTime;

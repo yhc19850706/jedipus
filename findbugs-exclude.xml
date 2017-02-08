@@ -1,27 +1,27 @@
 <FindBugsFilter>
-	<Match>
-		<Bug pattern="EI_EXPOSE_REP" />
-	</Match>
-	<Match>
-		<Bug pattern="EI_EXPOSE_REP2" />
-	</Match>
-	<Match>
-		<Bug pattern="MS_EXPOSE_REP" />
-	</Match>
-	<Match>
-		<Class name="com.fabahaba.jedipus.primitive.RESProtocol" />
-		<Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS" />
-	</Match>
-	<Match>
-		<Class name="com.fabahaba.jedipus.nbio.RedisChannelHandler" />
-		<Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS" />
-	</Match>
-	<Match>
-		<Class name="com.fabahaba.jedipus.primitive.PrimRedisConn" />
-		<Method name="getLongArrayReply" />
-		<Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS" />
-	</Match>
-	<Match>
-		<Class name="com.fabahaba.jedipus.client.MockRedisClient" />
-	</Match>
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Bug pattern="MS_EXPOSE_REP"/>
+  </Match>
+  <Match>
+    <Class name="com.fabahaba.jedipus.primitive.RESProtocol"/>
+    <Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS"/>
+  </Match>
+  <Match>
+    <Class name="com.fabahaba.jedipus.nbio.RedisChannelHandler"/>
+    <Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS"/>
+  </Match>
+  <Match>
+    <Class name="com.fabahaba.jedipus.primitive.PrimRedisConn"/>
+    <Method name="getLongArrayReply"/>
+    <Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS"/>
+  </Match>
+  <Match>
+    <Class name="com.fabahaba.jedipus.client.MockRedisClient"/>
+  </Match>
 </FindBugsFilter>

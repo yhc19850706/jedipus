@@ -6,10 +6,6 @@ import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 
 abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply {
 
-  protected static enum State {
-    EMPTY, PENDING, READY, BROKEN;
-  }
-
   protected State state = State.EMPTY;
   protected RuntimeException exception = null;
 
@@ -42,7 +38,8 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
     }
   }
 
-  protected void handleReply() {}
+  protected void handleReply() {
+  }
 
   StatefulFutureReply<T> setReply(final PrimRedisConn conn) {
     setMultiReply(conn.getReply());
@@ -69,5 +66,9 @@ abstract class StatefulFutureReply<T> implements FutureReply<T>, FutureLongReply
   @Override
   public long getAsLong() {
     return Long.MIN_VALUE;
+  }
+
+  protected static enum State {
+    EMPTY, PENDING, READY, BROKEN;
   }
 }

@@ -5,11 +5,11 @@ import com.fabahaba.jedipus.cmds.RESP;
 
 public final class ScanParams {
 
-  // http://redis.io/commands/scan
-  private ScanParams() {}
-
   public static final String SCAN_SENTINEL = "0";
   private static final byte[] SCAN_SENTINEL_BYTES = RESP.toBytes(SCAN_SENTINEL);
+  // http://redis.io/commands/scan
+  private ScanParams() {
+  }
 
   public static byte[][] createPatternCount(final String cursor, final String pattern,
       final int count) {
@@ -20,7 +20,7 @@ public final class ScanParams {
   public static byte[][] createPatternCount(final byte[] cursor, final byte[] pattern,
       final byte[] count) {
 
-    return new byte[][] {cursor, Cmds.MATCH.getCmdBytes(), pattern, Cmds.COUNT.getCmdBytes(),
+    return new byte[][]{cursor, Cmds.MATCH.getCmdBytes(), pattern, Cmds.COUNT.getCmdBytes(),
         count};
   }
 
@@ -31,7 +31,7 @@ public final class ScanParams {
 
   public static byte[][] createPattern(final byte[] cursor, final byte[] pattern) {
 
-    return new byte[][] {cursor, Cmds.MATCH.getCmdBytes(), pattern};
+    return new byte[][]{cursor, Cmds.MATCH.getCmdBytes(), pattern};
   }
 
   public static byte[][] createCount(final String cursor, final int count) {
@@ -41,7 +41,7 @@ public final class ScanParams {
 
   public static byte[][] createCount(final byte[] cursor, final byte[] count) {
 
-    return new byte[][] {cursor, Cmds.COUNT.getCmdBytes(), count};
+    return new byte[][]{cursor, Cmds.COUNT.getCmdBytes(), count};
   }
 
   public static byte[][] startScanPatternCount(final String pattern, final int count) {
@@ -51,7 +51,7 @@ public final class ScanParams {
 
   public static byte[][] startScanPatternCount(final byte[] pattern, final byte[] count) {
 
-    return new byte[][] {SCAN_SENTINEL_BYTES, Cmds.MATCH.getCmdBytes(), pattern,
+    return new byte[][]{SCAN_SENTINEL_BYTES, Cmds.MATCH.getCmdBytes(), pattern,
         Cmds.COUNT.getCmdBytes(), count};
   }
 
@@ -62,7 +62,7 @@ public final class ScanParams {
 
   public static byte[][] startScanPattern(final byte[] pattern) {
 
-    return new byte[][] {SCAN_SENTINEL_BYTES, Cmds.MATCH.getCmdBytes(), pattern};
+    return new byte[][]{SCAN_SENTINEL_BYTES, Cmds.MATCH.getCmdBytes(), pattern};
   }
 
   public static byte[][] startScanCount(final int count) {
@@ -72,7 +72,7 @@ public final class ScanParams {
 
   public static byte[][] startScanCount(final byte[] count) {
 
-    return new byte[][] {SCAN_SENTINEL_BYTES, Cmds.COUNT.getCmdBytes(), count};
+    return new byte[][]{SCAN_SENTINEL_BYTES, Cmds.COUNT.getCmdBytes(), count};
   }
 
   public static byte[][] createPatternCount(final String key, final String cursor,
@@ -85,7 +85,7 @@ public final class ScanParams {
   public static byte[][] createPatternCount(final byte[] key, final byte[] cursor,
       final byte[] pattern, final byte[] count) {
 
-    return new byte[][] {key, cursor, Cmds.MATCH.getCmdBytes(), pattern, Cmds.COUNT.getCmdBytes(),
+    return new byte[][]{key, cursor, Cmds.MATCH.getCmdBytes(), pattern, Cmds.COUNT.getCmdBytes(),
         count};
   }
 
@@ -98,7 +98,7 @@ public final class ScanParams {
   public static byte[][] createPattern(final byte[] key, final byte[] cursor,
       final byte[] pattern) {
 
-    return new byte[][] {key, cursor, Cmds.MATCH.getCmdBytes(), pattern};
+    return new byte[][]{key, cursor, Cmds.MATCH.getCmdBytes(), pattern};
   }
 
   public static byte[][] createCount(final String key, final String cursor, final int count) {
@@ -108,7 +108,7 @@ public final class ScanParams {
 
   public static byte[][] createCount(final byte[] key, final byte[] cursor, final byte[] count) {
 
-    return new byte[][] {key, cursor, Cmds.COUNT.getCmdBytes(), count};
+    return new byte[][]{key, cursor, Cmds.COUNT.getCmdBytes(), count};
   }
 
   public static byte[][] startScanPatternCount(final String key, final String pattern,
@@ -120,7 +120,7 @@ public final class ScanParams {
   public static byte[][] startScanPatternCount(final byte[] key, final byte[] pattern,
       final byte[] count) {
 
-    return new byte[][] {key, SCAN_SENTINEL_BYTES, Cmds.MATCH.getCmdBytes(), pattern,
+    return new byte[][]{key, SCAN_SENTINEL_BYTES, Cmds.MATCH.getCmdBytes(), pattern,
         Cmds.COUNT.getCmdBytes(), count};
   }
 
@@ -131,7 +131,7 @@ public final class ScanParams {
 
   public static byte[][] startScanPattern(final byte[] key, final byte[] pattern) {
 
-    return new byte[][] {key, SCAN_SENTINEL_BYTES, Cmds.MATCH.getCmdBytes(), pattern};
+    return new byte[][]{key, SCAN_SENTINEL_BYTES, Cmds.MATCH.getCmdBytes(), pattern};
   }
 
   public static byte[][] startScanCount(final String key, final int count) {
@@ -141,7 +141,7 @@ public final class ScanParams {
 
   public static byte[][] startScanCount(final byte[] key, final byte[] count) {
 
-    return new byte[][] {key, SCAN_SENTINEL_BYTES, Cmds.COUNT.getCmdBytes(), count};
+    return new byte[][]{key, SCAN_SENTINEL_BYTES, Cmds.COUNT.getCmdBytes(), count};
   }
 
   public static byte[][] startScan(final String key) {
@@ -151,7 +151,7 @@ public final class ScanParams {
 
   public static byte[][] startScan(final byte[] key) {
 
-    return new byte[][] {key, SCAN_SENTINEL_BYTES};
+    return new byte[][]{key, SCAN_SENTINEL_BYTES};
   }
 
   public static byte[][] fillPatternCount(final byte[][] args) {

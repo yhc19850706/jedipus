@@ -5,9 +5,9 @@ import com.fabahaba.jedipus.cluster.Node;
 @SuppressWarnings("serial")
 public class SlotRedirectException extends RedisException {
 
-  private SlotRedirectException previous;
   private final Node targetNode;
   private final int slot;
+  private SlotRedirectException previous;
 
   SlotRedirectException(final Node node, final String message, final Node targetNode,
       final int slot) {

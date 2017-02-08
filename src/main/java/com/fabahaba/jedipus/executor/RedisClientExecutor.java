@@ -5,7 +5,6 @@ import com.fabahaba.jedipus.cluster.Node;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.pool.ClientPool;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
-
 import java.io.Serializable;
 import java.time.Duration;
 import java.util.function.Consumer;
@@ -14,6 +13,10 @@ import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 
 public interface RedisClientExecutor extends AutoCloseable {
+
+  static Builder startBuilding() {
+    return new Builder();
+  }
 
   int getMaxRetries();
 
@@ -39,10 +42,6 @@ public interface RedisClientExecutor extends AutoCloseable {
   @Override
   void close();
 
-  static Builder startBuilding() {
-    return new Builder();
-  }
-
   class Builder implements Serializable {
 
     private static final long serialVersionUID = -5539186165488469038L;
@@ -57,7 +56,8 @@ public interface RedisClientExecutor extends AutoCloseable {
     private int maxRetries = Integer.MAX_VALUE;
     private ClientPool.Builder poolFactory;
 
-    private Builder() {}
+    private Builder() {
+    }
 
     public RedisClientExecutor create(final Supplier<Node> nodeSupplier) {
       if (clientFactory == null) {

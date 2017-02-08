@@ -1,8 +1,7 @@
 package com.fabahaba.jedipus.primitive;
 
-import java.util.Queue;
-
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
+import java.util.Queue;
 
 final class Prim2DArrayExecFutureReply extends StatefulFutureReply<long[][]> {
 
@@ -43,7 +42,7 @@ final class Prim2DArrayExecFutureReply extends StatefulFutureReply<long[][]> {
         throw new RedisUnhandledException(null, String.format(
             "Expected to only have %d replies, but was %d.", reply.length, multiReplies.size()));
       }
-      for (int index = 0;; index++) {
+      for (int index = 0; ; index++) {
         final StatefulFutureReply<?> multiReply = multiReplies.poll();
         if (multiReply == null) {
           if (index != reply.length) {

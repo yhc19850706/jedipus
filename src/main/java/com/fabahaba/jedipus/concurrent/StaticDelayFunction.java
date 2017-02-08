@@ -1,12 +1,11 @@
 package com.fabahaba.jedipus.concurrent;
 
+import com.fabahaba.jedipus.client.SerializableLongFunction;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.LongFunction;
-
-import com.fabahaba.jedipus.client.SerializableLongFunction;
 
 public final class StaticDelayFunction implements SerializableLongFunction<Duration> {
 
@@ -20,16 +19,12 @@ public final class StaticDelayFunction implements SerializableLongFunction<Durat
     this.maxDelay = maxDelay;
   }
 
-  public Duration getMaxDelay() {
-    return maxDelay;
-  }
-
   public static StaticDelayFunction create(final LongFunction<Duration> delayFunction,
       final Duration maxDelay) {
 
     final List<Duration> delayDurations = new ArrayList<>();
 
-    for (long retry = 0;; retry++) {
+    for (long retry = 0; ; retry++) {
       final Duration delay = delayFunction.apply(retry);
       if (delay.compareTo(maxDelay) >= 0) {
         break;
@@ -38,6 +33,10 @@ public final class StaticDelayFunction implements SerializableLongFunction<Durat
     }
 
     return new StaticDelayFunction(delayDurations, maxDelay);
+  }
+
+  public Duration getMaxDelay() {
+    return maxDelay;
   }
 
   @Override

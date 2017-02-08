@@ -1,5 +1,11 @@
 package com.fabahaba.jedipus.pool;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import com.fabahaba.jedipus.client.BaseRedisClientTest;
 import com.fabahaba.jedipus.client.MockRedisClient;
 import com.fabahaba.jedipus.client.RedisClient;
@@ -10,18 +16,10 @@ import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.RedisException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
-
-import org.junit.Test;
-
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.junit.Test;
 
 public class RedisClientPoolTest {
 
@@ -123,37 +121,6 @@ public class RedisClientPoolTest {
       final RedisClient client = RedisClientPool.borrowClient(pool);
       assertEquals(clientName, client.getClientName());
       RedisClientPool.returnClient(pool, client);
-    }
-  }
-
-  private static class CrashingClient extends MockRedisClient {
-    @Override
-    public void resetState() {
-      throw new RedisException("crashed");
-    }
-  }
-
-  private static class CrashingPool implements PooledClientFactory<RedisClient> {
-
-    private final AtomicInteger destroyed;
-
-    public CrashingPool(final AtomicInteger destroyed) {
-      this.destroyed = destroyed;
-    }
-
-    @Override
-    public void destroyClient(final PooledClient<RedisClient> pooledClient) {
-      destroyed.incrementAndGet();
-    }
-
-    @Override
-    public PooledClient<RedisClient> createClient() {
-      return new DefaultPooledClient<>(null, new CrashingClient());
-    }
-
-    @Override
-    public Node getNode() {
-      return null;
     }
   }
 
@@ -302,6 +269,38 @@ public class RedisClientPoolTest {
       assertNull(client.sendCmd(Cmds.GET.raw(), "foo"));
       client.sendCmd(Cmds.SELECT.raw(), RESP.toBytes(defaultDb));
       assertEquals(1L, client.sendCmd(Cmds.DEL.prim(), "foo"));
+    }
+  }
+
+  private static class CrashingClient extends MockRedisClient {
+
+    @Override
+    public void resetState() {
+      throw new RedisException("crashed");
+    }
+  }
+
+  private static class CrashingPool implements PooledClientFactory<RedisClient> {
+
+    private final AtomicInteger destroyed;
+
+    public CrashingPool(final AtomicInteger destroyed) {
+      this.destroyed = destroyed;
+    }
+
+    @Override
+    public void destroyClient(final PooledClient<RedisClient> pooledClient) {
+      destroyed.incrementAndGet();
+    }
+
+    @Override
+    public PooledClient<RedisClient> createClient() {
+      return new DefaultPooledClient<>(null, new CrashingClient());
+    }
+
+    @Override
+    public Node getNode() {
+      return null;
     }
   }
 }

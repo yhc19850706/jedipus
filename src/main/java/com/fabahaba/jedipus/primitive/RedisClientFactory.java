@@ -13,7 +13,6 @@ import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.RedisConnectionException;
 import com.fabahaba.jedipus.pool.PooledClient;
 import com.fabahaba.jedipus.pool.PooledClientFactory;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.Socket;
@@ -22,19 +21,16 @@ import java.util.Arrays;
 public class RedisClientFactory implements PooledClientFactory<RedisClient>, Serializable {
 
   private static final long serialVersionUID = 9117451563269092836L;
-
-  private final Node node;
-  private final NodeMapper nodeMapper;
-  private final int connTimeoutMillis;
-  private final ConnectedSocketFactory<? extends Socket> socketFactory;
-  private final int soTimeoutMillis;
-
   protected final byte[] pass;
   protected final byte[] clientName;
   protected final boolean initReadOnly;
   protected final ReplyMode replyMode;
   protected final byte[] db;
-
+  private final Node node;
+  private final NodeMapper nodeMapper;
+  private final int connTimeoutMillis;
+  private final ConnectedSocketFactory<? extends Socket> socketFactory;
+  private final int soTimeoutMillis;
   private final int outputBufferSize;
   private final int inputBufferSize;
 
@@ -58,13 +54,13 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient>, Ser
     this.inputBufferSize = inputBufferSize;
   }
 
+  public static Builder startBuilding() {
+    return new Builder();
+  }
+
   @Override
   public Node getNode() {
     return node;
-  }
-
-  public static Builder startBuilding() {
-    return new Builder();
   }
 
   protected void initClient(final RedisClient client) {
@@ -128,10 +124,12 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient>, Ser
   }
 
   @Override
-  public void activateClient(final PooledClient<RedisClient> pooledObj) {}
+  public void activateClient(final PooledClient<RedisClient> pooledObj) {
+  }
 
   @Override
-  public void passivateClient(final PooledClient<RedisClient> pooledObj) {}
+  public void passivateClient(final PooledClient<RedisClient> pooledObj) {
+  }
 
   @Override
   public String toString() {
@@ -164,7 +162,8 @@ public class RedisClientFactory implements PooledClientFactory<RedisClient>, Ser
     private volatile ConnectedSocketFactory<? extends Socket> connectedSocketFactory;
     private IOFactory<Socket> socketFactory;
 
-    private Builder() {}
+    private Builder() {
+    }
 
     public PooledClientFactory<RedisClient> createPooled() {
       return createPooled(host, port);

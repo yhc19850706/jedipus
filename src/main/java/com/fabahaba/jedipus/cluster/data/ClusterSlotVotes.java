@@ -1,12 +1,11 @@
 package com.fabahaba.jedipus.cluster.data;
 
+import com.fabahaba.jedipus.cluster.Node;
+import com.fabahaba.jedipus.cmds.RESP;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import com.fabahaba.jedipus.cluster.Node;
-import com.fabahaba.jedipus.cmds.RESP;
 
 public final class ClusterSlotVotes implements Comparable<ClusterSlotVotes>, Serializable {
 
@@ -75,12 +74,15 @@ public final class ClusterSlotVotes implements Comparable<ClusterSlotVotes>, Ser
 
   @Override
   public boolean equals(final Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (obj == null)
+    }
+    if (obj == null) {
       return false;
-    if (getClass() != obj.getClass())
+    }
+    if (getClass() != obj.getClass()) {
       return false;
+    }
     final ClusterSlotVotes other = (ClusterSlotVotes) obj;
     return Arrays.equals(clusterSlots, other.clusterSlots);
   }

@@ -6,7 +6,10 @@ import java.security.NoSuchAlgorithmException;
 
 final class Sha1Hex {
 
-  private Sha1Hex() {}
+  private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
+
+  private Sha1Hex() {
+  }
 
   static String sha1(final String script) {
     try {
@@ -16,8 +19,6 @@ final class Sha1Hex {
       throw new AssertionError(e);
     }
   }
-
-  private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
 
   static String hexBinaryToString(final byte[] data) {
     final char[] shaHex = new char[data.length * 2];

@@ -1,7 +1,5 @@
 package com.fabahaba.jedipus.cmds.pipeline;
 
-import java.util.Collection;
-
 import com.fabahaba.jedipus.client.FutureLongReply;
 import com.fabahaba.jedipus.client.FutureReply;
 import com.fabahaba.jedipus.cmds.Cmd;
@@ -9,6 +7,7 @@ import com.fabahaba.jedipus.cmds.CmdByteArray;
 import com.fabahaba.jedipus.cmds.PrimArrayCmd;
 import com.fabahaba.jedipus.cmds.PrimCmd;
 import com.fabahaba.jedipus.cmds.RESP;
+import java.util.Collection;
 
 public interface PipelineDirectPrimCmds {
 

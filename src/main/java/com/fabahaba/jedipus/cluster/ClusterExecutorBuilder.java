@@ -9,7 +9,6 @@ import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.pool.ClientPool;
 import com.fabahaba.jedipus.pool.EvictionStrategy;
 import com.fabahaba.jedipus.primitive.RedisClientFactory;
-
 import java.io.Serializable;
 import java.time.Duration;
 import java.util.Collection;
@@ -42,7 +41,8 @@ public final class ClusterExecutorBuilder implements Serializable {
       RedisClientFactory.startBuilding();
 
   private static final EvictionStrategy<RedisClient> DEFAULT_EVICTION_STRATEGY =
-      new EvictionStrategy.DefaultEvictionStrategy<>(ClientPool.DEFAULT_SOFT_MIN_EVICTABLE_IDLE_DURATION,
+      new EvictionStrategy.DefaultEvictionStrategy<>(
+          ClientPool.DEFAULT_SOFT_MIN_EVICTABLE_IDLE_DURATION,
           ClientPool.DEFAULT_MIN_EVICTABLE_IDLE_DURATION, 2);
 
   private static final SerializableFunction<Node, ClientPool<RedisClient>>

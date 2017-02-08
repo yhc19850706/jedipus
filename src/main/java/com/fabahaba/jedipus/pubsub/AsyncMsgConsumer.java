@@ -1,9 +1,8 @@
 package com.fabahaba.jedipus.pubsub;
 
+import com.fabahaba.jedipus.cmds.RESP;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
-
-import com.fabahaba.jedipus.cmds.RESP;
 
 public abstract class AsyncMsgConsumer implements MsgConsumer {
 

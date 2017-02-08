@@ -6,7 +6,6 @@ import com.fabahaba.jedipus.cluster.RedisClusterExecutor.ReadMode;
 import com.fabahaba.jedipus.concurrent.ElementRetryDelay;
 import com.fabahaba.jedipus.concurrent.LoadBalancedPools;
 import com.fabahaba.jedipus.pool.ClientPool;
-
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;

@@ -1,10 +1,20 @@
 package com.fabahaba.jedipus.cmds;
 
 import com.fabahaba.jedipus.pubsub.RedisSubscriber;
-
 import java.util.Collection;
 
 public interface PubSubCmds extends DirectCmds {
+
+  // http://redis.io/commands#pubsub
+  Cmd<Object> PSUBSCRIBE = Cmd.createCast("PSUBSCRIBE");
+  Cmd<Long> PUBLISH = Cmd.createCast("PUBLISH");
+  Cmd<Object> PUBSUB = Cmd.createCast("PUBSUB");
+  Cmd<Object[]> CHANNELS = Cmd.createInPlaceStringArrayReply("CHANNELS");
+  Cmd<Object[]> NUMSUB = Cmd.createCast("NUMSUB");
+  Cmd<Long> NUMPAT = Cmd.createCast("NUMPAT");
+  Cmd<Object> PUNSUBSCRIBE = Cmd.createCast("PUNSUBSCRIBE");
+  Cmd<Object> SUBSCRIBE = Cmd.createCast("SUBSCRIBE");
+  Cmd<Object> UNSUBSCRIBE = Cmd.createCast("UNSUBSCRIBE");
 
   default boolean consumePubSub(final RedisSubscriber subscriber) {
     return consumePubSub(0, subscriber);
@@ -57,15 +67,4 @@ public interface PubSubCmds extends DirectCmds {
   default long numPat() {
     return sendCmd(PUBSUB, NUMPAT.prim());
   }
-
-  // http://redis.io/commands#pubsub
-  Cmd<Object> PSUBSCRIBE = Cmd.createCast("PSUBSCRIBE");
-  Cmd<Long> PUBLISH = Cmd.createCast("PUBLISH");
-  Cmd<Object> PUBSUB = Cmd.createCast("PUBSUB");
-  Cmd<Object[]> CHANNELS = Cmd.createInPlaceStringArrayReply("CHANNELS");
-  Cmd<Object[]> NUMSUB = Cmd.createCast("NUMSUB");
-  Cmd<Long> NUMPAT = Cmd.createCast("NUMPAT");
-  Cmd<Object> PUNSUBSCRIBE = Cmd.createCast("PUNSUBSCRIBE");
-  Cmd<Object> SUBSCRIBE = Cmd.createCast("SUBSCRIBE");
-  Cmd<Object> UNSUBSCRIBE = Cmd.createCast("UNSUBSCRIBE");
 }

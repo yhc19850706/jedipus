@@ -1,14 +1,13 @@
 package com.fabahaba.jedipus.pubsub;
 
+import com.fabahaba.jedipus.client.SerializableConsumer;
+import com.fabahaba.jedipus.client.SerializableFunction;
+import com.fabahaba.jedipus.executor.RedisClientExecutor;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-
-import com.fabahaba.jedipus.client.SerializableConsumer;
-import com.fabahaba.jedipus.client.SerializableFunction;
-import com.fabahaba.jedipus.executor.RedisClientExecutor;
 
 public interface RedisSubscriber extends Runnable {
 
@@ -102,7 +101,8 @@ public interface RedisSubscriber extends Runnable {
     private SerializableConsumer<String> pongConsumer = pong -> {
     };
 
-    private Builder() {}
+    private Builder() {
+    }
 
     public RedisSubscriber createSingleSubscriber(final RedisClientExecutor clientExecutor,
         final MsgConsumer msgConsumer) {

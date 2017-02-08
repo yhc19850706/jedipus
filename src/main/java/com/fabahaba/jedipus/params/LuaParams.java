@@ -1,12 +1,12 @@
 package com.fabahaba.jedipus.params;
 
-import java.util.Collection;
-
 import com.fabahaba.jedipus.cmds.RESP;
+import java.util.Collection;
 
 public final class LuaParams {
 
-  private LuaParams() {}
+  private LuaParams() {
+  }
 
   public static byte[][] createEvalArgs(final byte[] sha1Hex, final byte[] keyCount,
       final byte[] param) {

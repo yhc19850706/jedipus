@@ -12,7 +12,6 @@ import com.fabahaba.jedipus.cmds.RESP;
 import com.fabahaba.jedipus.exceptions.AskNodeException;
 import com.fabahaba.jedipus.exceptions.RedisUnhandledException;
 import com.fabahaba.jedipus.exceptions.UnhandledAskNodeException;
-
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Queue;
@@ -180,7 +179,7 @@ final class PrimPipeline implements RedisPipeline {
     }
 
     client.conn.flushOS();
-    for (;;) {
+    for (; ; ) {
       final StatefulFutureReply<?> futureReply = pipelineReplies.poll();
       if (futureReply == null) {
         return;
@@ -210,7 +209,7 @@ final class PrimPipeline implements RedisPipeline {
     }
 
     client.conn.flushOS();
-    for (;;) {
+    for (; ; ) {
       final StatefulFutureReply<?> futureReply = pipelineReplies.poll();
       if (futureReply == null) {
         return;

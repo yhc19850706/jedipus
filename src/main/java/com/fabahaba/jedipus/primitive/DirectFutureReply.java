@@ -19,5 +19,6 @@ final class DirectFutureReply<T> extends StatefulFutureReply<T> {
   }
 
   @Override
-  protected void handleReply() {}
+  protected void handleReply() {
+  }
 }
